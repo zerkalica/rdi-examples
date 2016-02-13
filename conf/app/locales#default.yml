@@ -1,0 +1,4 @@
+config:
+    i18n:
+        locale: en
+        phrases: {}

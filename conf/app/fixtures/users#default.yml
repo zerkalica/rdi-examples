@@ -1,0 +1,25 @@
+fixtures:
+    /users:
+        -
+            id: 1
+            name: John Doe
+            email: doe@example.com
+            unusedField: test
+        -
+            id: 2
+            name: Addy Osmani
+            email: osmani@example.com
+
+    /user/1:
+        id: 1
+        name: John Doe
+        email: doe@example.com
+        description: user 1 description
+        unusedField: test
+
+    /user/2:
+        id: 2
+        name: Addy Osmani
+        email: osmani@example.com
+        description: user 2 description
+        unusedField: test 2

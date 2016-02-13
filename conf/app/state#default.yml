@@ -1,0 +1,17 @@
+route:
+    page: ''
+    query: {}
+
+user:
+    current: {}
+    users: []
+
+todo:
+    filter:
+        active: true
+        completed: true
+    todos: []
+    todoLists: []
+
+fetcher:
+    error: ''
