@@ -1,18 +1,22 @@
 /* @flow */
 
-import rdi from '../../common/annotations'
 import {merge} from 'reactive-di'
 import type {Collection} from 'reactive-di/interfaces/collectionInterfaces'
-import type {TodoItem} from '../interfaces'
+
+import rdi from '../../common/annotations'
+import TodoAppState from '../models/TodoAppState'
 import TodoGroupState from '../models/TodoGroupState'
 import TodoItemCollection from '../models/TodoItemCollection'
-import TodoAppState from '../models/TodoAppState'
+import type {TodoItem} from '../interfaces'
 
-export function toggleAll(items: TodoItemCollection, groupState: TodoGroupState): Collection<TodoItem> {
+export function toggleAll(todoState: TodoAppState, groupState: TodoGroupState): Collection<TodoItem> {
     const isCompleted = !groupState.isAllCompleted
-    return items.map(item => merge(item, {isCompleted}))
+    return merge(todoState, {
+        items: todoState.items.map(item => merge(item, {isCompleted})),
+        groupState: merge(todoState.groupState, {isAllCompleted: isCompleted})
+    })
 }
-rdi.setter(TodoItemCollection, TodoGroupState)(toggleAll)
+rdi.setter(TodoAppState, TodoGroupState)(toggleAll)
 
 export function clearCompleted(items: TodoItemCollection): Collection<TodoItem> {
     return items.filter(item => item.isCompleted)
