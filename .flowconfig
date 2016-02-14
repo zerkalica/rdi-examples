@@ -1,5 +1,6 @@
 [ignore]
 .*/dist/.*
+.*/lib/.*
 .*/examples/.*
 .*/node_modules/bab.*
 .*/node_modules/lodash.*
@@ -10,12 +11,16 @@
 
 [include]
 .*/src/.*
+.*/node_modules/reactive.*
 
 [libs]
-.*/decl/mochaFlow.js
+.*/interfaces/.*
 
 [options]
+module.name_mapper='.*\(.css\)' -> 'empty/object'
+module.name_mapper='^todomvc/\(.*\)' -> '<PROJECT_ROOT>/src/\1'
+munge_underscores=true
 suppress_comment= \\(.\\|\n\\)*\\$FlowDisable
 esproposal.decorators=ignore
-esproposal.class_instance_fields=ignore
-esproposal.class_static_fields=ignore
+esproposal.class_instance_fields=enable
+esproposal.class_static_fields=enable

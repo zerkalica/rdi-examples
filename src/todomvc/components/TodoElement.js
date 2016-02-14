@@ -17,28 +17,28 @@ export type TodoItemActions = {
 type TodoItemProps = {
     item: TodoItem;
     actions: TodoItemActions;
-
     editingItem: TodoItem;
-    beginEditing(id: string): void;
+    beginEditing(item: TodoItem): void;
     cancelEditing(): void;
     assign(rec: TodoEditingRec): void;
 };
 
+const KEY_ENTER = 13
+const KEY_ESC = 27
+
 export default class TodoElement extends Component<void, TodoItemProps, void> {
-    _handleKeyPress(e: Event): void {
+    _handleKeyDown(e: SyntheticKeyboardEvent): void {
         const {
             editingItem,
-            change,
+            actions,
             cancelEditing
         } = this.props
 
-        e.preventDefault()
-
         switch (e.keyCode) {
-            case 13:
-                change(editingItem)
+            case KEY_ENTER:
+                actions.change(editingItem)
                 break
-            case 27:
+            case KEY_ESC:
                 cancelEditing()
                 break
             default:
@@ -56,12 +56,6 @@ export default class TodoElement extends Component<void, TodoItemProps, void> {
             beginEditing
         }: TodoItemProps = this.props;
 
-        const {
-            remove,
-            toggle,
-            change
-        } = actions
-
         const isEditing = editingItem.id === item.id
 
         return (
@@ -70,23 +64,23 @@ export default class TodoElement extends Component<void, TodoItemProps, void> {
                     completed: item.isCompleted,
                     editing: isEditing
                 })}
-                onDoubleClick={() => beginEditing(item.id)}
+                onDoubleClick={() => beginEditing(item)}
             >
                 <div className="view">
                     <input
                         className="toggle"
                         type="checkbox"
                         checked={item.isCompleted}
-                        onChange={() => toggle(item.id)}
+                        onChange={() => actions.toggle(item.id)}
                     />
                     <label>{item.title}</label>
-                    <button className="destroy" onClick={() => remove(item.id)}></button>
+                    <button className="destroy" onClick={() => actions.remove(item.id)}></button>
                 </div>
                 <input
                     className="edit"
                     value={editingItem.title}
                     onChange={handleChange((title: string) => assign({title}))}
-                    onKeyPress={(e: Event) => this._handleKeyPress(e)}
+                    onKeyDown={e => this._handleKeyDown(e)}
                 />
             </li>
         )

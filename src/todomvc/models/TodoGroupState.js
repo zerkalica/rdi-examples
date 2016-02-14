@@ -15,7 +15,7 @@ class TodoGroupState {
     isAllCompleted: boolean;
     selectedGroup: SelectedGroup;
 
-    constructor(rec: TodoGroupStateRec) {
+    constructor(rec: TodoGroupStateRec = {}) {
         this.isAllCompleted = rec.isAllCompleted || false
         this.selectedGroup = rec.selectedGroup || 'all'
     }

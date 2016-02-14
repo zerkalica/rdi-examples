@@ -3,11 +3,23 @@ import HtmlWebpackPlugin from 'html-webpack-plugin'
 import webpack from 'webpack'
 import autoprefixer from 'autoprefixer'
 
+const fallback = []
+if (process.env.NVM_PATH) {
+    fallback.push(path.resolve(process.env.NVM_PATH, '..', 'node_modules'))
+}
+fallback.push(path.resolve(__dirname, '..', 'node_modules'))
+
 export default {
     cwd: path.resolve(__dirname, '..'),
     cache: true,
     debug: true,
     devtool: 'source-map',
+    resolve: {
+        fallback
+    },
+    resolveLoader: {
+        fallback
+    },
     output: {
         publicPath: '/',
         path: path.resolve(__dirname, '..', 'build'),
@@ -70,6 +82,9 @@ export default {
             }
         }),
 */
-        new HtmlWebpackPlugin()
+        new HtmlWebpackPlugin({
+            title: 'todomvc demo',
+            template: path.resolve(__dirname, 'assets', 'index.ejs')
+        })
     ]
 }

@@ -19,13 +19,13 @@ export function handleChange(
 
 export function handleEnter(
     func: () => void,
-    preventDefault: boolean = true
-): (e: Event) => void {
-    return function _handleChange(e: Event): void {
-        if (preventDefault) {
-            e.preventDefault()
-        }
-        if (e.keyCode === 13) {
+    preventDefault: boolean = false
+): (e: SyntheticKeyboardEvent) => void {
+    return function _handleChange(e: SyntheticKeyboardEvent): void {
+        if (e.charCode === 13) {
+            if (preventDefault) {
+                e.preventDefault()
+            }
             func()
         }
     }

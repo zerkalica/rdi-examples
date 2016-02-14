@@ -1,5 +1,18 @@
 /* @flow */
 
-import {createAnnotations} from 'reactive-di'
+import {
+    DefaultIdCreator,
+    SymbolMetaDriver,
+    createAnnotations
+} from 'reactive-di'
 
-export default createAnnotations()
+const idCreator = new DefaultIdCreator()
+
+export function createId(): string {
+    return idCreator.createId()
+}
+
+export default createAnnotations(
+    new SymbolMetaDriver(),
+    idCreator
+)

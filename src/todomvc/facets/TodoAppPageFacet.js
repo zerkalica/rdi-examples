@@ -66,7 +66,6 @@ class TodoAppPageFacet {
         showActive,
         showCompleted
     ) {
-        this.items = items
         this.itemsCount = items.length
         this.isAllCompleted = groupState.isAllCompleted
         this.selectedGroup = groupState.selectedGroup
@@ -85,6 +84,21 @@ class TodoAppPageFacet {
             showActive,
             showCompleted
         }
+
+        switch (groupState.selectedGroup) {
+            case 'all':
+                this.items = items
+                break
+            case 'completed':
+                this.items = items.filter(item => item.isCompleted)
+                break
+            case 'active':
+                this.items = items.filter(item => !item.isCompleted)
+                break
+            default:
+                throw new Error(`Unknown selectedGroup: ${groupState.selectedGroup}`)
+        }
+
         this.hasCompleted = !!items.find(item => item.isCompleted)
     }
 }

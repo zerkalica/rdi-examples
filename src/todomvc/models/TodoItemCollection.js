@@ -21,7 +21,7 @@ export class TodoItemImpl {
     title: string;
     isCompleted: boolean;
 
-    constructor(rec: TodoItemRec) {
+    constructor(rec: TodoItemRec = {}) {
         this.id = rec.id || ''
         this.title = rec.title || ''
         this.isCompleted = rec.isCompleted || false

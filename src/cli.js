@@ -15,7 +15,9 @@ const baseEnv = new BaseEnv({
 });
 const container: ReactiveDi = createDi(baseEnv, merge(config, window.todoMvcSettings || {}));
 const props = {
-    createRdiUpdater: container.createUpdater
+    context: {
+        createRdiUpdater: container.createUpdater
+    }
 }
 const node: Element = document.getElementById('app')
 

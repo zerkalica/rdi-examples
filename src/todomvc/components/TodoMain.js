@@ -11,7 +11,6 @@ import type {
     TodoItem
 } from '../interfaces'
 
-
 type TodoMainActions = TodoItemActions & {
     toggleAll(): void;
 }
@@ -33,15 +32,15 @@ export default class TodoMain extends Component<void, TodoMainProps, void> {
         }: TodoMainProps = this.props;
         const {toggleAll, remove, change, toggle} = actions
         return (
-            <section class="main">
+            <section className="main">
                 <input
-                    class="toggle-all"
+                    className="toggle-all"
                     id="toggle-all"
                     onClick={toggleAll}
                     checked={isAllCompleted}
                     type="checkbox"
                 />
-                <label forHtml="toggle-all">Mark all as complete</label>
+                <label htmlFor="toggle-all">Mark all as complete</label>
                 <TodoElementList
                     ItemTemplate={ItemTemplate}
                     items={items}

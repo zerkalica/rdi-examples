@@ -1,6 +1,7 @@
 /* @flow */
 
 import React, {Component} from 'react'
+import rdi from '../../common/annotations'
 import {statefull} from 'reactive-di-react'
 
 import TodoAppPageFacet from '../facets/TodoAppPageFacet'
@@ -28,9 +29,22 @@ const TodoHeaderInj = statefull({
     assign: assignAdding
 })(TodoHeader)
 
+class TodoAppPageChildWidgets {
+    TodoElement: TodoElement;
+    TodoHeader: TodoHeader;
+
+    constructor(
+        TodoElement: TodoElement,
+        TodoHeader: TodoHeader
+    ) {
+        this.TodoHeader = TodoHeaderInj
+        this.TodoElement = TodoElementInj
+    }
+}
+const TodoAppPageChildWidgetsInj = rdi.klass()(TodoAppPageChildWidgets)
+
 const TodoAppPage = statefull({
-    TodoElement: TodoElementInj,
-    TodoHeader: TodoHeaderInj,
+    widgets: TodoAppPageChildWidgetsInj,
     props: TodoAppPageFacet
 })(TodoWidget)
 

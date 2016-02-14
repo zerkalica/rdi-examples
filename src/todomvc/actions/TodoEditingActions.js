@@ -16,8 +16,8 @@ export function assignEditing(item: TodoItem, rec: TodoEditingRec): TodoItem {
 }
 rdi.setter(TodoItemEditing)(assignEditing)
 
-export function beginEditing(item: TodoItem, id: string): TodoItem {
-    return merge(item, {id})
+export function beginEditing(item: TodoItem, currentItem: TodoItem): TodoItem {
+    return merge(item, currentItem)
 }
 rdi.setter(TodoItemEditing)(beginEditing)
 

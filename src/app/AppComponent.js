@@ -16,7 +16,7 @@ const defaultPageMap: SimpleMap<string, Component> = {
 class RootFacet {
     Widget: ?Component;
 
-    constructor(baseQuery: BaseQuery) {
+    constructor(baseQuery: BaseQuery = {}) {
         this.Widget = defaultPageMap[baseQuery.page]
     }
 }

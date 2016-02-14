@@ -9,18 +9,24 @@ import TodoElement from '../components/TodoElement'
 import type {TodoAppPageProps} from '../facets/TodoAppPageFacet'
 
 type TodoWidgetProps = {
-    TodoHeader: Class<TodoHeader>;
-    TodoElement: Class<TodoElement>;
+    widgets: {
+        TodoHeader: Class<TodoHeader>,
+        TodoElement: Class<TodoElement>
+    },
     props: TodoAppPageProps;
 }
 
 export default class TodoWidget extends Component<any, TodoAppPageProps, any> {
     render(): ReactElement {
         const {
-            TodoHeader,
-            TodoElement,
+            widgets,
             props
         } = this.props
+
+        const {
+            TodoHeader,
+            TodoElement
+        } = widgets
 
         const {
             addTodo,
