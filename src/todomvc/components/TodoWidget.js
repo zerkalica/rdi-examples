@@ -5,7 +5,7 @@ import React, {Component} from 'react'
 import TodoFooter from '../components/TodoFooter'
 import TodoHeader from '../components/TodoHeader'
 import TodoMain from '../components/TodoMain'
-import {TodoElement} from '../components/TodoItemList'
+import TodoElement from '../components/TodoElement'
 import type {TodoAppPageProps} from '../facets/TodoAppPageFacet'
 
 type TodoWidgetProps = {

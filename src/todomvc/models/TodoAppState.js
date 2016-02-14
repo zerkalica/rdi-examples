@@ -1,15 +1,13 @@
 /* @flow */
 
-import rdi from '../../common/annotations'
-import TodoItemCollection from './TodoItemCollection'
-import TodoItemEditing from './TodoItemEditing'
-import TodoItemAdding from './TodoItemAdding'
-import TodoGroupState from './TodoGroupState'
 import type {Collection} from 'reactive-di/interfaces/collectionInterfaces'
 
-import type {
-    TodoItem
-} from '../interfaces'
+import rdi from '../../common/annotations'
+import TodoGroupState from './TodoGroupState'
+import TodoItemAdding from './TodoItemAdding'
+import TodoItemCollection from './TodoItemCollection'
+import TodoItemEditing from './TodoItemEditing'
+import type {TodoItem} from '../interfaces'
 
 type TodoAppStateRec = {
     editing?: TodoItem;

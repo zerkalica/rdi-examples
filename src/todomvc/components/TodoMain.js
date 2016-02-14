@@ -4,8 +4,8 @@ import {
     handleChange,
     handleEnter
 } from '../../common/eventHelpers'
-import TodoItemList from './TodoItemList'
-import type {TodoItemActions} from './TodoItemList'
+import TodoElementList from './TodoElementList'
+import type {TodoItemActions} from './TodoElement'
 
 import type {
     TodoItem
@@ -34,9 +34,15 @@ export default class TodoMain extends Component<void, TodoMainProps, void> {
         const {toggleAll, remove, change, toggle} = actions
         return (
             <section class="main">
-                <input class="toggle-all" onClick={toggleAll} value={isAllCompleted} type="checkbox"/>
-                <label for="toggle-all">Mark all as complete</label>
-                <TodoItemList
+                <input
+                    class="toggle-all"
+                    id="toggle-all"
+                    onClick={toggleAll}
+                    checked={isAllCompleted}
+                    type="checkbox"
+                />
+                <label forHtml="toggle-all">Mark all as complete</label>
+                <TodoElementList
                     ItemTemplate={ItemTemplate}
                     items={items}
                     itemActions={{remove, change, toggle}}

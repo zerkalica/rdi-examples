@@ -1,9 +1,6 @@
 /* @flow */
 import React, {Component} from 'react'
-import {
-    handleChange,
-    handleEnter
-} from '../../common/eventHelpers'
+import {handleChange} from '../../common/eventHelpers'
 import cn from 'classnames'
 
 import type {
@@ -27,7 +24,7 @@ type TodoItemProps = {
     assign(rec: TodoEditingRec): void;
 };
 
-export class TodoElement extends Component<void, TodoItemProps, void> {
+export default class TodoElement extends Component<void, TodoItemProps, void> {
     _handleKeyPress(e: Event): void {
         const {
             editingItem,
@@ -92,34 +89,6 @@ export class TodoElement extends Component<void, TodoItemProps, void> {
                     onKeyPress={(e: Event) => this._handleKeyPress(e)}
                 />
             </li>
-        )
-    }
-}
-
-type TodoItemListProps = {
-    ItemTemplate: Class<Component>;
-    items: Array<TodoItem>;
-    itemActions: TodoItemActions;
-};
-
-export default class TodoItemList extends Component<void, TodoItemListProps, void> {
-    render(): ReactElement {
-        const {
-            ItemTemplate,
-            items,
-            itemActions
-        }: TodoItemListProps = this.props;
-
-        return (
-            <ul className="todo-list">
-                {items.map(item =>
-                    <ItemTemplate
-                        item={item}
-                        actions={itemActions}
-                        key={item.id}
-                    />
-                )}
-            </ul>
         )
     }
 }

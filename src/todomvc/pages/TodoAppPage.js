@@ -4,6 +4,7 @@ import React, {Component} from 'react'
 import {statefull} from 'reactive-di-react'
 
 import TodoAppPageFacet from '../facets/TodoAppPageFacet'
+import TodoElement from '../components/TodoElement'
 import TodoHeader from '../components/TodoHeader'
 import TodoItemAdding from '../models/TodoItemAdding'
 import TodoItemEditing from '../models/TodoItemEditing'
@@ -14,26 +15,23 @@ import {
     assignEditing,
     assignAdding
 } from '../actions/TodoEditingActions'
-import {TodoElement} from '../components/TodoItemList'
 
-class TodoElementInj extends TodoElement {}
-statefull({
+const TodoElementInj = statefull({
     editingItem: TodoItemEditing,
     assign: assignEditing,
     beginEditing,
     cancelEditing
-})(TodoElementInj)
+})(TodoElement)
 
-class TodoHeaderInj extends TodoHeader {}
-statefull({
+const TodoHeaderInj = statefull({
     addingItem: TodoItemAdding,
     assign: assignAdding
-})(TodoHeaderInj)
+})(TodoHeader)
 
-
-export default class TodoAppPage extends TodoWidget {}
-statefull({
+const TodoAppPage = statefull({
     TodoElement: TodoElementInj,
     TodoHeader: TodoHeaderInj,
     props: TodoAppPageFacet
-})(TodoAppPage)
+})(TodoWidget)
+
+export default TodoAppPage
