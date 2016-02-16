@@ -1,6 +1,10 @@
 /* @flow */
-import React, {Component} from 'react'
-import {handleChange} from '../../common/eventHelpers'
+import React, {Component, PropTypes} from 'react'
+import {
+    handleChange,
+    KEY_ENTER,
+    KEY_ESC
+} from '../../common/eventHelpers'
 import cn from 'classnames'
 
 import type {
@@ -8,31 +12,42 @@ import type {
     TodoEditingRec
 } from '../interfaces'
 
-export type TodoItemActions = {
+export type TodoElementActions = {
     remove(id: string): void;
     toggle(id: string): void;
     change(item: TodoItem): void;
 }
 
-type TodoItemProps = {
+type TodoElementProps = {
     item: TodoItem;
-    actions: TodoItemActions;
+    actions: TodoElementActions;
+};
+
+type TodoElementState = {
     editingItem: TodoItem;
     beginEditing(item: TodoItem): void;
     cancelEditing(): void;
     assign(rec: TodoEditingRec): void;
-};
+}
 
-const KEY_ENTER = 13
-const KEY_ESC = 27
+export default class TodoElement extends Component<void, TodoElementProps, TodoElementState> {
+    state: TodoElementState;
 
-export default class TodoElement extends Component<void, TodoItemProps, void> {
+    static contextTypes = {
+        bindReactState: PropTypes.func.isRequired
+    };
+
+    constructor(props: TodoElementProps, context: RdiContext<void, TodoElementProps, TodoElementState>) {
+        super(props, context)
+        this.state = context.bindReactState(this)
+    }
+
     _handleKeyDown(e: SyntheticKeyboardEvent): void {
+        const {actions} = this.props
         const {
             editingItem,
-            actions,
             cancelEditing
-        } = this.props
+        } = this.state
 
         switch (e.keyCode) {
             case KEY_ENTER:
@@ -49,12 +64,14 @@ export default class TodoElement extends Component<void, TodoItemProps, void> {
     render(): ReactElement {
         const {
             item,
-            actions,
+            actions
+        }: TodoElementProps = this.props;
 
+        const {
             editingItem,
             assign,
             beginEditing
-        }: TodoItemProps = this.props;
+        }: TodoElementState = this.state;
 
         const isEditing = editingItem.id === item.id
 

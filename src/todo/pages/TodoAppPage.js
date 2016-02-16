@@ -2,7 +2,6 @@
 
 import React, {Component} from 'react'
 import rdi from '../../common/annotations'
-import {statefull} from 'reactive-di-react'
 
 import TodoAppPageFacet from '../facets/TodoAppPageFacet'
 import TodoElement from '../components/TodoElement'
@@ -17,14 +16,14 @@ import {
     assignAdding
 } from '../actions/TodoEditingActions'
 
-const TodoElementInj = statefull({
+const TodoElementInj = rdi.observable({
     editingItem: TodoItemEditing,
     assign: assignEditing,
     beginEditing,
     cancelEditing
 })(TodoElement)
 
-const TodoHeaderInj = statefull({
+const TodoHeaderInj = rdi.observable({
     addingItem: TodoItemAdding,
     assign: assignAdding
 })(TodoHeader)
@@ -43,7 +42,7 @@ class TodoAppPageChildWidgets {
 }
 const TodoAppPageChildWidgetsInj = rdi.klass()(TodoAppPageChildWidgets)
 
-const TodoAppPage = statefull({
+const TodoAppPage = rdi.observable({
     widgets: TodoAppPageChildWidgetsInj,
     props: TodoAppPageFacet
 })(TodoWidget)

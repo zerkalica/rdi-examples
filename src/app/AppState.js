@@ -4,7 +4,7 @@ import {merge} from 'reactive-di'
 
 import rdi from '../common/annotations'
 import ConfigState from './ConfigState'
-import TodoAppState from '../todomvc/models/TodoAppState'
+import TodoAppState from '../todo/models/TodoAppState'
 
 type AppStateRec = {
     todoAppState?: TodoAppState;
