@@ -1,5 +1,7 @@
 /* @flow */
-import React, {Component} from 'react'
+
+import React, {Component, PropTypes} from 'react'
+
 import {
     handleChange,
     handleEnter
@@ -10,18 +12,34 @@ import type {
 } from '../interfaces'
 
 type TodoHeaderProps = {
-    addingItem: TodoItem;
-    assign(rec: TodoEditingRec): void;
     addTodo(item: TodoItem): void;
 };
 
-export default class TodoHeader extends Component<void, TodoHeaderProps, void> {
+type TodoHeaderState = {
+    addingItem: TodoItem;
+    assign(rec: TodoEditingRec): void;
+}
+
+export default class TodoHeader extends Component<void, TodoHeaderProps, TodoHeaderState> {
+    state: TodoHeaderState;
+
+    static contextTypes = {
+        bindReactState: PropTypes.func.isRequired
+    };
+
+    constructor(props: TodoHeaderProps, context: RdiContext<void, TodoHeaderProps, TodoHeaderState>) {
+        super(props, context)
+        this.state = context.bindReactState(this)
+    }
+
     render(): ReactElement {
         const {
-            assign,
-            addingItem,
             addTodo
-        }: TodoHeaderProps = this.props;
+        } = this.props
+        const {
+            assign,
+            addingItem
+        } = this.state
 
         function change(title: string) {
             assign({title})

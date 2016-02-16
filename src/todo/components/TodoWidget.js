@@ -1,6 +1,6 @@
 /* @flow */
 
-import React, {Component} from 'react'
+import React, {Component, PropTypes as p} from 'react'
 
 import TodoFooter from '../components/TodoFooter'
 import TodoHeader from '../components/TodoHeader'
@@ -8,7 +8,7 @@ import TodoMain from '../components/TodoMain'
 import TodoElement from '../components/TodoElement'
 import type {TodoAppPageProps} from '../facets/TodoAppPageFacet'
 
-type TodoWidgetProps = {
+type TodoWidgetState = {
     widgets: {
         TodoHeader: Class<TodoHeader>,
         TodoElement: Class<TodoElement>
@@ -16,12 +16,22 @@ type TodoWidgetProps = {
     props: TodoAppPageProps;
 }
 
-export default class TodoWidget extends Component<any, TodoAppPageProps, any> {
+export default class TodoWidget extends Component<any, void, TodoWidgetState> {
+    static contextTypes = {
+        bindReactState: p.func.isRequired
+    };
+    state: TodoWidgetState;
+
+    constructor(props: Object, context: RdiContext<any, void, TodoWidgetState>) {
+        super(props, context)
+        this.state = context.bindReactState(this)
+    }
+
     render(): ReactElement {
         const {
             widgets,
             props
-        } = this.props
+        } = this.state
 
         const {
             TodoHeader,

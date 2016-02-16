@@ -6,13 +6,13 @@ import {
 } from '../../common/eventHelpers'
 import cn from 'classnames'
 import TodoElement from './TodoElement'
-import type {TodoItemActions} from './TodoElement'
+import type {TodoElementActions} from './TodoElement'
 import type {TodoItem} from '../interfaces'
 
 type TodoElementListProps = {
     ItemTemplate: Class<Component>;
     items: Array<TodoItem>;
-    itemActions: TodoItemActions;
+    itemActions: TodoElementActions;
 };
 
 export default class TodoElementList extends Component<void, TodoElementListProps, void> {

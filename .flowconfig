@@ -1,6 +1,6 @@
 [ignore]
 .*/dist/.*
-.*/lib/.*
+.*/build/.*
 .*/examples/.*
 .*/node_modules/bab.*
 .*/node_modules/lodash.*
@@ -9,18 +9,14 @@
 .*/node_modules/object.*
 .*/node_modules/acorn.*
 
-[include]
-.*/src/.*
-.*/node_modules/reactive.*
-
 [libs]
-.*/interfaces/.*
+./lib
 
 [options]
-module.name_mapper='.*\(.css\)' -> 'empty/object'
-module.name_mapper='^todomvc/\(.*\)' -> '<PROJECT_ROOT>/src/\1'
 munge_underscores=true
-suppress_comment= \\(.\\|\n\\)*\\$FlowDisable
-esproposal.decorators=ignore
 esproposal.class_instance_fields=enable
 esproposal.class_static_fields=enable
+module.name_mapper='.*\(\.css\)' -> 'empty/object'
+module.name_mapper='.*\(\.configloaderrc\)' -> 'empty/object'
+
+module.name_mapper='^todomvc/\(.*\)' -> '<PROJECT_ROOT>/src/\1'
