@@ -1,8 +1,12 @@
 [ignore]
-.*/dist/.*
-.*/build/.*
-.*/examples/.*
+dist/.*
+build/.*
+examples/.*
+.*/node_modules/object.*
+.*/node_modules/eslint.*
+.*/node_modules/glob.*
 .*/node_modules/bab.*
+.*/node_modules/es.*
 .*/node_modules/lodash.*
 .*/node_modules/array.*
 .*/node_modules/is-.*

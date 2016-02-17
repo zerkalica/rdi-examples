@@ -5,11 +5,12 @@ import React, {Component, PropTypes} from 'react'
 import {
     handleChange,
     handleEnter
-} from '../../common/eventHelpers'
+} from 'reactive-di-todomvc/common/eventHelpers'
 import type {
     TodoItem,
     TodoEditingRec
-} from '../interfaces'
+} from 'reactive-di-todomvc/i/todoInterfaces'
+import type {ComponentContext} from 'reactive-di-react/i/interfaces'
 
 type TodoHeaderProps = {
     addTodo(item: TodoItem): void;
@@ -27,7 +28,7 @@ export default class TodoHeader extends Component<void, TodoHeaderProps, TodoHea
         bindReactState: PropTypes.func.isRequired
     };
 
-    constructor(props: TodoHeaderProps, context: RdiContext<void, TodoHeaderProps, TodoHeaderState>) {
+    constructor(props: TodoHeaderProps, context: ComponentContext<TodoHeaderState>) {
         super(props, context)
         this.state = context.bindReactState(this)
     }

@@ -1,10 +1,10 @@
 /* @flow */
 
-import type {Collection} from 'reactive-di/interfaces/collectionInterfaces'
+import type {Collection} from 'reactive-di/i/collection'
 
-import rdi from '../../common/annotations'
-import TodoGroupState from '../models/TodoGroupState'
-import TodoItemCollection from '../models/TodoItemCollection'
+import rdi from 'reactive-di-todomvc/common/annotations'
+import TodoGroupState from 'reactive-di-todomvc/todo/models/TodoGroupState'
+import TodoItemCollection from 'reactive-di-todomvc/todo/models/TodoItemCollection'
 import {
     add,
     remove,
@@ -12,18 +12,18 @@ import {
     change,
     toggleAll,
     clearCompleted
-} from '../actions/TodoCrudActions'
+} from 'reactive-di-todomvc/todo/actions/TodoCrudActions'
 import {
     showAll,
     showActive,
     showCompleted
-} from '../actions/TodoFilterActions'
+} from 'reactive-di-todomvc/todo/actions/TodoFilterActions'
 import type {
     SelectedGroup,
     TodoFilterActions,
     TodoCrudActions,
     TodoItem
-} from '../interfaces'
+} from 'reactive-di-todomvc/i/todoInterfaces'
 
 export type TodoAppPageProps = {
     filterActions: TodoFilterActions;

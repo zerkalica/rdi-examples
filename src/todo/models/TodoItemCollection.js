@@ -1,13 +1,13 @@
 /* @flow */
 
-import rdi from '../../common/annotations'
+import rdi from 'reactive-di-todomvc/common/annotations'
 
 import {BaseCollection} from 'reactive-di'
-import type {Collection} from 'reactive-di/interfaces/collectionInterfaces'
+import type {Collection} from 'reactive-di/i/collection' // eslint-disable-line
 
 import type {
     TodoItem
-} from '../interfaces'
+} from 'reactive-di-todomvc/i/todoInterfaces'
 
 type TodoItemRec = {
     id?: string;

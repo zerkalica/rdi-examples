@@ -1,7 +1,7 @@
 /* @flow */
-import rdi from '../../common/annotations'
+import rdi from 'reactive-di-todomvc/common/annotations'
 import {merge} from 'reactive-di'
-import BaseEnv from './BaseEnv'
+import BaseEnv from 'reactive-di-todomvc/common/models/BaseEnv'
 
 type CommonStateRec = {
     baseEnv?: BaseEnv

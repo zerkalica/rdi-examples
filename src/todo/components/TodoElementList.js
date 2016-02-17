@@ -3,11 +3,11 @@ import React, {Component} from 'react'
 import {
     handleChange,
     handleEnter
-} from '../../common/eventHelpers'
+} from 'reactive-di-todomvc/common/eventHelpers'
 import cn from 'classnames'
-import TodoElement from './TodoElement'
-import type {TodoElementActions} from './TodoElement'
-import type {TodoItem} from '../interfaces'
+import TodoElement from 'reactive-di-todomvc/todo/components/TodoElement'
+import type {TodoElementActions} from 'reactive-di-todomvc/todo/components/TodoElement'
+import type {TodoItem} from 'reactive-di-todomvc/i/todoInterfaces'
 
 type TodoElementListProps = {
     ItemTemplate: Class<Component>;

@@ -2,11 +2,12 @@
 
 import React, {Component, PropTypes as p} from 'react'
 
-import TodoFooter from '../components/TodoFooter'
-import TodoHeader from '../components/TodoHeader'
-import TodoMain from '../components/TodoMain'
-import TodoElement from '../components/TodoElement'
-import type {TodoAppPageProps} from '../facets/TodoAppPageFacet'
+import TodoFooter from 'reactive-di-todomvc/todo/components/TodoFooter'
+import TodoHeader from 'reactive-di-todomvc/todo/components/TodoHeader'
+import TodoMain from 'reactive-di-todomvc/todo/components/TodoMain'
+import TodoElement from 'reactive-di-todomvc/todo/components/TodoElement'
+import type {TodoAppPageProps} from 'reactive-di-todomvc/todo/facets/TodoAppPageFacet'
+import type {ComponentContext} from 'reactive-di-react/i/interfaces'
 
 type TodoWidgetState = {
     widgets: {
@@ -22,7 +23,7 @@ export default class TodoWidget extends Component<any, void, TodoWidgetState> {
     };
     state: TodoWidgetState;
 
-    constructor(props: Object, context: RdiContext<any, void, TodoWidgetState>) {
+    constructor(props: Object, context: ComponentContext<TodoWidgetState>) {
         super(props, context)
         this.state = context.bindReactState(this)
     }

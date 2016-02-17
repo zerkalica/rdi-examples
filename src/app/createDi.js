@@ -1,26 +1,20 @@
 /* @flow */
 
-import ReactDOM from 'react-dom'
-import {createElement} from 'react'
 import {createPureStateDi} from 'reactive-di'
-import type {ReactiveDi} from 'reactive-di/interfaces/diInterfaces'
+import type {GetDep} from 'reactive-di/i/diInterfaces'
 
-import rdi from '../common/annotations'
-import AppComponent from './AppComponent'
-import AppState from './AppState'
-import BaseEnv from '../common/models/BaseEnv'
-import CommonState from '../common/models/CommonState'
-import ConfigState from './ConfigState'
+import AppState from 'reactive-di-todomvc/app/AppState'
+import BaseEnv from 'reactive-di-todomvc/common/models/BaseEnv'
+import CommonState from 'reactive-di-todomvc/common/models/CommonState'
+import ConfigState from 'reactive-di-todomvc/app/ConfigState'
 
-export default function createDi(baseEnv: BaseEnv, config: Object = {}): ReactiveDi {
-    const container: ReactiveDi = createPureStateDi(new AppState({
+export default function createDi(baseEnv: BaseEnv, config: Object = {}): GetDep {
+    return createPureStateDi(new AppState({
         commonState: new CommonState({
-            baseEnv,
+            baseEnv
         }),
         config: new ConfigState({
             debug: config.debug
         })
-    }), rdi.factory);
-
-    return container
+    }))
 }

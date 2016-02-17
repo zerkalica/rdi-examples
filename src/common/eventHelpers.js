@@ -20,8 +20,8 @@ export function handleChange(
 export function handleEnter(
     func: () => void,
     preventDefault: boolean = false
-): (e: SyntheticKeyboardEvent) => void {
-    return function _handleChange(e: SyntheticKeyboardEvent): void {
+): (e: SyntheticKeyboardEvent) => void { // eslint-disable-line
+    return function _handleChange(e: SyntheticKeyboardEvent): void { // eslint-disable-line
         if (e.charCode === 13) {
             if (preventDefault) {
                 e.preventDefault()
