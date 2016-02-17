@@ -5,7 +5,7 @@ import PageNotFoundPage from 'reactive-di-todomvc/common/components/PageNotFound
 import type {PageMap} from 'reactive-di-todomvc/i/PageMap'
 
 const pageMap: PageMap = {
-    PageNotFoundPage,
+    _: PageNotFoundPage,
     TodoAppPage
 };
 
