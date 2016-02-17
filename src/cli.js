@@ -21,7 +21,9 @@ const node: Element = document.getElementById('app');
 
 const di = createDi(baseEnv, merge(config, window.todoMvcSettings || {}));
 const pageFacet = createPageFacet(pageMap)
-const page = di(pageFacet)
+const page = di({
+    page: pageFacet
+})
 const bindReactState = createBindReactState(di)
 
 ReactDOM.render(createElement(RootComponent, {
