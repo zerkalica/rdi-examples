@@ -1,10 +1,10 @@
 /* @flow */
 
-import rdi from '../../common/annotations'
+import rdi from 'reactive-di-todomvc/common/annotations'
 import {merge} from 'reactive-di'
-import TodoItemAdding from '../models/TodoItemAdding'
-import TodoItemEditing from '../models/TodoItemEditing'
-import type {TodoItem, TodoEditingRec} from '../interfaces'
+import TodoItemAdding from 'reactive-di-todomvc/todo/models/TodoItemAdding'
+import TodoItemEditing from 'reactive-di-todomvc/todo/models/TodoItemEditing'
+import type {TodoItem, TodoEditingRec} from 'reactive-di-todomvc/i/todoInterfaces'
 
 export function assignAdding(item: TodoItem, rec: TodoEditingRec): TodoItem {
     return merge(item, rec)

@@ -1,13 +1,14 @@
 /* @flow */
 
-import rdi from '../annotations'
-import BaseQuery from './BaseQuery'
+import rdi from 'reactive-di-todomvc/common/annotations'
+import BaseQuery from 'reactive-di-todomvc/common/facets/BaseQuery'
+import type {PageMap} from 'reactive-di-todomvc/i/PageMap'
 
-export default function createPageFacet(
-    pageMap: {[id: string]: Class<ReactComponent>}
-): (query: BaseQuery) => Class<ReactComponent> {
+export default function createPageFacet(pageMap: PageMap): Function {
     function PageFacet(query: BaseQuery): Class<ReactComponent> {
         return pageMap[query.page] || pageMap._
     }
-    return rdi.factory(BaseQuery)(PageFacet)
+    return rdi.observable({
+        page: rdi.factory(BaseQuery)(PageFacet)
+    })
 }

@@ -1,20 +1,19 @@
 /* @flow */
 
-import React, {Component} from 'react'
-import rdi from '../../common/annotations'
+import rdi from 'reactive-di-todomvc/common/annotations'
 
-import TodoAppPageFacet from '../facets/TodoAppPageFacet'
-import TodoElement from '../components/TodoElement'
-import TodoHeader from '../components/TodoHeader'
-import TodoItemAdding from '../models/TodoItemAdding'
-import TodoItemEditing from '../models/TodoItemEditing'
-import TodoWidget from '../components/TodoWidget'
+import TodoAppPageFacet from 'reactive-di-todomvc/todo/facets/TodoAppPageFacet'
+import TodoElement from 'reactive-di-todomvc/todo/components/TodoElement'
+import TodoHeader from 'reactive-di-todomvc/todo/components/TodoHeader'
+import TodoItemAdding from 'reactive-di-todomvc/todo/models/TodoItemAdding'
+import TodoItemEditing from 'reactive-di-todomvc/todo/models/TodoItemEditing'
+import TodoWidget from 'reactive-di-todomvc/todo/components/TodoWidget'
 import {
     beginEditing,
     cancelEditing,
     assignEditing,
     assignAdding
-} from '../actions/TodoEditingActions'
+} from 'reactive-di-todomvc/todo/actions/TodoEditingActions'
 
 const TodoElementInj = rdi.observable({
     editingItem: TodoItemEditing,

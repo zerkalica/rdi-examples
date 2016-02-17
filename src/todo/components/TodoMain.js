@@ -3,15 +3,15 @@ import React, {Component} from 'react'
 import {
     handleChange,
     handleEnter
-} from '../../common/eventHelpers'
-import TodoElementList from './TodoElementList'
-import type {TodoItemActions} from './TodoElement'
+} from 'reactive-di-todomvc/common/eventHelpers'
+import TodoElementList from 'reactive-di-todomvc/todo/components/TodoElementList'
+import type {TodoElementActions} from 'reactive-di-todomvc/todo/components/TodoElement'
 
 import type {
     TodoItem
-} from '../interfaces'
+} from 'reactive-di-todomvc/i/todoInterfaces'
 
-type TodoMainActions = TodoItemActions & {
+type TodoMainActions = TodoElementActions & {
     toggleAll(): void;
 }
 

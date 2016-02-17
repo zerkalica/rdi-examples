@@ -1,15 +1,18 @@
 /* @flow */
 
 import {merge} from 'reactive-di'
-import type {Collection} from 'reactive-di/interfaces/collectionInterfaces'
+import type {Collection} from 'reactive-di/i/collection'
 
-import rdi, {createId} from '../../common/annotations'
-import TodoAppState from '../models/TodoAppState'
-import TodoGroupState from '../models/TodoGroupState'
-import TodoItemCollection, {TodoItemImpl} from '../models/TodoItemCollection'
-import type {TodoItem} from '../interfaces'
+import rdi, {createId} from 'reactive-di-todomvc/common/annotations'
+import TodoAppState from 'reactive-di-todomvc/todo/models/TodoAppState'
+import TodoGroupState from 'reactive-di-todomvc/todo/models/TodoGroupState'
+import TodoItemCollection, {TodoItemImpl} from 'reactive-di-todomvc/todo/models/TodoItemCollection'
+import type {TodoItem} from 'reactive-di-todomvc/i/todoInterfaces'
 
-export function toggleAll(todoState: TodoAppState, groupState: TodoGroupState): Collection<TodoItem> {
+export function toggleAll(
+    todoState: TodoAppState,
+    groupState: TodoGroupState
+): Collection<TodoItem> {
     const isCompleted = !groupState.isAllCompleted
     return merge(todoState, {
         items: todoState.items.map(item => merge(item, {isCompleted})),

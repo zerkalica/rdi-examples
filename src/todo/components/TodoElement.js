@@ -1,16 +1,17 @@
 /* @flow */
 import React, {Component, PropTypes} from 'react'
+import type {ComponentContext} from 'reactive-di-react/i/interfaces'
 import {
     handleChange,
     KEY_ENTER,
     KEY_ESC
-} from '../../common/eventHelpers'
+} from 'reactive-di-todomvc/common/eventHelpers'
 import cn from 'classnames'
 
 import type {
     TodoItem,
     TodoEditingRec
-} from '../interfaces'
+} from 'reactive-di-todomvc/i/todoInterfaces'
 
 export type TodoElementActions = {
     remove(id: string): void;
@@ -37,7 +38,7 @@ export default class TodoElement extends Component<void, TodoElementProps, TodoE
         bindReactState: PropTypes.func.isRequired
     };
 
-    constructor(props: TodoElementProps, context: RdiContext<void, TodoElementProps, TodoElementState>) {
+    constructor(props: TodoElementProps, context: ComponentContext<TodoElementState>) {
         super(props, context)
         this.state = context.bindReactState(this)
     }

@@ -1,6 +1,6 @@
 /* @flow */
 
-import rdi from '../common/annotations'
+import rdi from 'reactive-di-todomvc/common/annotations'
 
 type ConfigStateRec = {
     debug?: string;

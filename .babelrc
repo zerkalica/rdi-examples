@@ -3,6 +3,10 @@
     "plugins": [
         ["babel-plugin-module-alias", [
             {
+                "src": "./assets",
+                "expose": "reactive-di-todomvc/assets"
+            },
+            {
                 "src": "./src",
                 "expose": "reactive-di-todomvc"
             }

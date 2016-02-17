@@ -5,7 +5,7 @@ type PageNotFoundPageProps = {
 }
 
 export default class PageNotFoundPage extends Component<void, PageNotFoundPageProps, void> {
-    render(): ReactElement {
+    render(): ReactElement { // eslint-disable-line
         const {
         } = this.props
 

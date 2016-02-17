@@ -1,8 +1,8 @@
 /* @flow */
 
-import rdi from '../../common/annotations'
+import rdi from 'reactive-di-todomvc/common/annotations'
 import {merge} from 'reactive-di'
-import TodoGroupState from '../models/TodoGroupState'
+import TodoGroupState from 'reactive-di-todomvc/todo/models/TodoGroupState'
 
 export function showAll(groupState: TodoGroupState): TodoGroupState {
     return merge(groupState, {

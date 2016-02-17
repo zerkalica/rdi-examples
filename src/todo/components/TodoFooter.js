@@ -4,7 +4,7 @@ import cn from 'classnames'
 
 import type {
     SelectedGroup
-} from '../interfaces'
+} from 'reactive-di-todomvc/i/todoInterfaces'
 
 type TodoFooterActions = {
     showAll(): void;
@@ -28,11 +28,12 @@ export default class TodoFooter extends Component<void, TodoFooterProps, void> {
             filterActions,
             clearCompleted,
             hasCompleted
-        }: TodoFooterProps = this.props;
+        } = this.props;
+
         const {
             showAll,
             showActive,
-            showCompleted,
+            showCompleted
         } = filterActions
 
         return (
@@ -62,7 +63,10 @@ export default class TodoFooter extends Component<void, TodoFooterProps, void> {
                     </li>
                 </ul>
                 {hasCompleted
-                    ? <button className="clear-completed" onClick={clearCompleted}>Clear completed</button>
+                    ? <button
+                        className="clear-completed"
+                        onClick={clearCompleted}
+                    >Clear completed</button>
                     : null
                 }
             </footer>
