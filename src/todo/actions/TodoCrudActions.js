@@ -15,14 +15,14 @@ export function toggleAll(
 ): Collection<TodoItem> {
     const isCompleted = !groupState.isAllCompleted
     return merge(todoState, {
-        items: todoState.items.map(item => merge(item, {isCompleted})),
+        items: todoState.items.map((item) => merge(item, {isCompleted})),
         groupState: merge(todoState.groupState, {isAllCompleted: isCompleted})
     })
 }
 rdi.setter(TodoAppState, TodoGroupState)(toggleAll)
 
 export function clearCompleted(items: TodoItemCollection): Collection<TodoItem> {
-    return items.filter(item => !item.isCompleted)
+    return items.filter((item) => !item.isCompleted)
 }
 rdi.setter(TodoItemCollection)(clearCompleted)
 

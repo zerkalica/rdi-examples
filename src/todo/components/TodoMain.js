@@ -1,9 +1,5 @@
 /* @flow */
 import React, {Component} from 'react'
-import {
-    handleChange,
-    handleEnter
-} from 'reactive-di-todomvc/common/eventHelpers'
 import TodoElementList from 'reactive-di-todomvc/todo/components/TodoElementList'
 import type {TodoElementActions} from 'reactive-di-todomvc/todo/components/TodoElement'
 
@@ -29,7 +25,7 @@ export default class TodoMain extends Component<void, TodoMainProps, void> {
             isAllCompleted,
             actions,
             items
-        }: TodoMainProps = this.props;
+        } = this.props;
         const {toggleAll, remove, change, toggle} = actions
         return (
             <section className="main">

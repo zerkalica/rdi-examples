@@ -1,11 +1,5 @@
 /* @flow */
 import React, {Component} from 'react'
-import {
-    handleChange,
-    handleEnter
-} from 'reactive-di-todomvc/common/eventHelpers'
-import cn from 'classnames'
-import TodoElement from 'reactive-di-todomvc/todo/components/TodoElement'
 import type {TodoElementActions} from 'reactive-di-todomvc/todo/components/TodoElement'
 import type {TodoItem} from 'reactive-di-todomvc/i/todoInterfaces'
 
@@ -21,11 +15,11 @@ export default class TodoElementList extends Component<void, TodoElementListProp
             ItemTemplate,
             items,
             itemActions
-        }: TodoElementListProps = this.props;
+        } = this.props;
 
         return (
             <ul className="todo-list">
-                {items.map(item =>
+                {items.map((item: TodoItem) =>
                     <ItemTemplate
                         item={item}
                         actions={itemActions}
