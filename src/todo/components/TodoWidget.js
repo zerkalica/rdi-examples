@@ -21,12 +21,13 @@ export default class TodoWidget extends Component<any, void, TodoWidgetState> {
     static contextTypes = {
         bindReactState: p.func.isRequired
     };
-    state: TodoWidgetState;
 
     constructor(props: Object, context: ComponentContext<TodoWidgetState>) {
         super(props, context)
         this.state = context.bindReactState(this)
     }
+
+    state: TodoWidgetState;
 
     render(): ReactElement {
         const {
@@ -35,12 +36,6 @@ export default class TodoWidget extends Component<any, void, TodoWidgetState> {
         } = this.state
 
         const {
-            TodoHeader,
-            TodoElement
-        } = widgets
-
-        const {
-            addTodo,
             filterActions,
             crudActions,
             isAllCompleted,
@@ -48,18 +43,18 @@ export default class TodoWidget extends Component<any, void, TodoWidgetState> {
             itemsCount,
             selectedGroup,
             hasCompleted
-        }: TodoAppPageProps = props
+        } = props
 
         const {add, clearCompleted, toggleAll, remove, toggle, change} = crudActions
 
         return (
             <section className="todoapp">
-                <TodoHeader
+                <widgets.TodoHeader
                     addTodo={add}
                 />
                 {itemsCount > 0
                     ? <TodoMain
-                        ItemTemplate={TodoElement}
+                        ItemTemplate={widgets.TodoElement}
                         actions={{toggleAll, remove, toggle, change}}
                         isAllCompleted={isAllCompleted}
                         items={items}

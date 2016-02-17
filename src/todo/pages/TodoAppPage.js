@@ -28,16 +28,8 @@ const TodoHeaderInj = rdi.observable({
 })(TodoHeader)
 
 class TodoAppPageChildWidgets {
-    TodoElement: TodoElement;
-    TodoHeader: TodoHeader;
-
-    constructor(
-        TodoElement: TodoElement,
-        TodoHeader: TodoHeader
-    ) {
-        this.TodoHeader = TodoHeaderInj
-        this.TodoElement = TodoElementInj
-    }
+    TodoElement: TodoElement = TodoHeaderInj;
+    TodoHeader: TodoHeader = TodoElementInj;
 }
 const TodoAppPageChildWidgetsInj = rdi.klass()(TodoAppPageChildWidgets)
 

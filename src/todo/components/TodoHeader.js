@@ -22,8 +22,6 @@ type TodoHeaderState = {
 }
 
 export default class TodoHeader extends Component<void, TodoHeaderProps, TodoHeaderState> {
-    state: TodoHeaderState;
-
     static contextTypes = {
         bindReactState: PropTypes.func.isRequired
     };
@@ -33,18 +31,12 @@ export default class TodoHeader extends Component<void, TodoHeaderProps, TodoHea
         this.state = context.bindReactState(this)
     }
 
-    render(): ReactElement {
-        const {
-            addTodo
-        } = this.props
-        const {
-            assign,
-            addingItem
-        } = this.state
+    state: TodoHeaderState;
 
-        function change(title: string) {
-            assign({title})
-        }
+    _handleChange: Function = handleChange((title: string) => this.assign({title}));
+    _handleEnter: Function = handleEnter(() => this.props.addTodo(this.state.addingItem));
+    render(): ReactElement {
+        const {addingItem} = this.state
 
         return (
             <header className="header">
@@ -53,10 +45,10 @@ export default class TodoHeader extends Component<void, TodoHeaderProps, TodoHea
                     className="new-todo"
                     type="text"
                     placeholder="What needs to be done?"
-                    autofocus
+                    autoFocus
                     value={addingItem.title}
-                    onChange={handleChange(change)}
-                    onKeyPress={handleEnter(() => addTodo(addingItem))}
+                    onChange={this._handleChange}
+                    onKeyPress={this._handleEnter}
                 />
             </header>
         )

@@ -1,7 +1,5 @@
 /* @flow */
 
-import {merge} from 'reactive-di'
-
 import rdi from 'reactive-di-todomvc/common/annotations'
 import ConfigState from 'reactive-di-todomvc/app/ConfigState'
 import TodoAppState from 'reactive-di-todomvc/todo/models/TodoAppState'

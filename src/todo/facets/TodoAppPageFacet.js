@@ -54,7 +54,7 @@ class TodoAppPageFacet {
     constructor(
         items: Collection<TodoItem>,
         groupState: TodoGroupState,
-
+        /* eslint-disable no-shadow */
         add,
         remove,
         toggle,
@@ -65,6 +65,7 @@ class TodoAppPageFacet {
         showAll,
         showActive,
         showCompleted
+        /* eslint-enable */
     ) {
         this.itemsCount = items.length
         this.isAllCompleted = groupState.isAllCompleted
@@ -90,16 +91,16 @@ class TodoAppPageFacet {
                 this.items = items
                 break
             case 'completed':
-                this.items = items.filter(item => item.isCompleted)
+                this.items = items.filter((item: TodoItem) => item.isCompleted)
                 break
             case 'active':
-                this.items = items.filter(item => !item.isCompleted)
+                this.items = items.filter((item: TodoItem) => !item.isCompleted)
                 break
             default:
                 throw new Error(`Unknown selectedGroup: ${groupState.selectedGroup}`)
         }
 
-        this.hasCompleted = !!items.find(item => item.isCompleted)
+        this.hasCompleted = !!items.find((item: TodoItem) => item.isCompleted)
     }
 }
 

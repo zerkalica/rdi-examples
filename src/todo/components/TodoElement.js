@@ -32,8 +32,6 @@ type TodoElementState = {
 }
 
 export default class TodoElement extends Component<void, TodoElementProps, TodoElementState> {
-    state: TodoElementState;
-
     static contextTypes = {
         bindReactState: PropTypes.func.isRequired
     };
@@ -43,12 +41,11 @@ export default class TodoElement extends Component<void, TodoElementProps, TodoE
         this.state = context.bindReactState(this)
     }
 
-    _handleKeyDown(e: SyntheticKeyboardEvent): void {
+    state: TodoElementState;
+
+    _handleKeyDown: (e: SyntheticKeyboardEvent) => void = (e: SyntheticKeyboardEvent) => {
         const {actions} = this.props
-        const {
-            editingItem,
-            cancelEditing
-        } = this.state
+        const {editingItem, cancelEditing} = this.state
 
         switch (e.keyCode) {
             case KEY_ENTER:
@@ -60,20 +57,25 @@ export default class TodoElement extends Component<void, TodoElementProps, TodoE
             default:
                 break
         }
-    }
+    };
+
+    _beginEditing: Function = () => {
+        this.state.beginEditing(this.props.item)
+    };
+
+    _toggle: Function = () => {
+        this.props.actions(this.props.item.id)
+    };
+
+    _remove: Function = () => {
+        this.props.actions.remove(this.props.item.id)
+    };
+
+    _handleChange: Function = handleChange((title: string) => this.state.assign({title}));
 
     render(): ReactElement {
-        const {
-            item,
-            actions
-        }: TodoElementProps = this.props;
-
-        const {
-            editingItem,
-            assign,
-            beginEditing
-        }: TodoElementState = this.state;
-
+        const {item} = this.props;
+        const {editingItem} = this.state
         const isEditing = editingItem.id === item.id
 
         return (
@@ -82,23 +84,23 @@ export default class TodoElement extends Component<void, TodoElementProps, TodoE
                     completed: item.isCompleted,
                     editing: isEditing
                 })}
-                onDoubleClick={() => beginEditing(item)}
+                onDoubleClick={this._beginEditing}
             >
                 <div className="view">
                     <input
                         className="toggle"
                         type="checkbox"
                         checked={item.isCompleted}
-                        onChange={() => actions.toggle(item.id)}
+                        onChange={this._toggle}
                     />
                     <label>{item.title}</label>
-                    <button className="destroy" onClick={() => actions.remove(item.id)}></button>
+                    <button className="destroy" onClick={this._remove}></button>
                 </div>
                 <input
                     className="edit"
                     value={editingItem.title}
-                    onChange={handleChange((title: string) => assign({title}))}
-                    onKeyDown={e => this._handleKeyDown(e)}
+                    onChange={this._handleChange}
+                    onKeyDown={this._handleKeyDown}
                 />
             </li>
         )
