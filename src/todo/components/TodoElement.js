@@ -96,12 +96,14 @@ export default class TodoElement extends Component<void, TodoElementProps, TodoE
                     <label>{item.title}</label>
                     <button className="destroy" onClick={this._remove}></button>
                 </div>
-                <input
-                    className="edit"
-                    value={editingItem.title}
-                    onChange={this._handleChange}
-                    onKeyDown={this._handleKeyDown}
-                />
+                {isEditing ?
+                    <input
+                        className="edit"
+                        value={editingItem.title}
+                        onChange={this._handleChange}
+                        onKeyDown={this._handleKeyDown}
+                    />
+                : null}
             </li>
         )
     }
