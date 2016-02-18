@@ -4,7 +4,7 @@ import type {Collection} from 'reactive-di/i/collection'
 
 import rdi from 'reactive-di-todomvc/common/annotations'
 import TodoGroupState from 'reactive-di-todomvc/todo/models/TodoGroupState'
-import TodoItemCollection from 'reactive-di-todomvc/todo/models/TodoItemCollection'
+import TodoItemCollectionLoader from 'reactive-di-todomvc/todo/loaders/TodoItemCollectionLoader'
 import TodoCrudActionsImpl from 'reactive-di-todomvc/todo/actions/TodoCrudActions'
 import TodoFilterActionsImpl from 'reactive-di-todomvc/todo/actions/TodoFilterActions'
 import type {
@@ -71,7 +71,7 @@ class TodoAppPageFacet {
 }
 
 export default rdi.klass(
-    TodoItemCollection,
+    TodoItemCollectionLoader,
     TodoGroupState,
     rdi.factory(TodoCrudActionsImpl)((actions) => actions),
     rdi.factory(TodoFilterActionsImpl)((actions) => actions),

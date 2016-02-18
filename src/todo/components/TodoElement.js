@@ -44,12 +44,11 @@ export default class TodoElement extends Component<void, TodoElementProps, TodoE
     state: TodoElementState;
 
     _handleKeyDown: (e: SyntheticKeyboardEvent) => void = (e: SyntheticKeyboardEvent) => {
-        const {actions} = this.props
-        const {editingItem, cancelEditing} = this.state
+        const {cancelEditing} = this.state
 
         switch (e.keyCode) {
             case KEY_ENTER:
-                actions.change(editingItem)
+                this._handleCommitChanges()
                 break
             case KEY_ESC:
                 cancelEditing()
@@ -57,6 +56,10 @@ export default class TodoElement extends Component<void, TodoElementProps, TodoE
             default:
                 break
         }
+    };
+
+    _handleCommitChanges: Function = () => {
+        this.props.actions.change(this.state.editingItem)
     };
 
     _beginEditing: Function = () => {
@@ -71,7 +74,7 @@ export default class TodoElement extends Component<void, TodoElementProps, TodoE
         this.props.actions.remove(this.props.item.id)
     };
 
-    _handleChange: Function = handleChange((title: string) => this.state.assign({title}));
+    _handleChangeTitle: Function = handleChange((title: string) => this.state.assign({title}));
 
     render(): ReactElement {
         const {item} = this.props;
@@ -98,9 +101,11 @@ export default class TodoElement extends Component<void, TodoElementProps, TodoE
                 </div>
                 {isEditing ?
                     <input
+                        autoFocus
                         className="edit"
                         value={editingItem.title}
-                        onChange={this._handleChange}
+                        onBlur={this._handleCommitChanges}
+                        onChange={this._handleChangeTitle}
                         onKeyDown={this._handleKeyDown}
                     />
                 : null}
