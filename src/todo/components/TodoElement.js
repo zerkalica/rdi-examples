@@ -64,7 +64,7 @@ export default class TodoElement extends Component<void, TodoElementProps, TodoE
     };
 
     _toggle: Function = () => {
-        this.props.actions(this.props.item.id)
+        this.props.actions.toggle(this.props.item.id)
     };
 
     _remove: Function = () => {

@@ -33,7 +33,7 @@ export default class TodoHeader extends Component<void, TodoHeaderProps, TodoHea
 
     state: TodoHeaderState;
 
-    _handleChange: Function = handleChange((title: string) => this.assign({title}));
+    _handleChange: Function = handleChange((title: string) => this.state.assign({title}));
     _handleEnter: Function = handleEnter(() => this.props.addTodo(this.state.addingItem));
     render(): ReactElement {
         const {addingItem} = this.state

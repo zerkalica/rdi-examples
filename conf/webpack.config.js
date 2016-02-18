@@ -54,7 +54,7 @@ export default {
             },
             {
                 test: /\.(?:jsx?|es6)$/,
-                include: /(?:src)|(?:lib)/,
+                include: /(?:src)/,
                 exclude: /(?:node_modules|bower_components)/,
                 loaders: ['babel-loader'] // 'react-hot-loader'
             },
@@ -74,14 +74,6 @@ export default {
     },
     postcss: () => [autoprefixer],
     plugins: [
-/*
-        new webpack.DefinePlugin({
-            'process.env': {
-                IS_BROWSER: JSON.stringify(true),
-                DEBUG: JSON.stringify(DEBUG)
-            }
-        }),
-*/
         new HtmlWebpackPlugin({
             title: 'todomvc demo',
             template: path.resolve(__dirname, 'assets', 'index.ejs')
