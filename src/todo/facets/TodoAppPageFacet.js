@@ -5,19 +5,8 @@ import type {Collection} from 'reactive-di/i/collection'
 import rdi from 'reactive-di-todomvc/common/annotations'
 import TodoGroupState from 'reactive-di-todomvc/todo/models/TodoGroupState'
 import TodoItemCollection from 'reactive-di-todomvc/todo/models/TodoItemCollection'
-import {
-    add,
-    remove,
-    toggle,
-    change,
-    toggleAll,
-    clearCompleted
-} from 'reactive-di-todomvc/todo/actions/TodoCrudActions'
-import {
-    showAll,
-    showActive,
-    showCompleted
-} from 'reactive-di-todomvc/todo/actions/TodoFilterActions'
+import TodoCrudActionsImpl from 'reactive-di-todomvc/todo/actions/TodoCrudActions'
+import TodoFilterActionsImpl from 'reactive-di-todomvc/todo/actions/TodoFilterActions'
 import type {
     SelectedGroup,
     TodoFilterActions,
@@ -54,37 +43,14 @@ class TodoAppPageFacet {
     constructor(
         items: Collection<TodoItem>,
         groupState: TodoGroupState,
-        /* eslint-disable no-shadow */
-        add,
-        remove,
-        toggle,
-        change,
-        toggleAll,
-        clearCompleted,
-
-        showAll,
-        showActive,
-        showCompleted
-        /* eslint-enable */
+        crudActions,
+        filterActions
     ) {
         this.itemsCount = items.length
         this.isAllCompleted = groupState.isAllCompleted
         this.selectedGroup = groupState.selectedGroup
-
-        this.crudActions = {
-            add,
-            remove,
-            toggle,
-            change,
-            toggleAll,
-            clearCompleted
-        }
-
-        this.filterActions = {
-            showAll,
-            showActive,
-            showCompleted
-        }
+        this.crudActions = crudActions
+        this.filterActions = filterActions
 
         switch (groupState.selectedGroup) {
             case 'all':
@@ -107,15 +73,6 @@ class TodoAppPageFacet {
 export default rdi.klass(
     TodoItemCollection,
     TodoGroupState,
-
-    add,
-    remove,
-    toggle,
-    change,
-    toggleAll,
-    clearCompleted,
-
-    showAll,
-    showActive,
-    showCompleted
+    rdi.factory(TodoCrudActionsImpl)((actions) => actions),
+    rdi.factory(TodoFilterActionsImpl)((actions) => actions),
 )(TodoAppPageFacet)

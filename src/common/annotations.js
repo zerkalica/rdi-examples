@@ -12,7 +12,12 @@ export function createId(): string {
     return idCreator.createId()
 }
 
-export default createAnnotations(
+const annotations = createAnnotations(
     new SymbolMetaDriver(),
-    idCreator
+    new DefaultIdCreator()
 )
+
+export default {
+    ...annotations,
+    react: annotations.observable
+}

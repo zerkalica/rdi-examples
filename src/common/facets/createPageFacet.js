@@ -8,7 +8,8 @@ export default function createPageFacet(pageMap: PageMap): Function {
     function PageFacet(query: BaseQuery): Class<ReactComponent> {
         return pageMap[query.page] || pageMap._
     }
+
     return rdi.observable({
         page: rdi.factory(BaseQuery)(PageFacet)
-    })
+    })(() => null)
 }
