@@ -7,7 +7,14 @@ import rdi, {createId} from 'reactive-di-todomvc/common/annotations'
 import TodoAppState from 'reactive-di-todomvc/todo/models/TodoAppState'
 import TodoGroupState from 'reactive-di-todomvc/todo/models/TodoGroupState'
 import TodoItemCollection, {TodoItemImpl} from 'reactive-di-todomvc/todo/models/TodoItemCollection'
+import Fetcher from 'reactive-di-todomvc/common/services/Fetcher'
+import {promiseToObservable} from 'reactive-di'
+
 import type {TodoItem} from 'reactive-di-todomvc/i/todoInterfaces'
+import type {
+    FetchParams,
+    Fetch
+} from 'reactive-di-todomvc/i/commonInterfaces'
 
 function toggleAll(todoState: TodoAppState, groupState: TodoGroupState): Collection<TodoItem> {
     const isCompleted = !groupState.isAllCompleted
@@ -25,10 +32,19 @@ function remove(items: TodoItemCollection, id: string): Collection<TodoItem> {
     return items.remove(id)
 }
 
-function toggle(items: TodoItemCollection, id: string): Collection<TodoItem> {
-    return items.update(
+function toggle(items: TodoItemCollection, fetcher: Fetcher, id: string): Collection<TodoItem> {
+    const newItems = items.update(
         id,
         (item: TodoItem) => merge(item, {isCompleted: !item.isCompleted})
+    )
+
+    return promiseToObservable(
+            fetcher.load(`todo/${id}`, {
+                method: 'POST',
+                json: items.get(id)
+            }
+        )
+        .then(() => newItems)
     )
 }
 
@@ -39,7 +55,18 @@ function change(todoState: TodoAppState, newItem: TodoItem): Collection<TodoItem
     })
 }
 
-function add(todoState: TodoAppState, newItem: TodoItem): Collection<TodoItem> {
+function add(todoState: TodoAppState, fetcher: Fetcher, newItem: TodoItem): Collection<TodoItem> {
+    /*
+    return promiseToObservable(
+            fetcher.load(`todo`, {
+                method: 'PUT',
+                json: newItem
+            }
+        )
+        .then(() => newItems)
+    )
+    */
+
     return merge(todoState, {
         items: todoState.items.add(new TodoItemImpl({
             ...newItem,
@@ -53,7 +80,7 @@ export default {
     toggleAll: rdi.setter(TodoAppState, TodoGroupState)(toggleAll),
     clearCompleted: rdi.setter(TodoItemCollection)(clearCompleted),
     remove: rdi.setter(TodoItemCollection)(remove),
-    toggle: rdi.setter(TodoItemCollection)(toggle),
+    toggle: rdi.setter(TodoItemCollection, Fetcher)(toggle),
     change: rdi.setter(TodoAppState)(change),
-    add: rdi.setter(TodoAppState)(add)
+    add: rdi.setter(TodoAppState, Fetcher)(add)
 }

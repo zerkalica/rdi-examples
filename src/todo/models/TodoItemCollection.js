@@ -34,4 +34,4 @@ class TodoItemCollection extends BaseCollection<TodoItem> {
         return new TodoItemImpl(rec)
     }
 }
-export default rdi.model(TodoItemCollection)
+export default rdi.asyncmodel(TodoItemCollection)
