@@ -19,7 +19,7 @@ function beginEditing(item: TodoItem, currentItem: TodoItem): TodoItem {
 }
 
 function cancelEditing(item: TodoItem): TodoItem {
-    return merge(item, {id: ''})
+    return merge(item, {id: '', title: ''})
 }
 
 export default {

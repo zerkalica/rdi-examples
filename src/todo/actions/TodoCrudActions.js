@@ -15,6 +15,7 @@ import type {
     FetchParams,
     Fetch
 } from 'reactive-di-todomvc/i/commonInterfaces'
+import TodoEditingActions from 'reactive-di-todomvc/todo/actions/TodoEditingActions'
 
 function toggleAll(todoState: TodoAppState, groupState: TodoGroupState): Collection<TodoItem> {
     const isCompleted = !groupState.isAllCompleted
@@ -55,25 +56,24 @@ function change(todoState: TodoAppState, newItem: TodoItem): Collection<TodoItem
     })
 }
 
-function add(todoState: TodoAppState, fetcher: Fetcher, newItem: TodoItem): Collection<TodoItem> {
-    /*
-    return promiseToObservable(
-            fetcher.load(`todo`, {
-                method: 'PUT',
-                json: newItem
-            }
-        )
-        .then(() => newItems)
-    )
-    */
-
-    return merge(todoState, {
-        items: todoState.items.add(new TodoItemImpl({
-            ...newItem,
-            id: createId()
-        })),
-        addingItem: merge(todoState.editingItem, {title: ''})
-    })
+function add(
+    todoState: TodoAppState,
+    fetcher: Fetcher,
+    cancelEditing: () => void,
+    newItem: TodoItem
+): Collection<TodoItem> {
+    return promiseToObservable(fetcher.load('todo', {
+        method: 'PUT',
+        json: newItem
+    }).then(() =>
+        merge(todoState, {
+            items: todoState.items.add(new TodoItemImpl({
+                ...newItem,
+                id: createId()
+            })),
+            addingItem: merge(todoState.editingItem, {title: ''})
+        })
+    ))
 }
 
 export default {
@@ -82,5 +82,5 @@ export default {
     remove: rdi.setter(TodoItemCollection)(remove),
     toggle: rdi.setter(TodoItemCollection, Fetcher)(toggle),
     change: rdi.setter(TodoAppState)(change),
-    add: rdi.setter(TodoAppState, Fetcher)(add)
+    add: rdi.setter(TodoAppState, Fetcher, TodoEditingActions.cancelEditing)(add)
 }
