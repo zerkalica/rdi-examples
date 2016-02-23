@@ -21,9 +21,15 @@ const defaultTodos: Array<TodoItem> = [
         isCompleted: true
     }
 ];
-function delayedResult<V>(data: V): Promise<V> {
-    return new Promise((resolve) => {
-        setTimeout(() => resolve(data), 700)
+function delayedResult<V>(getData: () => V): Promise<V> {
+    return new Promise((resolve, reject) => {
+        if ((Math.random() * 2) > 1) {
+            setTimeout(() => reject(new Error('Fake server error')), 700)
+        } else {
+            setTimeout(() => {
+                resolve(getData())
+            }, 700)
+        }
     })
 }
 
@@ -40,7 +46,7 @@ const serverActions: Array<ServerAction> = [
         url: new RegExp('/todos'),
         execute<V>(storage: Storage, params: FetchParams<V>, match: Array<string>): Promise<V> { // eslint-disable-line
             const dataStr: ?string = storage.getItem('todos');
-            return delayedResult(dataStr ? JSON.parse(dataStr) : defaultTodos)
+            return delayedResult(() => dataStr ? JSON.parse(dataStr) : defaultTodos)
         }
     },
     {
@@ -53,8 +59,10 @@ const serverActions: Array<ServerAction> = [
                 ...todo,
                 ...params.json
             }))
-            storage.setItem('todos', JSON.stringify(newTodos))
-            return delayedResult(null)
+            return delayedResult(() => {
+                storage.setItem('todos', JSON.stringify(newTodos))
+                return null
+            })
         }
     },
     {
@@ -64,8 +72,10 @@ const serverActions: Array<ServerAction> = [
             const dataStr: ?string = storage.getItem('todos');
             const todos = dataStr ? JSON.parse(dataStr) : defaultTodos;
             const newTodos = todos.filter((todo) => findByKeys(todo, params.json))
-            storage.setItem('todos', JSON.stringify(newTodos))
-            return delayedResult(null)
+            return delayedResult(() => {
+                storage.setItem('todos', JSON.stringify(newTodos))
+                return null
+            })
         }
     },
     {
@@ -76,9 +86,11 @@ const serverActions: Array<ServerAction> = [
             const todos = dataStr ? JSON.parse(dataStr) : []
             const id = match[1]
             const newTodos = todos.filter((todo) => todo.id !== id)
-            storage.setItem('todos', JSON.stringify(newTodos))
 
-            return delayedResult(null)
+            return delayedResult(() => {
+                storage.setItem('todos', JSON.stringify(newTodos))
+                return null
+            })
         }
     },
     {
@@ -93,9 +105,11 @@ const serverActions: Array<ServerAction> = [
                     ? params.json
                     : todo
             )
-            storage.setItem('todos', JSON.stringify(newTodos))
 
-            return delayedResult(params.json)
+            return delayedResult(() => {
+                storage.setItem('todos', JSON.stringify(newTodos))
+                return params.json
+            })
         }
     },
     {
@@ -105,11 +119,13 @@ const serverActions: Array<ServerAction> = [
             const dataStr: ?string = storage.getItem('todos');
             const todos = dataStr ? JSON.parse(dataStr) : []
             todos.push(params.json)
-            storage.setItem('todos', JSON.stringify(todos))
 
-            return delayedResult({
-                ...params.json,
-                id: `${params.json.id}.saved`
+            return delayedResult(() => {
+                storage.setItem('todos', JSON.stringify(todos))
+                return {
+                    ...params.json,
+                    id: `${params.json.id}.saved`
+                }
             })
         }
     }

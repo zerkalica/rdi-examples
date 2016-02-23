@@ -56,6 +56,11 @@ export default class TodoWidget extends Component<any, void, TodoWidgetState> {
                         <h3>Pending...</h3>
                     </div>
                 : null}
+                {meta.rejected ?
+                    <div className="todoerror">
+                        {meta.reason.message}
+                    </div>
+                : null}
                 <section className="todoapp">
                     <widgets.TodoHeader
                         addTodo={add}
