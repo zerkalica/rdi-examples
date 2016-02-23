@@ -9,7 +9,12 @@ import type {ServerAction} from 'reactive-di-todomvc/common/services/fetchers/lo
 function createLocalStorageFetch(serverActions: Array<ServerAction>): Fetch {
     const storage: Storage = window.localStorage;
 
-    return function localStorageFetch<V>(url: string, params: FetchParams<V>): Promise<V> {
+    return function localStorageFetch<V>(
+        url: string,
+        params: FetchParams<V> = {
+            method: 'GET'
+        }
+    ): Promise<V> {
         for (let i = 0, l = serverActions.length; i < l; i++) {
             const serverAction = serverActions[i]
             if (serverAction.method !== params.method) {

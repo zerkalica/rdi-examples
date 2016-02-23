@@ -12,7 +12,7 @@ import type {
 
 // implements RouterManager
 export default class RouterManagerImpl {
-    locationChanges: Observable<Route, void>;
+    locationChanges: Observable<?Route, void>;
     redirector: Redirector;
     router: Router;
     location: RouterLocation;

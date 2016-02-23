@@ -67,7 +67,7 @@ export default {
                 loader: 'file?name=assets/[name].[ext]'
             },
             {
-                loader: 'style-loader?singleton!css-loader!postcss-loader',
+                loader: 'style-loader?singleton!css-loader',
                 test: /\.css$/
             }
         ]
