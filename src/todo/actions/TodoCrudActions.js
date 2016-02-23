@@ -1,8 +1,6 @@
 /* @flow */
 
 import {merge} from 'reactive-di'
-import type {Collection} from 'reactive-di/i/collection'
-import type {AsyncResult} from 'reactive-di/i/plugins/setterInterfaces'
 import rdi, {createId} from 'reactive-di-todomvc/common/annotations'
 import TodoAppState from 'reactive-di-todomvc/todo/models/TodoAppState'
 import TodoGroupState from 'reactive-di-todomvc/todo/models/TodoGroupState'
