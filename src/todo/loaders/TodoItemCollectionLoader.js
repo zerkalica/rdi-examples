@@ -9,11 +9,11 @@ function normalizeTodoItems(recs: Array<TodoItem>): TodoItemCollection {
     return new TodoItemCollection(recs)
 }
 
-function todoItemCollectionLoader(
+function TodoItemCollectionLoader(
     items: TodoItemCollection,
     fetcher: Fetcher,
     query: TodoQuery // eslint-disable-line
-) {
+): Promise<TodoItemCollection> {
     return fetcher.load('todos').then(normalizeTodoItems)
 }
 
@@ -21,4 +21,4 @@ export default rdi.loader(
     TodoItemCollection,
     Fetcher,
     TodoQuery
-)(todoItemCollectionLoader)
+)(TodoItemCollectionLoader)

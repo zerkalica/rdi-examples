@@ -27,5 +27,6 @@ class TodoAppPageChildWidgets {
 
 export default rdi.react({
     widgets: rdi.klass()(TodoAppPageChildWidgets),
-    props: TodoAppPageFacet
+    props: TodoAppPageFacet,
+    meta: rdi.meta(TodoAppPageFacet)
 })(TodoWidget)

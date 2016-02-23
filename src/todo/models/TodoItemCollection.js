@@ -4,6 +4,7 @@ import rdi from 'reactive-di-todomvc/common/annotations'
 
 import {BaseCollection} from 'reactive-di'
 import type {Collection} from 'reactive-di/i/collection' // eslint-disable-line
+import {assignString, assignBoolean} from 'reactive-di-todomvc/common/helpers'
 
 import type {
     TodoItem
@@ -22,9 +23,9 @@ export class TodoItemImpl {
     isCompleted: boolean;
 
     constructor(rec: TodoItemRec = {}) {
-        this.id = rec.id || ''
-        this.title = rec.title || ''
-        this.isCompleted = rec.isCompleted || false
+        this.id = assignString(rec.id)
+        this.title = assignString(rec.title)
+        this.isCompleted = assignBoolean(rec.isCompleted)
     }
 }
 
@@ -34,4 +35,4 @@ class TodoItemCollection extends BaseCollection<TodoItem> {
         return new TodoItemImpl(rec)
     }
 }
-export default rdi.asyncmodel(TodoItemCollection)
+export default rdi.model(TodoItemCollection)

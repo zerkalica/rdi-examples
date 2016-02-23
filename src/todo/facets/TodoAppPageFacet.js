@@ -1,6 +1,7 @@
 /* @flow */
 
 import type {Collection} from 'reactive-di/i/collection'
+import type {EntityMeta} from 'reactive-di/i/nodeInterfaces'
 
 import rdi from 'reactive-di-todomvc/common/annotations'
 import TodoGroupState from 'reactive-di-todomvc/todo/models/TodoGroupState'
@@ -25,6 +26,7 @@ export type TodoAppPageProps = {
     isAllCompleted: boolean;
     selectedGroup: SelectedGroup;
     hasCompleted: boolean;
+    meta: EntityMeta;
 };
 
 // implements TodoAppPageProps

@@ -21,6 +21,18 @@ const defaultTodos: Array<TodoItem> = [
         isCompleted: true
     }
 ];
+function delayedResult<V>(data: V): Promise<V> {
+    return new Promise((resolve) => {
+        setTimeout(() => resolve(data), 700)
+    })
+}
+
+function findByKeys(data: Object, criteria: Object): boolean {
+    const keys = Object.keys(criteria)
+    return keys.filter(
+        (prop: string) => data[prop] !== criteria[prop]
+    ).length !== 0
+}
 
 const serverActions: Array<ServerAction> = [
     {
@@ -28,25 +40,50 @@ const serverActions: Array<ServerAction> = [
         url: new RegExp('/todos'),
         execute<V>(storage: Storage, params: FetchParams<V>, match: Array<string>): Promise<V> { // eslint-disable-line
             const dataStr: ?string = storage.getItem('todos');
-            return Promise.resolve(dataStr ? JSON.parse(dataStr) : defaultTodos)
-        }
-    },
-    {
-        method: 'DELETE',
-        url: new RegExp('/todo/(.*?)'),
-        execute<V>(storage: Storage, params: FetchParams<V>, match: Array<string>): Promise<V> { // eslint-disable-line
-            const dataStr: ?string = storage.getItem('todos');
-            const todos = dataStr ? JSON.parse(dataStr) : []
-            const id = match[1]
-            const newTodos = todos.filter((todo) => todo.id === id)
-            storage.setItem('todos', JSON.stringify(newTodos))
-
-            return Promise.resolve(newTodos)
+            return delayedResult(dataStr ? JSON.parse(dataStr) : defaultTodos)
         }
     },
     {
         method: 'POST',
-        url: new RegExp('/todo/(.*?)'),
+        url: new RegExp('/todos'),
+        execute<V>(storage: Storage, params: FetchParams<V>, match: Array<string>): Promise<null> { // eslint-disable-line
+            const dataStr: ?string = storage.getItem('todos');
+            const todos = dataStr ? JSON.parse(dataStr) : defaultTodos;
+            const newTodos = todos.map((todo) => ({
+                ...todo,
+                ...params.json
+            }))
+            storage.setItem('todos', JSON.stringify(newTodos))
+            return delayedResult(null)
+        }
+    },
+    {
+        method: 'DELETE',
+        url: new RegExp('/todos'),
+        execute<V>(storage: Storage, params: FetchParams<V>, match: Array<string>): Promise<null> { // eslint-disable-line
+            const dataStr: ?string = storage.getItem('todos');
+            const todos = dataStr ? JSON.parse(dataStr) : defaultTodos;
+            const newTodos = todos.filter((todo) => findByKeys(todo, params.json))
+            storage.setItem('todos', JSON.stringify(newTodos))
+            return delayedResult(null)
+        }
+    },
+    {
+        method: 'DELETE',
+        url: new RegExp('/todo/(.*)'),
+        execute<V>(storage: Storage, params: FetchParams<V>, match: Array<string>): Promise<null> { // eslint-disable-line
+            const dataStr: ?string = storage.getItem('todos');
+            const todos = dataStr ? JSON.parse(dataStr) : []
+            const id = match[1]
+            const newTodos = todos.filter((todo) => todo.id !== id)
+            storage.setItem('todos', JSON.stringify(newTodos))
+
+            return delayedResult(null)
+        }
+    },
+    {
+        method: 'POST',
+        url: new RegExp('/todo/(.*)'),
         execute<V>(storage: Storage, params: FetchParams<V>, match: Array<string>): Promise<V> { // eslint-disable-line
             const dataStr: ?string = storage.getItem('todos');
             const todos = dataStr ? JSON.parse(dataStr) : []
@@ -58,7 +95,7 @@ const serverActions: Array<ServerAction> = [
             )
             storage.setItem('todos', JSON.stringify(newTodos))
 
-            return Promise.resolve(newTodos)
+            return delayedResult(params.json)
         }
     },
     {
@@ -69,10 +106,13 @@ const serverActions: Array<ServerAction> = [
             const todos = dataStr ? JSON.parse(dataStr) : []
             todos.push(params.json)
             storage.setItem('todos', JSON.stringify(todos))
-            return Promise.resolve(todos)
+
+            return delayedResult({
+                ...params.json,
+                id: `${params.json.id}.saved`
+            })
         }
     }
-
 ];
 
 function createLocalServerActions(): Array<ServerAction> {

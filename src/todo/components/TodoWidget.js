@@ -1,7 +1,7 @@
 /* @flow */
 
 import React, {Component, PropTypes as p} from 'react'
-
+import type {EntityMeta} from 'reactive-di/i/nodeInterfaces'
 import TodoFooter from 'reactive-di-todomvc/todo/components/TodoFooter'
 import TodoHeader from 'reactive-di-todomvc/todo/components/TodoHeader'
 import TodoMain from 'reactive-di-todomvc/todo/components/TodoMain'
@@ -15,6 +15,7 @@ type TodoWidgetState = {
         TodoElement: Class<TodoElement>
     },
     props: TodoAppPageProps;
+    meta: EntityMeta;
 }
 
 export default class TodoWidget extends Component<any, void, TodoWidgetState> {
@@ -32,7 +33,8 @@ export default class TodoWidget extends Component<any, void, TodoWidgetState> {
     render(): ReactElement {
         const {
             widgets,
-            props
+            props,
+            meta
         } = this.state
 
         const {
@@ -48,29 +50,36 @@ export default class TodoWidget extends Component<any, void, TodoWidgetState> {
         const {add, clearCompleted, toggleAll, remove, toggle, change} = crudActions
 
         return (
-            <section className="todoapp">
-                <widgets.TodoHeader
-                    addTodo={add}
-                />
-                {itemsCount > 0
-                    ? <TodoMain
-                        ItemTemplate={widgets.TodoElement}
-                        actions={{toggleAll, remove, toggle, change}}
-                        isAllCompleted={isAllCompleted}
-                        items={items}
+            <section className="todowrap">
+                {meta.pending ?
+                    <div className="todoloader">
+                        <h3>Pending...</h3>
+                    </div>
+                : null}
+                <section className="todoapp">
+                    <widgets.TodoHeader
+                        addTodo={add}
                     />
-                    : null
-                }
-                {itemsCount > 0
-                    ? <TodoFooter
-                        itemsCount={itemsCount}
-                        selectedGroup={selectedGroup}
-                        filterActions={filterActions}
-                        hasCompleted={hasCompleted}
-                        clearCompleted={clearCompleted}
-                    />
-                    : null
-                }
+                    {itemsCount > 0
+                        ? <TodoMain
+                            ItemTemplate={widgets.TodoElement}
+                            actions={{toggleAll, remove, toggle, change}}
+                            isAllCompleted={isAllCompleted}
+                            items={items}
+                        />
+                        : null
+                    }
+                    {itemsCount > 0
+                        ? <TodoFooter
+                            itemsCount={itemsCount}
+                            selectedGroup={selectedGroup}
+                            filterActions={filterActions}
+                            hasCompleted={hasCompleted}
+                            clearCompleted={clearCompleted}
+                        />
+                        : null
+                    }
+                </section>
             </section>
         )
     }
