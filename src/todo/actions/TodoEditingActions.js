@@ -23,8 +23,8 @@ function cancelEditing(item: TodoItem): TodoItem {
 }
 
 export default {
-    assignAdding: rdi.setter(TodoItemAdding)(assignAdding),
-    assignEditing: rdi.setter(TodoItemEditing)(assignEditing),
-    beginEditing: rdi.setter(TodoItemEditing)(beginEditing),
-    cancelEditing: rdi.setter(TodoItemEditing)(cancelEditing)
+    assignAdding: rdi.syncsetter(TodoItemAdding)(assignAdding),
+    assignEditing: rdi.syncsetter(TodoItemEditing)(assignEditing),
+    beginEditing: rdi.syncsetter(TodoItemEditing)(beginEditing),
+    cancelEditing: rdi.syncsetter(TodoItemEditing)(cancelEditing)
 }

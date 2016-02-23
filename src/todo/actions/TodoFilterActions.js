@@ -23,7 +23,7 @@ function showCompleted(groupState: TodoGroupState): TodoGroupState {
 }
 
 export default {
-    showAll: rdi.setter(TodoGroupState)(showAll),
-    showCompleted: rdi.setter(TodoGroupState)(showCompleted),
-    showActive: rdi.setter(TodoGroupState)(showActive)
+    showAll: rdi.syncsetter(TodoGroupState)(showAll),
+    showCompleted: rdi.syncsetter(TodoGroupState)(showCompleted),
+    showActive: rdi.syncsetter(TodoGroupState)(showActive)
 }
