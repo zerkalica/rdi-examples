@@ -1,8 +1,8 @@
 /* @flow */
-import {react, props} from 'reactive-di-react'
-import rdi from 'reactive-di-todomvc/common/annotations'
+import {component} from 'reactive-di-react'
+import {meta} from 'reactive-di/dist/annotations'
 
-import type {AnyAnnotation} from 'reactive-di/i/annotationInterfaces'
+import type {Annotation} from 'reactive-di/i/annotationInterfaces'
 
 import TodoHeader from 'reactive-di-todomvc/todo/components/TodoHeader'
 import TodoElementList from 'reactive-di-todomvc/todo/components/TodoElementList'
@@ -44,10 +44,8 @@ import todoItemsFacet from 'reactive-di-todomvc/todo/facets/todoItemsFacet'
 import TodoItemEditing from 'reactive-di-todomvc/todo/models/TodoItemEditing'
 import TodoItemAdding from 'reactive-di-todomvc/todo/models/TodoItemAdding'
 
-const {meta} = rdi
-
-const deps: Array<AnyAnnotation> = [
-    react(TodoHeader, {
+const deps: Array<Annotation> = [
+    component(TodoHeader, {
         addingItem: TodoItemAdding,
         commitAdding,
         changeAdding,
@@ -55,7 +53,7 @@ const deps: Array<AnyAnnotation> = [
         helper: EventHelperImpl
     }),
 
-    react(TodoFooter, {
+    component(TodoFooter, {
         data: todoItemsFacet,
         helper: EventHelperImpl,
         clearCompleted,
@@ -64,7 +62,7 @@ const deps: Array<AnyAnnotation> = [
         showCompleted
     }),
 
-    react(TodoElement, {
+    component(TodoElement, {
         removeTodoItem,
         toggleTodoItem,
 
@@ -77,17 +75,17 @@ const deps: Array<AnyAnnotation> = [
         helper: EventHelperImpl
     }),
 
-    react(TodoElementList, {
+    component(TodoElementList, {
         TodoElement,
         data: todoItemsFacet
     }),
-    react(TodoMain, {
+    component(TodoMain, {
         toggleAll,
         isAllCompleted: isAllCompletedFacet,
         TodoElementList,
         helper: EventHelperImpl
     }),
-    react(TodoMainPage, {
+    component(TodoMainPage, {
         TodoHeader,
         TodoMain,
         TodoFooter,

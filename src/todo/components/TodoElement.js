@@ -4,10 +4,9 @@ import {
     KEY_ENTER,
     KEY_ESC
 } from 'reactive-di-todomvc/common/helpers/keyCodes'
-import type {
-    EventHelper,
-    Element
-} from 'reactive-di-todomvc/i/commonInterfaces'
+import type {EventHelper} from 'reactive-di-todomvc/i/commonInterfaces'
+import type {Element} from 'reactive-di-react/i/interfaces'
+
 import cn from 'classnames'
 
 import type {
@@ -28,7 +27,6 @@ type TodoElementProps = {
     cancelEditing(): void;
     changeEditing(rec: TodoItemRec): void;
 
-    isEditing: boolean;
     helper: EventHelper;
 };
 
@@ -44,14 +42,13 @@ export default function TodoElement({
     commitEditing,
 
     editingItem,
-    isEditing,
     helper
 }: TodoElementProps): Element {
     return (
         <li
             className={cn({
                 completed: item.isCompleted,
-                editing: isEditing
+                editing: editingItem.isEditing
             })}
             onDoubleClick={helper.click(beginEditing, item)}
         >
@@ -68,12 +65,12 @@ export default function TodoElement({
                     onClick={helper.click(removeTodoItem, item.id)}
                 ></button>
             </div>
-            {isEditing ?
+            {editingItem.isEditing ?
                 <input
                     autoFocus
                     className="edit"
                     value={editingItem.item.title}
-                    onBlur={helper.click(commitEditing, editingItem.item)}
+                    onBlur={helper.click(cancelEditing)}
                     onChange={helper.change((title: string) => changeEditing({title}))}
                     onKeyDown={helper.keyMap([
                         [KEY_ESC, cancelEditing],

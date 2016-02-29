@@ -22,19 +22,18 @@ import createReactProps from 'reactive-di-todomvc/app/helpers/createReactProps'
 
 import pageMap from 'reactive-di-todomvc/app/components/pageMap'
 
-import type {AnyAnnotation} from 'reactive-di/i/annotationInterfaces'
+import type {Annotation} from 'reactive-di/i/annotationInterfaces'
 import type {GetDep} from 'reactive-di/i/diInterfaces'
 
 import appRdi from 'reactive-di-todomvc/app/rdi/appRdi'
-import annotations from 'reactive-di-todomvc/common/annotations'
 
-const {factory} = annotations
+import {factory, alias} from 'reactive-di/dist/annotations'
 
 const routerManager = createBrowserRouterManager(window, config.routes || {})
 
-const browserRdi: Array<AnyAnnotation> = appRdi.concat([
-    factory(AbstractStorage, window.storage),
-    factory(AbstractRouterManager, routerManager)
+const browserRdi: Array<Annotation> = appRdi.concat([
+    alias(AbstractStorage, factory(() => window.storage)),
+    alias(AbstractRouterManager, factory(() => routerManager))
 ]);
 
 const baseEnv = new BaseEnv({

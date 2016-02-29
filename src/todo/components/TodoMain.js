@@ -1,10 +1,7 @@
 /* @flow */
 import React from 'react'
-import type {
-    Widget,
-    Element,
-    EventHelper
-} from 'reactive-di-todomvc/i/commonInterfaces'
+import type {EventHelper} from 'reactive-di-todomvc/i/commonInterfaces'
+import type {Widget, Element} from 'reactive-di-react/i/interfaces'
 
 type TodoMainProps = {
     toggleAll(): void;

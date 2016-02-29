@@ -1,6 +1,6 @@
 /* @flow */
 
-import rdi from 'reactive-di-todomvc/common/annotations'
+import {model, loader} from 'reactive-di/dist/annotations'
 
 import TodoGroupState from 'reactive-di-todomvc/todo/models/TodoGroupState'
 import TodoItemAdding from 'reactive-di-todomvc/todo/models/TodoItemAdding'
@@ -12,11 +12,9 @@ import LoadableTodoItemCollection from 'reactive-di-todomvc/todo/loaders/Loadabl
 
 import Fetcher from 'reactive-di-todomvc/common/services/Fetcher'
 
-import type {AnyAnnotation} from 'reactive-di/i/annotationInterfaces'
+import type {Annotation} from 'reactive-di/i/annotationInterfaces'
 
-const {model, loader} = rdi
-
-const deps: Array<AnyAnnotation> = [
+const deps: Array<Annotation> = [
     model(TodoGroupState),
     model(TodoItemAdding),
     model(TodoItemEditing),

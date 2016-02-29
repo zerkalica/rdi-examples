@@ -5,10 +5,8 @@ import {
     KEY_ENTER,
     KEY_ESC
 } from 'reactive-di-todomvc/common/helpers/keyCodes'
-import type {
-    EventHelper,
-    Element
-} from 'reactive-di-todomvc/i/commonInterfaces'
+import type {EventHelper} from 'reactive-di-todomvc/i/commonInterfaces'
+import type {Element} from 'reactive-di-react/i/interfaces'
 import type {
     TodoItem,
     TodoItemAdding,
