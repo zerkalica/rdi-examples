@@ -1,32 +1,22 @@
 /* @flow */
-import React, {Component} from 'react'
-import type {TodoElementActions} from 'reactive-di-todomvc/todo/components/TodoElement'
+import React from 'react'
 import type {TodoItem} from 'reactive-di-todomvc/i/todoInterfaces'
+import type {Widget, Element} from 'reactive-di-todomvc/i/commonInterfaces'
 
 type TodoElementListProps = {
-    ItemTemplate: Class<Component>;
-    items: Array<TodoItem>;
-    itemActions: TodoElementActions;
+    TodoElement: Widget<{item: TodoItem, key: string}>;
+    data: {
+        items: Array<TodoItem>;
+    }
 };
 
-export default class TodoElementList extends Component<void, TodoElementListProps, void> {
-    render(): ReactElement {
-        const {
-            ItemTemplate,
-            items,
-            itemActions
-        } = this.props;
-
-        return (
-            <ul className="todo-list">
-                {items.map((item: TodoItem) =>
-                    <ItemTemplate
-                        item={item}
-                        actions={itemActions}
-                        key={item.id}
-                    />
-                )}
-            </ul>
-        )
-    }
+export default function TodoElementList({
+    data,
+    TodoElement
+}: TodoElementListProps): Element {
+    return (
+        <ul className="todo-list">
+            {data.items.map((item) => <TodoElement item={item} key={item.id} />)}
+        </ul>
+    )
 }

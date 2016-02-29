@@ -1,3 +1,6 @@
 {
-    "extends": ["airplus"]
+    "extends": ["airplus"],
+    "rules": {
+        "object-curly-spacing": 0
+    }
 }

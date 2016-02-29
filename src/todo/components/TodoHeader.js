@@ -1,56 +1,51 @@
 /* @flow */
 
-import React, {Component, PropTypes} from 'react'
-
+import React from 'react'
 import {
-    handleChange,
-    handleEnter
-} from 'reactive-di-todomvc/common/eventHelpers'
+    KEY_ENTER,
+    KEY_ESC
+} from 'reactive-di-todomvc/common/helpers/keyCodes'
+import type {
+    EventHelper,
+    Element
+} from 'reactive-di-todomvc/i/commonInterfaces'
 import type {
     TodoItem,
-    TodoEditingRec
+    TodoItemAdding,
+    TodoItemRec
 } from 'reactive-di-todomvc/i/todoInterfaces'
-import type {ComponentContext} from 'reactive-di-react/i/interfaces'
 
 type TodoHeaderProps = {
-    addTodo(item: TodoItem): void;
+    addingItem: TodoItemAdding;
+    helper: EventHelper;
+    cancelAdding(): void;
+    commitAdding(item: TodoItem): void;
+    changeAdding(rec: TodoItemRec): void;
 };
 
-type TodoHeaderState = {
-    addingItem: TodoItem;
-    assign(rec: TodoEditingRec): void;
-}
-
-export default class TodoHeader extends Component<void, TodoHeaderProps, TodoHeaderState> {
-    static contextTypes = {
-        bindReactState: PropTypes.func.isRequired
-    };
-
-    constructor(props: TodoHeaderProps, context: ComponentContext<TodoHeaderState>) {
-        super(props, context)
-        this.state = context.bindReactState(this)
-    }
-
-    state: TodoHeaderState;
-
-    _handleChange: Function = handleChange((title: string) => this.state.assign({title}));
-    _handleEnter: Function = handleEnter(() => this.props.addTodo(this.state.addingItem));
-    render(): ReactElement {
-        const {addingItem} = this.state
-
-        return (
-            <header className="header">
-                <h1>todos</h1>
-                <input
-                    className="new-todo"
-                    type="text"
-                    placeholder="What needs to be done?"
-                    autoFocus
-                    value={addingItem.title}
-                    onChange={this._handleChange}
-                    onKeyPress={this._handleEnter}
-                />
-            </header>
-        )
-    }
+export default function TodoHeader({
+    addingItem,
+    changeAdding,
+    commitAdding,
+    cancelAdding,
+    helper
+}: TodoHeaderProps): Element {
+    return (
+        <header className="header">
+            <h1>todos</h1>
+            <input
+                className="new-todo"
+                type="text"
+                placeholder="What needs to be done?"
+                autoFocus
+                value={addingItem.item.title}
+                onBlur={helper.click(cancelAdding)}
+                onChange={helper.change((title) => changeAdding({title}))}
+                onKeyPress={helper.keyMap([
+                    [KEY_ENTER, commitAdding, addingItem.item],
+                    [KEY_ESC, cancelAdding]
+                ])}
+            />
+        </header>
+    )
 }

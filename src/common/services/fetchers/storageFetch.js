@@ -1,22 +1,17 @@
 /* @flow */
 
-import rdi from 'reactive-di-todomvc/common/annotations'
 import localServerActions from 'reactive-di-todomvc/common/services/fetchers/localServerActions'
 import type {Fetch, FetchParams} from 'reactive-di-todomvc/i/commonInterfaces'
 
-import type {ServerAction} from 'reactive-di-todomvc/common/services/fetchers/localServerActions'
-
-function createLocalStorageFetch(serverActions: Array<ServerAction>): Fetch {
-    const storage: Storage = window.localStorage;
-
-    return function localStorageFetch<V>(
+export default function storageFetch(storage: Storage): Fetch {
+    return function _storageFetch<V: Object>(
         url: string,
         params: FetchParams<V> = {
             method: 'GET'
         }
     ): Promise<V> {
-        for (let i = 0, l = serverActions.length; i < l; i++) {
-            const serverAction = serverActions[i]
+        for (let i = 0, l = localServerActions.length; i < l; i++) {
+            const serverAction = localServerActions[i]
             if (serverAction.method !== params.method) {
                 continue
             }
@@ -29,4 +24,3 @@ function createLocalStorageFetch(serverActions: Array<ServerAction>): Fetch {
         return Promise.reject(new TypeError('Not found path'))
     }
 }
-export default rdi.factory(localServerActions)(createLocalStorageFetch)

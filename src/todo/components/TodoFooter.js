@@ -1,75 +1,68 @@
 /* @flow */
-import React, {Component} from 'react'
+import React from 'react'
 import cn from 'classnames'
-
 import type {
-    SelectedGroup
-} from 'reactive-di-todomvc/i/todoInterfaces'
+    EventHelper,
+    Element
+} from 'reactive-di-todomvc/i/commonInterfaces'
+import type {SelectedGroup} from 'reactive-di-todomvc/i/todoInterfaces'
 
-type TodoFooterActions = {
-    showAll(): void;
-    showActive(): void;
-    showCompleted(): void;
+type TodoFooterPropsData = {
+    itemsCount: number;
+    selectedGroup: SelectedGroup;
+    hasCompleted: boolean;
 }
 
 type TodoFooterProps = {
-    itemsCount: number;
-    selectedGroup: SelectedGroup;
-    filterActions: TodoFooterActions;
-    hasCompleted: boolean;
+    data: TodoFooterPropsData;
+    helper: EventHelper;
     clearCompleted(): void;
+    showAll(): void;
+    showActive(): void;
+    showCompleted(): void;
 };
 
-export default class TodoFooter extends Component<void, TodoFooterProps, void> {
-    render(): ReactElement {
-        const {
-            itemsCount,
-            selectedGroup,
-            filterActions,
-            clearCompleted,
-            hasCompleted
-        } = this.props;
-
-        const {
-            showAll,
-            showActive,
-            showCompleted
-        } = filterActions
-
-        return (
-            <footer className="footer">
-                <span className="todo-count"><strong>{itemsCount}</strong> item left</span>
-                <ul className="filters">
-                    <li>
-                        <a
-                            className={cn({selected: selectedGroup === 'all'})}
-                            href="#/"
-                            onClick={showAll}
-                        >All</a>
-                    </li>
-                    <li>
-                        <a
-                            className={cn({selected: selectedGroup === 'active'})}
-                            href="#/active"
-                            onClick={showActive}
-                        >Active</a>
-                    </li>
-                    <li>
-                        <a
-                            className={cn({selected: selectedGroup === 'completed'})}
-                            href="#/completed"
-                            onClick={showCompleted}
-                        >Completed</a>
-                    </li>
-                </ul>
-                {hasCompleted
-                    ? <button
-                        className="clear-completed"
-                        onClick={clearCompleted}
-                    >Clear completed</button>
-                    : null
-                }
-            </footer>
-        )
-    }
+export default function TodoFooter({
+    showAll,
+    showActive,
+    showCompleted,
+    clearCompleted,
+    data,
+    helper
+}: TodoFooterProps): Element {
+    return (
+        <footer className="footer">
+            <span className="todo-count"><strong>{data.itemsCount}</strong> item left</span>
+            <ul className="filters">
+                <li>
+                    <a
+                        className={cn({selected: data.selectedGroup === 'all'})}
+                        href="/"
+                        onClick={helper.click(showAll)}
+                    >All</a>
+                </li>
+                <li>
+                    <a
+                        className={cn({selected: data.selectedGroup === 'active'})}
+                        href="/active"
+                        onClick={helper.click(showActive)}
+                    >Active</a>
+                </li>
+                <li>
+                    <a
+                        className={cn({selected: data.selectedGroup === 'completed'})}
+                        href="/completed"
+                        onClick={helper.click(showCompleted)}
+                    >Completed</a>
+                </li>
+            </ul>
+            {data.hasCompleted
+                ? <button
+                    className="clear-completed"
+                    onClick={helper.click(clearCompleted)}
+                >Clear completed</button>
+                : null
+            }
+        </footer>
+    )
 }

@@ -1,16 +1,15 @@
 /* @flow */
 
 import {merge} from 'reactive-di'
-import rdi, {createId} from 'reactive-di-todomvc/common/annotations'
+import {createId} from 'reactive-di-todomvc/common/annotations'
 import TodoAppState from 'reactive-di-todomvc/todo/models/TodoAppState'
 import TodoGroupState from 'reactive-di-todomvc/todo/models/TodoGroupState'
 import TodoItemCollection, {TodoItemImpl} from 'reactive-di-todomvc/todo/models/TodoItemCollection'
 import Fetcher from 'reactive-di-todomvc/common/services/Fetcher'
 
 import type {TodoItem} from 'reactive-di-todomvc/i/todoInterfaces'
-import TodoEditingActions from 'reactive-di-todomvc/todo/actions/TodoEditingActions'
 
-function toggleAll(
+export function toggleAll(
     todoState: TodoAppState,
     fetcher: Fetcher,
     groupState: TodoGroupState
@@ -31,7 +30,7 @@ function toggleAll(
     return [newTodoState, promise]
 }
 
-function clearCompleted(
+export function clearCompleted(
     items: TodoItemCollection,
     fetcher: Fetcher
 ): [TodoItemCollection, Promise<null>] {
@@ -46,7 +45,7 @@ function clearCompleted(
     return [newItems, promise]
 }
 
-function remove(
+export function removeTodoItem(
     items: TodoItemCollection,
     fetcher: Fetcher,
     id: string
@@ -60,7 +59,7 @@ function remove(
     return [newItems, promise]
 }
 
-function toggle(
+export function toggleTodoItem(
     items: TodoItemCollection,
     fetcher: Fetcher,
     id: string
@@ -79,9 +78,10 @@ function toggle(
     return [newItems, promise]
 }
 
-function change(
+export function commitEditing(
     todoState: TodoAppState,
     fetcher: Fetcher,
+
     newItem: TodoItem
 ): [TodoAppState, Promise<null>] {
     const newState = merge(todoState, {
@@ -97,10 +97,10 @@ function change(
     return [newState, promise]
 }
 
-function add(
+export function commitAdding(
     todoState: TodoAppState,
     fetcher: Fetcher,
-    cancelEditing: () => void,
+
     newItem: TodoItem
 ): [TodoAppState, Promise<TodoItemCollection>] {
     const ni = new TodoItemImpl({
@@ -123,13 +123,4 @@ function add(
     )
 
     return [newStore, promise]
-}
-
-export default {
-    toggleAll: rdi.asyncsetter(TodoAppState, Fetcher, TodoGroupState)(toggleAll),
-    clearCompleted: rdi.asyncsetter(TodoItemCollection, Fetcher)(clearCompleted),
-    remove: rdi.asyncsetter(TodoItemCollection, Fetcher)(remove),
-    toggle: rdi.asyncsetter(TodoItemCollection, Fetcher)(toggle),
-    change: rdi.asyncsetter(TodoAppState, Fetcher)(change),
-    add: rdi.asyncsetter(TodoAppState, Fetcher, TodoEditingActions.cancelEditing)(add)
 }

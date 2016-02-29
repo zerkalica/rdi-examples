@@ -1,7 +1,5 @@
 /* @flow */
 
-import rdi from 'reactive-di-todomvc/common/annotations'
-
 import type {
     SelectedGroup
 } from 'reactive-di-todomvc/i/todoInterfaces'
@@ -12,7 +10,7 @@ type TodoGroupStateRec = {
     selectedGroup?: SelectedGroup;
 }
 
-class TodoGroupState {
+export default class TodoGroupState {
     isAllCompleted: boolean;
     selectedGroup: SelectedGroup;
 
@@ -21,5 +19,3 @@ class TodoGroupState {
         this.selectedGroup = assignString(rec.selectedGroup, 'all')
     }
 }
-
-export default rdi.model(TodoGroupState)
