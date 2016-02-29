@@ -1,10 +1,7 @@
 /* @flow */
 import React from 'react'
 import type {EntityMeta} from 'reactive-di/i/nodeInterfaces'
-import type {
-    Widget,
-    Element
-} from 'reactive-di-todomvc/i/commonInterfaces'
+import type {Widget, Element} from 'reactive-di-react/i/interfaces'
 
 type TodoMainPageProps = {
     TodoHeader: Widget<void>;
@@ -32,7 +29,7 @@ export default function TodoMainPage({
             : null}
             {meta.rejected ?
                 <div className="todoerror">
-                    {meta.reason.message}
+                    {meta.reason ? meta.reason.message : 'error'}
                 </div>
             : null}
             <section className="todoapp">

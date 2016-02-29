@@ -1,10 +1,8 @@
 /* @flow */
 import React from 'react'
 import cn from 'classnames'
-import type {
-    EventHelper,
-    Element
-} from 'reactive-di-todomvc/i/commonInterfaces'
+import type {EventHelper} from 'reactive-di-todomvc/i/commonInterfaces'
+import type {Element} from 'reactive-di-react/i/interfaces'
 import type {SelectedGroup} from 'reactive-di-todomvc/i/todoInterfaces'
 
 type TodoFooterPropsData = {

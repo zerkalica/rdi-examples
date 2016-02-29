@@ -1,5 +1,6 @@
 /* @flow */
-import rdi from 'reactive-di-todomvc/common/annotations'
+import {model} from 'reactive-di/dist/annotations'
+import {component} from 'reactive-di-react'
 
 import todoRdi from 'reactive-di-todomvc/todo/rdi/todoRdi'
 import commonRdi from 'reactive-di-todomvc/common/rdi/commonRdi'
@@ -9,16 +10,15 @@ import ConfigState from 'reactive-di-todomvc/app/models/ConfigState'
 
 import {RootComponent} from 'reactive-di-react'
 
-import type {AnyAnnotation} from 'reactive-di/i/annotationInterfaces'
+import type {Annotation} from 'reactive-di/i/annotationInterfaces'
 
-const {model, react} = rdi
-
-const deps: Array<AnyAnnotation> = [].concat(
-    todoRdi,
-    commonRdi,
+const deps: Array<Annotation> = [
     model(AppState),
     model(ConfigState),
-    react(RootComponent)
+    component(RootComponent)
+].concat(
+    todoRdi,
+    commonRdi
 );
 
 export default deps

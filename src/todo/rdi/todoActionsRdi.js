@@ -1,5 +1,5 @@
 /* @flow */
-import rdi from 'reactive-di-todomvc/common/annotations'
+import {asyncsetter, syncsetter} from 'reactive-di/dist/annotations'
 
 import {
     cancelAdding,
@@ -33,11 +33,9 @@ import TodoAppState from 'reactive-di-todomvc/todo/models/TodoAppState'
 import TodoItemCollection from 'reactive-di-todomvc/todo/models/TodoItemCollection'
 import Fetcher from 'reactive-di-todomvc/common/services/Fetcher'
 
-import type {AnyAnnotation} from 'reactive-di/i/annotationInterfaces'
+import type {Annotation} from 'reactive-di/i/annotationInterfaces'
 
-const {asyncsetter, syncsetter} = rdi
-
-const deps: Array<AnyAnnotation> = [
+const deps: Array<Annotation> = [
     syncsetter(showAll, TodoGroupState),
     syncsetter(showActive, TodoGroupState),
     syncsetter(showCompleted, TodoGroupState),

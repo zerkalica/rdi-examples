@@ -1,6 +1,14 @@
 /* @flow */
-import rdi from 'reactive-di-todomvc/common/annotations'
-import type {AnyAnnotation} from 'reactive-di/i/annotationInterfaces'
+import {
+    model,
+    loader,
+    factory,
+    klass
+} from 'reactive-di/dist/annotations'
+
+import {component} from 'reactive-di-react'
+
+import type {Annotation} from 'reactive-di/i/annotationInterfaces'
 
 import Fetcher from 'reactive-di-todomvc/common/services/Fetcher'
 import AbstractRouterManager from 'reactive-di-todomvc/common/services/AbstractRouterManager'
@@ -19,9 +27,7 @@ import EventHelperImpl from 'reactive-di-todomvc/common/helpers/EventHelperImpl'
 import LoadingPage from 'reactive-di-todomvc/common/components/LoadingPage'
 import NotFoundPage from 'reactive-di-todomvc/common/components/NotFoundPage'
 
-const {model, factory, klass, react, loader} = rdi
-
-const deps: Array<AnyAnnotation> = [
+const deps: Array<Annotation> = [
     factory(storageFetch, AbstractStorage),
     klass(Fetcher, FetcherConfig, storageFetch),
 
@@ -34,8 +40,8 @@ const deps: Array<AnyAnnotation> = [
 
     factory(EventHelperImpl),
 
-    react(LoadingPage),
-    react(NotFoundPage)
+    component(LoadingPage),
+    component(NotFoundPage)
 ];
 
 export default deps
