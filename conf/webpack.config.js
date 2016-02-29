@@ -25,7 +25,7 @@ export default {
         path: path.resolve(__dirname, '..', 'build'),
         filename: 'app.js'
     },
-    entry: path.resolve(__dirname, '..', 'src', 'cli.js'),
+    entry: path.resolve(__dirname, '..', 'src', 'browser.js'),
     configLoader: {
         env: !process.env.NODE_ENV || process.env.NODE_ENV === 'development' ? 'dev' : 'prod',
         instance: process.env.APP_INSTANCE || 'client'

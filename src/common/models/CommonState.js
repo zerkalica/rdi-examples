@@ -1,18 +1,20 @@
 /* @flow */
-import rdi from 'reactive-di-todomvc/common/annotations'
+
 import BaseEnv from 'reactive-di-todomvc/common/models/BaseEnv'
+import BaseQuery from 'reactive-di-todomvc/common/models/BaseQuery'
 import {assignModel} from 'reactive-di-todomvc/common/helpers'
 
 type CommonStateRec = {
-    baseEnv?: BaseEnv
+    baseEnv?: BaseEnv,
+    baseQuery?: BaseQuery;
 }
 
-class CommonState {
+export default class CommonState {
     baseEnv: BaseEnv;
+    baseQuery: BaseQuery;
 
     constructor(rec: CommonStateRec) {
         this.baseEnv = assignModel(rec.baseEnv, BaseEnv)
+        this.baseQuery = assignModel(rec.baseQuery, BaseQuery)
     }
 }
-
-export default rdi.model(CommonState)

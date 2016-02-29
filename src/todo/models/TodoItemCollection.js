@@ -1,16 +1,12 @@
 /* @flow */
 
-import rdi from 'reactive-di-todomvc/common/annotations'
-
 import {BaseCollection} from 'reactive-di'
 import type {Collection} from 'reactive-di/i/collection' // eslint-disable-line
 import {assignString, assignBoolean} from 'reactive-di-todomvc/common/helpers'
 
-import type {
-    TodoItem
-} from 'reactive-di-todomvc/i/todoInterfaces'
+import type {TodoItem} from 'reactive-di-todomvc/i/todoInterfaces'
 
-type TodoItemRec = {
+export type TodoItemRec = {
     id?: string;
     title?: string;
     isCompleted?: boolean;
@@ -30,9 +26,8 @@ export class TodoItemImpl {
 }
 
 // implements Collection<TodoItem>
-class TodoItemCollection extends BaseCollection<TodoItem> {
+export default class TodoItemCollection extends BaseCollection<TodoItem> {
     createItem(rec: TodoItemRec): TodoItem {
         return new TodoItemImpl(rec)
     }
 }
-export default rdi.model(TodoItemCollection)

@@ -1,30 +1,47 @@
 /* @flow */
-
-import rdi from 'reactive-di-todomvc/common/annotations'
 import {merge} from 'reactive-di'
-import TodoItemAdding from 'reactive-di-todomvc/todo/models/TodoItemAdding'
-import TodoItemEditing from 'reactive-di-todomvc/todo/models/TodoItemEditing'
-import type {TodoItem, TodoEditingRec} from 'reactive-di-todomvc/i/todoInterfaces'
+import type {
+    TodoItem,
+    TodoItemAdding,
+    TodoItemEditing,
+    TodoItemRec
+} from 'reactive-di-todomvc/i/todoInterfaces'
+import {TodoItemImpl} from 'reactive-di-todomvc/todo/models/TodoItemCollection'
 
-function assignAdding(item: TodoItem, rec: TodoEditingRec): TodoItem {
-    return merge(item, rec)
+export function changeAdding(adding: TodoItemAdding, rec: TodoItemRec): TodoItemAdding {
+    return merge(adding, {
+        item: merge(adding.item, rec)
+    })
 }
 
-function assignEditing(item: TodoItem, rec: TodoEditingRec): TodoItem {
-    return merge(item, rec)
+export function beginAdding(adding: TodoItemAdding): TodoItemAdding {
+    return merge(adding, {
+        item: new TodoItemImpl(),
+        isAdding: true
+    })
 }
 
-function beginEditing(item: TodoItem, currentItem: TodoItem): TodoItem {
-    return merge(item, currentItem)
+export function cancelAdding(adding: TodoItemAdding): TodoItemAdding {
+    return merge(adding, {
+        isAdding: false
+    })
 }
 
-function cancelEditing(item: TodoItem): TodoItem {
-    return merge(item, {id: '', title: ''})
+export function changeEditing(editing: TodoItemEditing, rec: TodoItemRec): TodoItemEditing {
+    return merge(editing, {
+        item: merge(editing.item, rec)
+    })
 }
 
-export default {
-    assignAdding: rdi.syncsetter(TodoItemAdding)(assignAdding),
-    assignEditing: rdi.syncsetter(TodoItemEditing)(assignEditing),
-    beginEditing: rdi.syncsetter(TodoItemEditing)(beginEditing),
-    cancelEditing: rdi.syncsetter(TodoItemEditing)(cancelEditing)
+export function beginEditing(editing: TodoItemEditing, currentItem: TodoItem): TodoItemEditing {
+    return merge(editing, {
+        item: currentItem,
+        isEditing: true
+    })
+}
+
+export function cancelEditing(editing: TodoItemEditing): TodoItemEditing {
+    return merge(editing, {
+        isEditing: false
+    })
 }

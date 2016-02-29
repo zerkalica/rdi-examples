@@ -1,48 +1,35 @@
 /* @flow */
-import React, {Component} from 'react'
-import TodoElementList from 'reactive-di-todomvc/todo/components/TodoElementList'
-import type {TodoElementActions} from 'reactive-di-todomvc/todo/components/TodoElement'
-
+import React from 'react'
 import type {
-    TodoItem
-} from 'reactive-di-todomvc/i/todoInterfaces'
-
-type TodoMainActions = TodoElementActions & {
-    toggleAll(): void;
-}
+    Widget,
+    Element,
+    EventHelper
+} from 'reactive-di-todomvc/i/commonInterfaces'
 
 type TodoMainProps = {
-    ItemTemplate: Class<Component>;
-    actions: TodoMainActions;
+    toggleAll(): void;
     isAllCompleted: boolean;
-    items: Array<TodoItem>;
+    TodoElementList: Widget<void>;
+    helper: EventHelper;
 };
 
-export default class TodoMain extends Component<void, TodoMainProps, void> {
-    render(): ReactElement {
-        const {
-            ItemTemplate,
-            isAllCompleted,
-            actions,
-            items
-        } = this.props;
-        const {toggleAll, remove, change, toggle} = actions
-        return (
-            <section className="main">
-                <input
-                    className="toggle-all"
-                    id="toggle-all"
-                    onClick={toggleAll}
-                    checked={isAllCompleted}
-                    type="checkbox"
-                />
-                <label htmlFor="toggle-all">Mark all as complete</label>
-                <TodoElementList
-                    ItemTemplate={ItemTemplate}
-                    items={items}
-                    itemActions={{remove, change, toggle}}
-                />
-            </section>
-        )
-    }
+export default function TodoMain({
+    toggleAll,
+    isAllCompleted,
+    TodoElementList,
+    helper
+}: TodoMainProps): Element {
+    return (
+        <section className="main">
+            <input
+                className="toggle-all"
+                id="toggle-all"
+                onClick={helper.click(toggleAll)}
+                checked={isAllCompleted}
+                type="checkbox"
+            />
+            <label htmlFor="toggle-all">Mark all as complete</label>
+            <TodoElementList/>
+        </section>
+    )
 }

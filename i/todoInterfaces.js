@@ -1,28 +1,33 @@
 /* @flow */
 
+import type {Collection} from 'reactive-di/i/collection'
+
 export type TodoItem = {
     id: string;
     title: string;
     isCompleted: boolean;
 };
 
-export type TodoEditingRec = {
-    title: string;
+export type TodoItemEditing = {
+    item: TodoItem;
+    isEditing: boolean;
 }
 
-export type TodoCrudActions = {
-    add(item: TodoItem): void;
-    remove(id: string): void;
-    toggle(id: string): void;
-    change(item: TodoItem): void;
-    toggleAll(): void;
-    clearCompleted(): void;
+export type TodoItemAdding = {
+    item: TodoItem;
+    isEditing: boolean;
 }
 
-export type TodoFilterActions = {
-    showAll(): void;
-    showActive(): void;
-    showCompleted(): void;
+export type TodoItemRec = {
+    title?: string;
+    isCompleted?: boolean;
 }
 
 export type SelectedGroup = 'all' | 'active' | 'completed';
+
+export type TodoItemsFacet = {
+    items: Collection<TodoItem>;
+    hasCompleted: boolean;
+    itemsCount: number;
+    selectedGroup: SelectedGroup;
+}

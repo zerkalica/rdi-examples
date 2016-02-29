@@ -1,5 +1,4 @@
 /* @flow */
-import rdi from 'reactive-di-todomvc/common/annotations'
 import type {FetchParams} from 'reactive-di-todomvc/i/commonInterfaces'
 import type {TodoItem} from 'reactive-di-todomvc/i/todoInterfaces'
 
@@ -131,7 +130,4 @@ const serverActions: Array<ServerAction> = [
     }
 ];
 
-function createLocalServerActions(): Array<ServerAction> {
-    return serverActions
-}
-export default rdi.factory()(createLocalServerActions)
+export default serverActions

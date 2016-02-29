@@ -1,6 +1,5 @@
 /* @flow */
 
-import rdi from 'reactive-di-todomvc/common/annotations'
 import ConfigState from 'reactive-di-todomvc/app/ConfigState'
 import TodoAppState from 'reactive-di-todomvc/todo/models/TodoAppState'
 
@@ -9,7 +8,7 @@ type AppStateRec = {
     config?: ConfigState;
 }
 
-class AppState {
+export default class AppState {
     todoAppState: TodoAppState;
     config: ConfigState;
 
@@ -18,5 +17,3 @@ class AppState {
         this.config = rec.config || new ConfigState()
     }
 }
-
-export default rdi.model(AppState)
