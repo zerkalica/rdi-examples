@@ -32,7 +32,7 @@ import {factory, alias} from 'reactive-di/dist/annotations'
 const routerManager = createBrowserRouterManager(window, config.routes || {})
 
 const browserRdi: Array<Annotation> = appRdi.concat([
-    alias(AbstractStorage, factory(() => window.storage)),
+    alias(AbstractStorage, factory(() => window.localStorage)),
     alias(AbstractRouterManager, factory(() => routerManager))
 ]);
 

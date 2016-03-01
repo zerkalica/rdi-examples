@@ -38,7 +38,7 @@ const deps: Array<Annotation> = [
 
     loader(LoadableBaseQuery, BaseQuery, AbstractRouterManager),
 
-    factory(EventHelperImpl),
+    klass(EventHelperImpl),
 
     component(LoadingPage),
     component(NotFoundPage)

@@ -1,6 +1,6 @@
 /* @flow */
 import React from 'react'
-import type {Element} from 'reactive-di-todomvc/i/commonInterfaces'
+import type {Element} from 'reactive-di-react/i/interfaces'
 
 export default function NotFoundPage(): Element {
     return (
