@@ -5,13 +5,13 @@ import {assignModel, assignBoolean} from 'reactive-di-todomvc/common/helpers'
 
 export default class TodoItemAdding {
     isAdding: boolean;
-    todoItem: TodoItem;
+    item: TodoItem;
 
     constructor(rec: {
         isAdding?: boolean,
-        todoItem?: TodoItem
+        item?: TodoItem
     } = {}) {
-        this.todoItem = assignModel(rec.todoItem, TodoItemImpl)
+        this.item = assignModel(rec.item, TodoItemImpl)
         this.isAdding = assignBoolean(rec.isAdding)
     }
 }
