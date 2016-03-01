@@ -59,4 +59,4 @@ const props = createReactProps(
     pageMap
 )
 
-ReactDOM.render(createElement(RootComponent, props), node)
+ReactDOM.render(createElement(di(RootComponent), props), node)

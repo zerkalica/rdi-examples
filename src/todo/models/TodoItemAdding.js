@@ -8,9 +8,9 @@ export default class TodoItemAdding {
     todoItem: TodoItem;
 
     constructor(rec: {
-        isAdding: boolean,
-        todoItem: TodoItem
-    }) {
+        isAdding?: boolean,
+        todoItem?: TodoItem
+    } = {}) {
         this.todoItem = assignModel(rec.todoItem, TodoItemImpl)
         this.isAdding = assignBoolean(rec.isAdding)
     }

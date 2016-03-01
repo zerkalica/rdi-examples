@@ -1,7 +1,8 @@
 /* @flow */
 
-import ConfigState from 'reactive-di-todomvc/app/ConfigState'
+import ConfigState from 'reactive-di-todomvc/app/models/ConfigState'
 import TodoAppState from 'reactive-di-todomvc/todo/models/TodoAppState'
+import {assignModel} from 'reactive-di-todomvc/common/helpers'
 
 type AppStateRec = {
     todoAppState?: TodoAppState;
@@ -13,7 +14,7 @@ export default class AppState {
     config: ConfigState;
 
     constructor(rec: AppStateRec = {}) {
-        this.todoAppState = rec.todoAppState || new TodoAppState()
-        this.config = rec.config || new ConfigState()
+        this.todoAppState = assignModel(rec.todoAppState, TodoAppState)
+        this.config = assignModel(rec.config, ConfigState)
     }
 }
