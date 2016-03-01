@@ -16,7 +16,7 @@
     "update": "ncu -ua && npm install",
     "clean": "rm -rf build coverage",
     "build": "npm run clean && webpack --config conf/webpack.config.es5.js",
-    "build.dev": "node conf/resources/rundeps.js reactive-di reactive-di-react modern-router",
+    "build.dev": "node conf/resources/rundeps.js reactive-di reactive-di-react",
     "lint": "eslint src",
     "check": "flow check",
     "testonly": "mocha",

@@ -15,7 +15,9 @@ import type {Annotation} from 'reactive-di/i/annotationInterfaces'
 const deps: Array<Annotation> = [
     model(AppState),
     model(ConfigState),
-    component(RootComponent)
+    component(RootComponent, {
+        
+    })
 ].concat(
     todoRdi,
     commonRdi

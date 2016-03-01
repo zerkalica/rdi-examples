@@ -15,7 +15,7 @@ export default function createReactProps(
     pageMap: PageMap
 ): RootComponentProps {
     return {
-        page: pageMap.DefaultPage,
+        page: di(pageMap.DefaultPage),
         observable: locationChanges.map((route: Route) =>
             di(pageMap[route.page] || pageMap.NotFoundPage)
         )

@@ -8,9 +8,9 @@ export default class TodoItemEditing {
     todoItem: TodoItem;
 
     constructor(rec: {
-        isEditing: boolean,
-        todoItem: TodoItem
-    }) {
+        isEditing?: boolean,
+        todoItem?: TodoItem
+    } = {}) {
         this.todoItem = assignModel(rec.todoItem, TodoItemImpl)
         this.isEditing = assignBoolean(rec.isEditing)
     }
