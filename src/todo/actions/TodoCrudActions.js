@@ -86,7 +86,9 @@ export function commitEditing(
 ): [TodoAppState, Promise<null>] {
     const newState = merge(todoState, {
         items: todoState.items.set(newItem.id, newItem),
-        editingItem: merge(todoState.editingItem, {id: ''})
+        editingItem: merge(todoState.editingItem, {
+            isEditing: false
+        })
     })
     const promise: Promise<null> = fetcher.load(`todo/${newItem.id}`, {
         method: 'POST',
@@ -110,7 +112,11 @@ export function commitAdding(
     const newItems = todoState.items.add(ni)
     const newStore = merge(todoState, {
         items: newItems,
-        addingItem: merge(todoState.addingItem, {title: ''})
+        addingItem: merge(todoState.addingItem, {
+            item: merge(todoState.addingItem.item, {
+                title: ''
+            })
+        })
     })
 
     const promise = fetcher.load('todo', {

@@ -33,6 +33,7 @@ export default function todoItemsFacet(
     return {
         items,
         hasCompleted: !!items.find((item: TodoItem) => item.isCompleted),
+        totalCount: allItems.length,
         itemsCount: items.length,
         selectedGroup: groupState.selectedGroup
     }

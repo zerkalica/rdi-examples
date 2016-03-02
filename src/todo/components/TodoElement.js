@@ -44,11 +44,12 @@ export default function TodoElement({
     editingItem,
     helper
 }: TodoElementProps): Element {
+    const isEditing = editingItem.isEditing && editingItem.item.id === item.id
     return (
         <li
             className={cn({
                 completed: item.isCompleted,
-                editing: editingItem.isEditing
+                editing: isEditing
             })}
             onDoubleClick={helper.click(beginEditing, item)}
         >
@@ -57,7 +58,7 @@ export default function TodoElement({
                     className="toggle"
                     type="checkbox"
                     checked={item.isCompleted}
-                    onChange={helper.change(toggleTodoItem, item.id)}
+                    onChange={helper.click(toggleTodoItem, item.id)}
                 />
                 <label>{item.title}</label>
                 <button
@@ -65,14 +66,14 @@ export default function TodoElement({
                     onClick={helper.click(removeTodoItem, item.id)}
                 ></button>
             </div>
-            {editingItem.isEditing ?
+            {isEditing ?
                 <input
                     autoFocus
                     className="edit"
                     value={editingItem.item.title}
                     onBlur={helper.click(cancelEditing)}
                     onChange={helper.change((title: string) => changeEditing({title}))}
-                    onKeyDown={helper.keyMap([
+                    onKeyPress={helper.keyMap([
                         [KEY_ESC, cancelEditing],
                         [KEY_ENTER, commitEditing, editingItem.item]
                     ])}
