@@ -9,11 +9,12 @@ type TodoMainPageProps = {
     TodoFooter: Widget<void>;
     meta: EntityMeta<Error>;
     data: {
+        totalCount: number;
         itemsCount: number;
     }
 }
 
-export default function TodoMainPage({
+export default function TodoPage({
     meta,
     data,
     TodoMain,
@@ -35,7 +36,7 @@ export default function TodoMainPage({
             <section className="todoapp">
                 <TodoHeader/>
                 {data.itemsCount > 0 ? <TodoMain/> : null}
-                {data.itemsCount > 0 ? <TodoFooter/> : null}
+                {data.totalCount > 0 ? <TodoFooter/> : null}
             </section>
         </section>
     )

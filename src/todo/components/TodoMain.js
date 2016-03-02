@@ -21,7 +21,7 @@ export default function TodoMain({
             <input
                 className="toggle-all"
                 id="toggle-all"
-                onClick={helper.click(toggleAll)}
+                onChange={helper.click(toggleAll)}
                 checked={isAllCompleted}
                 type="checkbox"
             />

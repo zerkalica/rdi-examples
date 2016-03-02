@@ -7,6 +7,7 @@ import type {SelectedGroup} from 'reactive-di-todomvc/i/todoInterfaces'
 
 type TodoFooterPropsData = {
     itemsCount: number;
+    totalCount: number;
     selectedGroup: SelectedGroup;
     hasCompleted: boolean;
 }
@@ -30,7 +31,9 @@ export default function TodoFooter({
 }: TodoFooterProps): Element {
     return (
         <footer className="footer">
-            <span className="todo-count"><strong>{data.itemsCount}</strong> item left</span>
+            <span className="todo-count">
+                <strong>{data.itemsCount} of {data.totalCount}</strong> item left
+            </span>
             <ul className="filters">
                 <li>
                     <a

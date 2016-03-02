@@ -9,7 +9,7 @@ import TodoElementList from 'reactive-di-todomvc/todo/components/TodoElementList
 import TodoElement from 'reactive-di-todomvc/todo/components/TodoElement'
 import TodoFooter from 'reactive-di-todomvc/todo/components/TodoFooter'
 import TodoMain from 'reactive-di-todomvc/todo/components/TodoMain'
-import TodoMainPage from 'reactive-di-todomvc/todo/components/TodoMainPage'
+import TodoPage from 'reactive-di-todomvc/todo/components/TodoPage'
 
 import EventHelperImpl from 'reactive-di-todomvc/common/helpers/EventHelperImpl'
 
@@ -85,11 +85,18 @@ const deps: Array<Annotation> = [
         TodoElementList,
         helper: EventHelperImpl
     }),
-    component(TodoMainPage, {
+    component(TodoPage, {
         TodoHeader,
         TodoMain,
         TodoFooter,
-        meta: meta(todoItemsFacet),
+        meta: meta(
+            toggleAll,
+            removeTodoItem,
+            toggleTodoItem,
+            todoItemsFacet,
+            commitEditing,
+            commitAdding
+        ),
         data: todoItemsFacet
     })
 ];

@@ -1,16 +1,16 @@
 /* @flow */
 
-import TodoMainPage from 'reactive-di-todomvc/todo/components/TodoMainPage'
+import TodoPage from 'reactive-di-todomvc/todo/components/TodoPage'
 import NotFoundPage from 'reactive-di-todomvc/common/components/NotFoundPage'
 import type {PageMap} from 'reactive-di-todomvc/i/PageMap'
 
-const DefaultPage = TodoMainPage
+const DefaultPage = TodoPage
 
 const pageMap: PageMap = {
     NotFoundPage,
     DefaultPage,
 
-    TodoMainPage
+    TodoPage
 };
 
 export default pageMap

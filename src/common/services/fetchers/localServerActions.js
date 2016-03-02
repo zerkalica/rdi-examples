@@ -22,7 +22,7 @@ const defaultTodos: Array<TodoItem> = [
 ];
 function delayedResult<V>(getData: () => V): Promise<V> {
     return new Promise((resolve, reject) => {
-        if ((Math.random() * 2) > 1) {
+        if ((Math.random() * 2) > 1.5) {
             setTimeout(() => reject(new Error('Fake server error')), 700)
         } else {
             setTimeout(() => {

@@ -7,10 +7,6 @@ export default class EventHelperImpl {
         value: V
     ): (e: Event) => void {
         return function handleClick(e: Event): void {
-            const target: EventTarget = e.target;
-            if (!(target instanceof HTMLInputElement)) {
-                throw new Error('Not an HTMLInputElement: ' + target.toString())
-            }
             e.preventDefault()
             func(value)
         }
@@ -22,13 +18,12 @@ export default class EventHelperImpl {
     ): (e: Event) => void {
         return function handleChange(e: Event): void {
             const target: EventTarget = e.target;
-            if (!(target instanceof HTMLInputElement)) {
-                throw new Error('Not an HTMLInputElement: ' + target.toString())
-            }
             if (preventDefault) {
                 e.preventDefault()
             }
-
+            if (target.value === undefined) {
+                throw new Error(`Not an input: ${target.toString()}`)
+            }
             func(target.value)
         }
     }
