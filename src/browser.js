@@ -31,6 +31,38 @@ import {factory, alias} from 'reactive-di/dist/annotations'
 
 const routerManager = createBrowserRouterManager(window, config.routes || {})
 
+class LocalStorage extends AbstractStorage {
+    _storage: Storage;
+    constructor(storage: Storage) {
+        super()
+        this._storage = storage
+    }
+
+    hasItem(key: string): void {
+        return this._storage.getItem(key)
+    }
+
+    getItem<V>(key: string): V {
+        const value: ?string = this._storage.getItem(key);
+        if () {
+
+        }
+        return JSON.parse( || '')
+    }
+
+    setItem<V>(key: string, value: V): void {
+        this._storage.setItem(key, JSON.stringify(value))
+    }
+
+    removeItem(key: string): void {
+        this._storage.removeItem(key)
+    }
+
+    clear(): void {
+        this._storage.clear()
+    }
+}
+
 const browserRdi: Array<Annotation> = appRdi.concat([
     alias(AbstractStorage, factory(() => window.localStorage)),
     alias(AbstractRouterManager, factory(() => routerManager))
