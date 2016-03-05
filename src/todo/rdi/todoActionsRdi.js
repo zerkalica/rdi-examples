@@ -1,5 +1,5 @@
 /* @flow */
-import {asyncsetter, syncsetter} from 'reactive-di/dist/annotations'
+import {asyncsetter, syncsetter, factory} from 'reactive-di/dist/annotations'
 
 import {
     cancelAdding,
@@ -33,12 +33,14 @@ import TodoAppState from 'reactive-di-todomvc/todo/models/TodoAppState'
 import TodoItemCollection from 'reactive-di-todomvc/todo/models/TodoItemCollection'
 import Fetcher from 'reactive-di-todomvc/common/services/Fetcher'
 
+import AbstractRouterManager from 'reactive-di-todomvc/common/services/AbstractRouterManager'
+
 import type {Annotation} from 'reactive-di/i/annotationInterfaces'
 
 const deps: Array<Annotation> = [
-    syncsetter(showAll, TodoGroupState),
-    syncsetter(showActive, TodoGroupState),
-    syncsetter(showCompleted, TodoGroupState),
+    factory(showAll, AbstractRouterManager),
+    factory(showActive, AbstractRouterManager),
+    factory(showCompleted, AbstractRouterManager),
 
     syncsetter(cancelAdding, TodoItemAdding),
     syncsetter(changeAdding, TodoItemAdding),

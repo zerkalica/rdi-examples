@@ -1,13 +1,12 @@
 /* @flow */
 import React from 'react'
-import type {EntityMeta} from 'reactive-di/i/nodeInterfaces'
 import type {Widget, Element} from 'reactive-di-react/i/interfaces'
 
 type TodoMainPageProps = {
+    TodoPageLoadingState: Widget<void>;
     TodoHeader: Widget<void>;
     TodoMain: Widget<void>;
     TodoFooter: Widget<void>;
-    meta: EntityMeta<Error>;
     data: {
         totalCount: number;
         itemsCount: number;
@@ -15,24 +14,15 @@ type TodoMainPageProps = {
 }
 
 export default function TodoPage({
-    meta,
     data,
+    TodoPageLoadingState,
     TodoMain,
     TodoFooter,
     TodoHeader
 }: TodoMainPageProps): Element {
     return (
         <section className="todowrap">
-            {meta.pending ?
-                <div className="todoloader">
-                    <h3>Pending...</h3>
-                </div>
-            : null}
-            {meta.rejected ?
-                <div className="todoerror">
-                    {meta.reason ? meta.reason.message : 'error'}
-                </div>
-            : null}
+            <TodoPageLoadingState/>
             <section className="todoapp">
                 <TodoHeader/>
                 {data.itemsCount > 0 ? <TodoMain/> : null}

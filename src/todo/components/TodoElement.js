@@ -58,7 +58,7 @@ export default function TodoElement({
                     className="toggle"
                     type="checkbox"
                     checked={item.isCompleted}
-                    onChange={helper.click(toggleTodoItem, item.id)}
+                    onChange={helper.change(() => toggleTodoItem(item.id))}
                 />
                 <label>{item.title}</label>
                 <button

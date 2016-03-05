@@ -1,15 +1,15 @@
 /* @flow */
 
-import TodoGroupState from 'reactive-di-todomvc/todo/models/TodoGroupState'
 import type {
     TodoItem,
     TodoItemsFacet
 } from 'reactive-di-todomvc/i/todoInterfaces'
 import type {Collection} from 'reactive-di/i/collection'
+import TodoQueryArgs from 'reactive-di-todomvc/todo/facets/TodoQueryArgs'
 
 export default function todoItemsFacet(
     allItems: Collection<TodoItem>,
-    groupState: TodoGroupState
+    groupState: TodoQueryArgs
 ): TodoItemsFacet {
     let items: ?Collection<TodoItem>;
     switch (groupState.selectedGroup) {

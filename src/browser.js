@@ -14,11 +14,11 @@ import {createBrowserRouterManager} from 'modern-router'
 import config from 'reactive-di-todomvc/../conf/.configloaderrc'
 import createState from 'reactive-di-todomvc/app/helpers/createState'
 import BaseEnv from 'reactive-di-todomvc/common/models/BaseEnv'
+import BaseQuery from 'reactive-di-todomvc/common/models/BaseQuery'
 
 import AbstractStorage from 'reactive-di-todomvc/common/services/AbstractStorage'
+import BrowserLocalStorage from 'reactive-di-todomvc/common/helpers/browser/BrowserLocalStorage'
 import AbstractRouterManager from 'reactive-di-todomvc/common/services/AbstractRouterManager'
-
-import createReactProps from 'reactive-di-todomvc/app/helpers/createReactProps'
 
 import pageMap from 'reactive-di-todomvc/app/components/pageMap'
 
@@ -28,55 +28,28 @@ import type {GetDep} from 'reactive-di/i/diInterfaces'
 import appRdi from 'reactive-di-todomvc/app/rdi/appRdi'
 
 import {factory, alias} from 'reactive-di/dist/annotations'
+import type {RouterManager} from 'modern-router/i/routerInterfaces'
+import createReactProps from 'reactive-di-todomvc/app/helpers/createReactProps'
 
-const routerManager = createBrowserRouterManager(window, config.routes || {})
-
-class LocalStorage extends AbstractStorage {
-    _storage: Storage;
-    constructor(storage: Storage) {
-        super()
-        this._storage = storage
-    }
-
-    hasItem(key: string): void {
-        return this._storage.getItem(key)
-    }
-
-    getItem<V>(key: string): V {
-        const value: ?string = this._storage.getItem(key);
-        if () {
-
-        }
-        return JSON.parse( || '')
-    }
-
-    setItem<V>(key: string, value: V): void {
-        this._storage.setItem(key, JSON.stringify(value))
-    }
-
-    removeItem(key: string): void {
-        this._storage.removeItem(key)
-    }
-
-    clear(): void {
-        this._storage.clear()
-    }
-}
+const routerManager: RouterManager = createBrowserRouterManager(window, config.config.router || {});
 
 const browserRdi: Array<Annotation> = appRdi.concat([
-    alias(AbstractStorage, factory(() => window.localStorage)),
+    alias(AbstractStorage, factory(() => new BrowserLocalStorage(window.localStorage))),
     alias(AbstractRouterManager, factory(() => routerManager))
 ]);
 
-const baseEnv = new BaseEnv({
-    referrer: document.referrer,
-    userAgent: navigator.userAgent,
-    language: navigator.language,
-    platform: 'default'
-});
-
 const di: GetDep = createPureStateDi(
-    createState(baseEnv, config, window.todoMvcSettings || {}),
+    createState(
+        new BaseEnv({
+            referrer: document.referrer,
+            userAgent: navigator.userAgent,
+            language: navigator.language,
+            platform: 'default'
+        }),
+        new BaseQuery(routerManager.resolve()),
+        config,
+        window.todoMvcSettings || {}
+    ),
     browserRdi,
     defaultPlugins.concat([
         new ReactPlugin()
@@ -85,10 +58,6 @@ const di: GetDep = createPureStateDi(
 
 const node: Element = document.getElementById('app');
 
-const props = createReactProps(
-    di,
-    routerManager.locationChanges,
-    pageMap
-)
+const props = createReactProps(di, routerManager, pageMap)
 
-ReactDOM.render(createElement(di(RootComponent), props), node)
+ReactDOM.render(createElement(RootComponent, props), node)
