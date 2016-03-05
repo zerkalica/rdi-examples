@@ -12,9 +12,7 @@ export default class BrowserLocalStorage extends AbstractStorage {
 
     getItem<V>(key: string): ?V {
         const value: ?string = this._storage.getItem(key);
-        return value === undefined
-            ? value
-            : JSON.parse(value || '')
+        return !value ? value : JSON.parse(value || '')
     }
 
     setItem<V>(key: string, value: V): void {
