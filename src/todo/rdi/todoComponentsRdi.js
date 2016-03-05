@@ -10,8 +10,9 @@ import TodoElement from 'reactive-di-todomvc/todo/components/TodoElement'
 import TodoFooter from 'reactive-di-todomvc/todo/components/TodoFooter'
 import TodoMain from 'reactive-di-todomvc/todo/components/TodoMain'
 import TodoPage from 'reactive-di-todomvc/todo/components/TodoPage'
+import TodoPageLoadingState from 'reactive-di-todomvc/todo/components/TodoPageLoadingState'
 
-import EventHelperImpl from 'reactive-di-todomvc/common/helpers/EventHelperImpl'
+import EventHelper from 'reactive-di-todomvc/common/helpers/EventHelper'
 
 import {
     cancelAdding,
@@ -50,12 +51,12 @@ const deps: Array<Annotation> = [
         commitAdding,
         changeAdding,
         cancelAdding,
-        helper: EventHelperImpl
+        helper: EventHelper
     }),
 
     component(TodoFooter, {
         data: todoItemsFacet,
-        helper: EventHelperImpl,
+        helper: EventHelper,
         clearCompleted,
         showAll,
         showActive,
@@ -72,7 +73,7 @@ const deps: Array<Annotation> = [
         changeEditing,
         // item: props(),
         editingItem: TodoItemEditing,
-        helper: EventHelperImpl
+        helper: EventHelper
     }),
 
     component(TodoElementList, {
@@ -83,12 +84,10 @@ const deps: Array<Annotation> = [
         toggleAll,
         isAllCompleted: isAllCompletedFacet,
         TodoElementList,
-        helper: EventHelperImpl
+        helper: EventHelper
     }),
-    component(TodoPage, {
-        TodoHeader,
-        TodoMain,
-        TodoFooter,
+
+    component(TodoPageLoadingState, {
         meta: meta(
             toggleAll,
             removeTodoItem,
@@ -96,7 +95,13 @@ const deps: Array<Annotation> = [
             todoItemsFacet,
             commitEditing,
             commitAdding
-        ),
+        )
+    }),
+    component(TodoPage, {
+        TodoPageLoadingState,
+        TodoHeader,
+        TodoMain,
+        TodoFooter,
         data: todoItemsFacet
     })
 ];

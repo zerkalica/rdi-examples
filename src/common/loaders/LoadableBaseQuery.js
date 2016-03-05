@@ -1,11 +1,18 @@
 /* @flow */
 
-import AbstractRouterManager from 'reactive-di-todomvc/common/services/AbstractRouterManager'
 import BaseQuery from 'reactive-di-todomvc/common/models/BaseQuery'
+import type {
+    Route,
+    RouterManager
+} from 'modern-router/i/routerInterfaces'
+
+function routeToBaseQuery(route: Route): BaseQuery {
+    return new BaseQuery(route)
+}
 
 export default function LoadableBaseQuery(
     query: BaseQuery,
-    rm: AbstractRouterManager
-): Observable<BaseQuery, Error> {
-    return rm.locationChanges
+    rm: RouterManager
+): Observable<Route, void> {
+    return rm.changes.map(routeToBaseQuery)
 }

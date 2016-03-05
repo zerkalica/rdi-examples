@@ -22,7 +22,7 @@ import BaseQuery from 'reactive-di-todomvc/common/models/BaseQuery'
 
 import LoadableBaseQuery from 'reactive-di-todomvc/common/loaders/LoadableBaseQuery'
 
-import EventHelperImpl from 'reactive-di-todomvc/common/helpers/EventHelperImpl'
+import EventHelper from 'reactive-di-todomvc/common/helpers/EventHelper'
 
 import LoadingPage from 'reactive-di-todomvc/common/components/LoadingPage'
 import NotFoundPage from 'reactive-di-todomvc/common/components/NotFoundPage'
@@ -38,8 +38,7 @@ const deps: Array<Annotation> = [
 
     loader(LoadableBaseQuery, BaseQuery, AbstractRouterManager),
 
-    klass(EventHelperImpl),
-
+    klass(EventHelper),
     component(LoadingPage),
     component(NotFoundPage)
 ];

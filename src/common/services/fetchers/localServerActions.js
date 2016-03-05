@@ -2,10 +2,12 @@
 import type {FetchParams} from 'reactive-di-todomvc/i/commonInterfaces'
 import type {TodoItem} from 'reactive-di-todomvc/i/todoInterfaces'
 
+import AbstractStorage from 'reactive-di-todomvc/common/services/AbstractStorage'
+
 export type ServerAction<V> = { // eslint-disable-line
     method: 'GET' | 'POST' | 'PUT' | 'DELETE';
     url: RegExp;
-    execute(storage: Storage, params: FetchParams<V>, match: Array<string>): Promise<V>;
+    execute(storage: AbstractStorage, params: FetchParams<V>, match: Array<string>): Promise<V>;
 }
 
 const defaultTodos: Array<TodoItem> = [
@@ -20,6 +22,7 @@ const defaultTodos: Array<TodoItem> = [
         isCompleted: true
     }
 ];
+
 function delayedResult<V>(getData: () => V): Promise<V> {
     return new Promise((resolve, reject) => {
         if ((Math.random() * 2) > 1.5) {
@@ -43,23 +46,30 @@ const serverActions: Array<ServerAction> = [
     {
         method: 'GET',
         url: new RegExp('/todos'),
-        execute<V>(storage: Storage, params: FetchParams<V>, match: Array<string>): Promise<V> { // eslint-disable-line
-            const dataStr: ?string = storage.getItem('todos');
-            return delayedResult(() => dataStr ? JSON.parse(dataStr) : defaultTodos)
+        execute<V>(storage: AbstractStorage, params: FetchParams<V>, match: Array<string>): Promise<V> { // eslint-disable-line
+            const data: ?Array<TodoItem> = storage.getItem('todos');
+            return delayedResult(() => data
+                ? data
+                : defaultTodos
+            )
         }
     },
     {
         method: 'POST',
         url: new RegExp('/todos'),
-        execute<V>(storage: Storage, params: FetchParams<V>, match: Array<string>): Promise<null> { // eslint-disable-line
-            const dataStr: ?string = storage.getItem('todos');
-            const todos = dataStr ? JSON.parse(dataStr) : defaultTodos;
+        execute<V>(storage: AbstractStorage, params: FetchParams<V>, match: Array<string>): Promise<null> { // eslint-disable-line
+            const data: ?Array<TodoItem> = storage.getItem('todos');
+            const todos = data
+                ? data
+                : defaultTodos;
+
             const newTodos = todos.map((todo) => ({
                 ...todo,
                 ...params.json
             }))
+
             return delayedResult(() => {
-                storage.setItem('todos', JSON.stringify(newTodos))
+                storage.setItem('todos', newTodos)
                 return null
             })
         }
@@ -67,12 +77,16 @@ const serverActions: Array<ServerAction> = [
     {
         method: 'DELETE',
         url: new RegExp('/todos'),
-        execute<V>(storage: Storage, params: FetchParams<V>, match: Array<string>): Promise<null> { // eslint-disable-line
-            const dataStr: ?string = storage.getItem('todos');
-            const todos = dataStr ? JSON.parse(dataStr) : defaultTodos;
+        execute<V>(storage: AbstractStorage, params: FetchParams<V>, match: Array<string>): Promise<null> { // eslint-disable-line
+            const data: ?Array<TodoItem> = storage.getItem('todos');
+
+            const todos = data
+                ? data
+                : defaultTodos;
+
             const newTodos = todos.filter((todo) => findByKeys(todo, params.json))
             return delayedResult(() => {
-                storage.setItem('todos', JSON.stringify(newTodos))
+                storage.setItem('todos', newTodos)
                 return null
             })
         }
@@ -80,14 +94,14 @@ const serverActions: Array<ServerAction> = [
     {
         method: 'DELETE',
         url: new RegExp('/todo/(.*)'),
-        execute<V>(storage: Storage, params: FetchParams<V>, match: Array<string>): Promise<null> { // eslint-disable-line
-            const dataStr: ?string = storage.getItem('todos');
-            const todos = dataStr ? JSON.parse(dataStr) : []
+        execute<V>(storage: AbstractStorage, params: FetchParams<V>, match: Array<string>): Promise<null> { // eslint-disable-line
+            const data: ?Array<TodoItem> = storage.getItem('todos');
+            const todos = data || []
             const id = match[1]
             const newTodos = todos.filter((todo) => todo.id !== id)
 
             return delayedResult(() => {
-                storage.setItem('todos', JSON.stringify(newTodos))
+                storage.setItem('todos', newTodos)
                 return null
             })
         }
@@ -95,9 +109,9 @@ const serverActions: Array<ServerAction> = [
     {
         method: 'POST',
         url: new RegExp('/todo/(.*)'),
-        execute<V>(storage: Storage, params: FetchParams<V>, match: Array<string>): Promise<V> { // eslint-disable-line
-            const dataStr: ?string = storage.getItem('todos');
-            const todos = dataStr ? JSON.parse(dataStr) : []
+        execute<V>(storage: AbstractStorage, params: FetchParams<V>, match: Array<string>): Promise<V> { // eslint-disable-line
+            const data: ?Array<TodoItem> = storage.getItem('todos');
+            const todos = data || []
             const id = match[1]
             const newTodos = todos.map((todo) =>
                 todo.id === id
@@ -106,7 +120,7 @@ const serverActions: Array<ServerAction> = [
             )
 
             return delayedResult(() => {
-                storage.setItem('todos', JSON.stringify(newTodos))
+                storage.setItem('todos', newTodos)
                 return params.json
             })
         }
@@ -114,13 +128,13 @@ const serverActions: Array<ServerAction> = [
     {
         method: 'PUT',
         url: new RegExp('/todo'),
-        execute<V>(storage: Storage, params: FetchParams<V>, match: Array<string>): Promise<V> { // eslint-disable-line
-            const dataStr: ?string = storage.getItem('todos');
-            const todos = dataStr ? JSON.parse(dataStr) : []
+        execute<V>(storage: AbstractStorage, params: FetchParams<V>, match: Array<string>): Promise<V> { // eslint-disable-line
+            const data: ?Array<TodoItem> = storage.getItem('todos');
+            const todos = data || []
             todos.push(params.json)
 
             return delayedResult(() => {
-                storage.setItem('todos', JSON.stringify(todos))
+                storage.setItem('todos', todos)
                 return {
                     ...params.json,
                     id: `${params.json.id}.saved`

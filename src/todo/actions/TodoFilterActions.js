@@ -1,22 +1,21 @@
 /* @flow */
 
-import {merge} from 'reactive-di'
-import TodoGroupState from 'reactive-di-todomvc/todo/models/TodoGroupState'
+import type {RouterManager} from 'modern-router/i/routerInterfaces'
 
-export function showAll(groupState: TodoGroupState): TodoGroupState {
-    return merge(groupState, {
-        selectedGroup: 'all'
+export function showAll(rm: RouterManager): () => void {
+    return () => rm.update(null, {
+        group: 'all'
     })
 }
 
-export function showActive(groupState: TodoGroupState): TodoGroupState {
-    return merge(groupState, {
-        selectedGroup: 'active'
+export function showActive(rm: RouterManager): () => void {
+    return () => rm.update(null, {
+        group: 'active'
     })
 }
 
-export function showCompleted(groupState: TodoGroupState): TodoGroupState {
-    return merge(groupState, {
-        selectedGroup: 'completed'
+export function showCompleted(rm: RouterManager): () => void {
+    return () => rm.update(null, {
+        group: 'completed'
     })
 }

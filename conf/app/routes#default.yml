@@ -1,7 +1,12 @@
 config:
-    routes:
-        /: UsersPage
-        /counter: CounterPage
-        /user/<id>: UserInfoPage
-        /user/<id>/todos: UserTodoListsPage
-        /user/<userId>/todos/<listId>: TodosPage
+    router:
+        isFull: false
+        routes:
+            index:
+                pattern: (/)
+                page: TodoPage
+            TodoPage:
+                pattern: /(<group>)
+                page: TodoPage
+                defaults:
+                    group: all

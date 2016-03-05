@@ -1,7 +1,7 @@
 /* @flow */
 import type {EventHandler} from 'reactive-di-todomvc/i/commonInterfaces'
 
-export default class EventHelperImpl {
+export default class EventHelper {
     click<V>(
         func: EventHandler<V>,
         value: V
@@ -14,7 +14,7 @@ export default class EventHelperImpl {
 
     change(
         func: (value: string) => void,
-        preventDefault: boolean = true
+        preventDefault: boolean = false
     ): (e: Event) => void {
         return function handleChange(e: Event): void {
             const target: EventTarget = e.target;
