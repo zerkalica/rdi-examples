@@ -10,6 +10,7 @@ import {TodoItemImpl} from 'reactive-di-todomvc/todo/models/TodoItemCollection'
 
 export function changeAdding(adding: TodoItemAdding, rec: TodoItemRec): TodoItemAdding {
     return merge(adding, {
+        errors: {},
         item: merge(adding.item, rec)
     })
 }
@@ -29,6 +30,7 @@ export function cancelAdding(adding: TodoItemAdding): TodoItemAdding {
 
 export function changeEditing(editing: TodoItemEditing, rec: TodoItemRec): TodoItemEditing {
     return merge(editing, {
+        errors: {},
         item: merge(editing.item, rec)
     })
 }

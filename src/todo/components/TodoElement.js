@@ -17,7 +17,9 @@ import type {
 
 type TodoElementProps = {
     item: TodoItem;
-
+    ErrorableElement: Class<React$Component<void, {
+        errors: {[id: string]: string};
+    }, void>>;
     removeTodoItem(id: string): void;
     toggleTodoItem(id: string): void;
 
@@ -32,7 +34,7 @@ type TodoElementProps = {
 
 export default function TodoElement({
     item,
-
+    ErrorableElement,
     toggleTodoItem,
     removeTodoItem,
 
@@ -67,17 +69,19 @@ export default function TodoElement({
                 ></button>
             </div>
             {isEditing ?
-                <input
-                    autoFocus
-                    className="edit"
-                    value={editingItem.item.title}
-                    onBlur={helper.click(cancelEditing)}
-                    onChange={helper.change((title: string) => changeEditing({title}))}
-                    onKeyPress={helper.keyMap([
-                        [KEY_ESC, cancelEditing],
-                        [KEY_ENTER, commitEditing, editingItem.item]
-                    ])}
-                />
+                <ErrorableElement error={editingItem.errors.title}>
+                    <input
+                        autoFocus
+                        className="edit"
+                        value={editingItem.item.title}
+                        onBlur={helper.click(cancelEditing)}
+                        onChange={helper.change((title: string) => changeEditing({title}))}
+                        onKeyPress={helper.keyMap([
+                            [KEY_ESC, cancelEditing],
+                            [KEY_ENTER, commitEditing, editingItem.item]
+                        ])}
+                    />
+                </ErrorableElement>
             : null}
         </li>
     )

@@ -1,7 +1,7 @@
 /* @flow */
 import React from 'react'
 import cn from 'classnames'
-import type {EventHelper} from 'reactive-di-todomvc/i/commonInterfaces'
+import type {Tr, EventHelper} from 'reactive-di-todomvc/i/commonInterfaces'
 import type {Element} from 'reactive-di-react/i/interfaces'
 import type {SelectedGroup} from 'reactive-di-todomvc/i/todoInterfaces'
 
@@ -13,6 +13,7 @@ type TodoFooterPropsData = {
 }
 
 type TodoFooterProps = {
+    tr: Tr,
     data: TodoFooterPropsData;
     helper: EventHelper;
     clearCompleted(): void;
@@ -22,6 +23,7 @@ type TodoFooterProps = {
 };
 
 export default function TodoFooter({
+    tr,
     showAll,
     showActive,
     showCompleted,
@@ -32,7 +34,12 @@ export default function TodoFooter({
     return (
         <footer className="footer">
             <span className="todo-count">
-                <strong>{data.itemsCount} of {data.totalCount}</strong> item left
+                {tr('#{msg} item left', {
+                    msg: <strong>{tr('#{count} of #{total}', {
+                        count: data.itemsCount,
+                        total: data.totalCount
+                    })}</strong>
+                })}
             </span>
             <ul className="filters">
                 <li>
@@ -40,28 +47,28 @@ export default function TodoFooter({
                         className={cn({selected: data.selectedGroup === 'all'})}
                         href="/"
                         onClick={helper.click(showAll)}
-                    >All</a>
+                    >{tr('All')}</a>
                 </li>
                 <li>
                     <a
                         className={cn({selected: data.selectedGroup === 'active'})}
                         href="/active"
                         onClick={helper.click(showActive)}
-                    >Active</a>
+                    >{tr('Active')}</a>
                 </li>
                 <li>
                     <a
                         className={cn({selected: data.selectedGroup === 'completed'})}
                         href="/completed"
                         onClick={helper.click(showCompleted)}
-                    >Completed</a>
+                    >{tr('Completed')}</a>
                 </li>
             </ul>
             {data.hasCompleted
                 ? <button
                     className="clear-completed"
                     onClick={helper.click(clearCompleted)}
-                >Clear completed</button>
+                >{tr('Clear completed')}</button>
                 : null
             }
         </footer>

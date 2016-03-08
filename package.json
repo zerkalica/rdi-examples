@@ -89,6 +89,7 @@
     "webpack-dev-server": "^1.14.1"
   },
   "dependencies": {
+    "babelfish-plus": "0.0.10",
     "classnames": "^2.2.3",
     "modern-router": "0.x.x",
     "react": "^0.x.x",

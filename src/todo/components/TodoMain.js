@@ -1,9 +1,10 @@
 /* @flow */
 import React from 'react'
-import type {EventHelper} from 'reactive-di-todomvc/i/commonInterfaces'
+import type {Tr, EventHelper} from 'reactive-di-todomvc/i/commonInterfaces'
 import type {Widget, Element} from 'reactive-di-react/i/interfaces'
 
 type TodoMainProps = {
+    tr: Tr;
     toggleAll(): void;
     isAllCompleted: boolean;
     TodoElementList: Widget<void>;
@@ -11,6 +12,7 @@ type TodoMainProps = {
 };
 
 export default function TodoMain({
+    tr,
     toggleAll,
     isAllCompleted,
     TodoElementList,
@@ -25,7 +27,7 @@ export default function TodoMain({
                 checked={isAllCompleted}
                 type="checkbox"
             />
-            <label htmlFor="toggle-all">Mark all as complete</label>
+            <label htmlFor="toggle-all">{tr('Mark all as complete')}</label>
             <TodoElementList/>
         </section>
     )
