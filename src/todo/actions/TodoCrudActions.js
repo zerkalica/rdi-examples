@@ -78,12 +78,38 @@ export function toggleTodoItem(
     return [newItems, promise]
 }
 
+function getTodoItemAddingErrors(newItem: TodoItem): {
+    isError: boolean,
+    errors: {[id: string]: string}
+} {
+    const errors = {}
+    if (!newItem.title) {
+        errors.title = 'Need todo title'
+    }
+
+    return {
+        isError: !newItem.title,
+        errors
+    }
+}
+
 export function commitEditing(
     todoState: TodoAppState,
     fetcher: Fetcher,
 
     newItem: TodoItem
 ): [TodoAppState, Promise<null>] {
+    const {isError, errors} = getTodoItemAddingErrors(newItem)
+    if (isError) {
+        return [
+            merge(todoState, {
+                editingItem: merge(todoState.editingItem, {
+                    errors
+                })
+            })
+        ]
+    }
+
     const newState = merge(todoState, {
         items: todoState.items.set(newItem.id, newItem),
         editingItem: merge(todoState.editingItem, {
@@ -102,24 +128,35 @@ export function commitEditing(
 export function commitAdding(
     todoState: TodoAppState,
     fetcher: Fetcher,
-
     newItem: TodoItem
-): [TodoAppState, Promise<TodoItemCollection>] {
+): [TodoAppState, ?Promise<TodoItemCollection>] {
     const ni = new TodoItemImpl({
         ...newItem,
         id: createId()
     })
+    const {isError, errors} = getTodoItemAddingErrors(newItem)
+    if (isError) {
+        return [
+            merge(todoState, {
+                addingItem: merge(todoState.addingItem, {
+                    errors
+                })
+            })
+        ]
+    }
+
     const newItems = todoState.items.add(ni)
     const newStore = merge(todoState, {
         items: newItems,
         addingItem: merge(todoState.addingItem, {
+            errors,
             item: merge(todoState.addingItem.item, {
                 title: ''
             })
         })
     })
 
-    const promise = fetcher.load('todo', {
+    const promise = isError ? null : fetcher.load('todo', {
         method: 'PUT',
         json: ni
     }).then(({id}: {id: string}) =>

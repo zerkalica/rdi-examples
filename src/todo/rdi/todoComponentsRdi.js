@@ -44,9 +44,13 @@ import todoItemsFacet from 'reactive-di-todomvc/todo/facets/todoItemsFacet'
 
 import TodoItemEditing from 'reactive-di-todomvc/todo/models/TodoItemEditing'
 import TodoItemAdding from 'reactive-di-todomvc/todo/models/TodoItemAdding'
+import ErrorableElement from 'reactive-di-todomvc/common/components/ErrorableElement'
+import tr from 'reactive-di-todomvc/common/services/tr'
 
 const deps: Array<Annotation> = [
     component(TodoHeader, {
+        tr,
+        ErrorableElement,
         addingItem: TodoItemAdding,
         commitAdding,
         changeAdding,
@@ -55,6 +59,7 @@ const deps: Array<Annotation> = [
     }),
 
     component(TodoFooter, {
+        tr,
         data: todoItemsFacet,
         helper: EventHelper,
         clearCompleted,
@@ -64,6 +69,7 @@ const deps: Array<Annotation> = [
     }),
 
     component(TodoElement, {
+        ErrorableElement,
         removeTodoItem,
         toggleTodoItem,
 
@@ -81,6 +87,7 @@ const deps: Array<Annotation> = [
         data: todoItemsFacet
     }),
     component(TodoMain, {
+        tr,
         toggleAll,
         isAllCompleted: isAllCompletedFacet,
         TodoElementList,
@@ -88,6 +95,7 @@ const deps: Array<Annotation> = [
     }),
 
     component(TodoPageLoadingState, {
+        tr,
         meta: meta(
             toggleAll,
             removeTodoItem,

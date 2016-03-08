@@ -10,11 +10,13 @@ export type TodoItem = {
 
 export type TodoItemEditing = {
     item: TodoItem;
+    errors: {[id: string]: ?string};
     isEditing: boolean;
 }
 
 export type TodoItemAdding = {
     item: TodoItem;
+    errors: {[id: string]: ?string};
     isEditing: boolean;
 }
 

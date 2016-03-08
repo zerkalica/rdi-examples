@@ -16,3 +16,6 @@ export type EventHelper = {
     change(func: (value: string) => void): (e: Event) => void;
     keyMap(map: Array<[number, EventHandler, any]>): (e: SyntheticKeyboardEvent) => void;
 }
+
+export type Tr = (message: string, params?: {[id: string]: number|string|Object|Function})
+    => Array<string|Object|Function>|string;

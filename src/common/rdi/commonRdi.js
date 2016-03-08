@@ -26,11 +26,16 @@ import EventHelper from 'reactive-di-todomvc/common/helpers/EventHelper'
 
 import LoadingPage from 'reactive-di-todomvc/common/components/LoadingPage'
 import NotFoundPage from 'reactive-di-todomvc/common/components/NotFoundPage'
+import ErrorableElement from 'reactive-di-todomvc/common/components/ErrorableElement'
+
+import Translations from 'reactive-di-todomvc/common/models/Translations'
+import tr from 'reactive-di-todomvc/common/services/tr'
 
 const deps: Array<Annotation> = [
+    factory(tr, BaseEnv, Translations),
     factory(storageFetch, AbstractStorage),
     klass(Fetcher, FetcherConfig, storageFetch),
-
+    model(Translations),
     model(CommonState),
     model(BaseEnv),
     model(BaseQuery),
@@ -39,6 +44,7 @@ const deps: Array<Annotation> = [
     loader(LoadableBaseQuery, BaseQuery, AbstractRouterManager),
 
     klass(EventHelper),
+    component(ErrorableElement),
     component(LoadingPage),
     component(NotFoundPage)
 ];
