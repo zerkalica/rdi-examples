@@ -8,6 +8,7 @@ type TodoMainPageProps = {
     TodoMain: Widget<void>;
     TodoFooter: Widget<void>;
     data: {
+        error: ?string;
         totalCount: number;
         itemsCount: number;
     }
@@ -22,12 +23,18 @@ export default function TodoPage({
 }: TodoMainPageProps): Element {
     return (
         <section className="todowrap">
-            <TodoPageLoadingState/>
-            <section className="todoapp">
-                <TodoHeader/>
-                {data.itemsCount > 0 ? <TodoMain/> : null}
-                {data.totalCount > 0 ? <TodoFooter/> : null}
-            </section>
+            {data.error ?
+                data.error
+            :
+                <div>
+                    <TodoPageLoadingState/>
+                    <section className="todoapp">
+                        <TodoHeader/>
+                        {data.itemsCount > 0 ? <TodoMain/> : null}
+                        {data.totalCount > 0 ? <TodoFooter/> : null}
+                    </section>
+                </div>
+            }
         </section>
     )
 }

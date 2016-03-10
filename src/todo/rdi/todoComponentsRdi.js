@@ -46,6 +46,7 @@ import TodoItemEditing from 'reactive-di-todomvc/todo/models/TodoItemEditing'
 import TodoItemAdding from 'reactive-di-todomvc/todo/models/TodoItemAdding'
 import ErrorableElement from 'reactive-di-todomvc/common/components/ErrorableElement'
 import tr from 'reactive-di-todomvc/common/services/tr'
+import AbstractRouterManager from 'reactive-di-todomvc/common/services/AbstractRouterManager'
 
 const deps: Array<Annotation> = [
     component(TodoHeader, {
@@ -60,6 +61,7 @@ const deps: Array<Annotation> = [
 
     component(TodoFooter, {
         tr,
+        router: AbstractRouterManager,
         data: todoItemsFacet,
         helper: EventHelper,
         clearCompleted,

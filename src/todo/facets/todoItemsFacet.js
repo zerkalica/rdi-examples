@@ -23,15 +23,13 @@ export default function todoItemsFacet(
             items = allItems.filter((item: TodoItem) => !item.isCompleted)
             break
         default:
+            items = []
             break
-    }
-
-    if (!items) {
-        throw new Error(`Unknown selectedGroup: ${groupState.selectedGroup}`)
     }
 
     return {
         items,
+        error: groupState.error,
         hasCompleted: !!items.find((item: TodoItem) => item.isCompleted),
         totalCount: allItems.length,
         itemsCount: items.length,

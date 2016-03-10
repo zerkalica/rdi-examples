@@ -9,11 +9,12 @@ import LoadableTodoItemCollection from 'reactive-di-todomvc/todo/loaders/Loadabl
 import type {Annotation} from 'reactive-di/i/annotationInterfaces'
 import TodoQueryArgs from 'reactive-di-todomvc/todo/facets/TodoQueryArgs'
 import LoadableBaseQuery from 'reactive-di-todomvc/common/loaders/LoadableBaseQuery'
+import tr from 'reactive-di-todomvc/common/services/tr'
 
 const deps: Array<Annotation> = [
     factory(todoItemsFacet, LoadableTodoItemCollection, TodoQueryArgs),
     factory(isAllCompletedFacet, LoadableTodoItemCollection),
-    klass(TodoQueryArgs, LoadableBaseQuery)
+    klass(TodoQueryArgs, LoadableBaseQuery, tr)
 ];
 
 export default deps

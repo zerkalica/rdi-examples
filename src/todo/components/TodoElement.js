@@ -18,7 +18,7 @@ import type {
 type TodoElementProps = {
     item: TodoItem;
     ErrorableElement: Class<React$Component<void, {
-        errors: {[id: string]: string};
+        error: ?string;
     }, void>>;
     removeTodoItem(id: string): void;
     toggleTodoItem(id: string): void;
