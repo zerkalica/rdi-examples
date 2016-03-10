@@ -1,6 +1,3 @@
 config:
     debug: todomvc:*
     sitePrefix: ''
-    locale:
-        lang: 'en'
-    pushState: true
