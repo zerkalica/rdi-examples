@@ -5,6 +5,8 @@ config:
             index:
                 pattern: (/)
                 page: TodoPage
+                defaults:
+                    group: all
             TodoPage:
                 pattern: /(<group>)
                 page: TodoPage
