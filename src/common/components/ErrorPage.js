@@ -22,7 +22,9 @@ export default function ErrorPage({
             <h1>Page error</h1>
             {instanceMap(error, [
                 [QueryError, tr('Error in query params')],
-                [PageNotFoundError, tr('Page not found: #{pageName}', error)],
+                [PageNotFoundError, tr('Page not found: #{pageName}', {
+                    pageName: error.pageName || 'null'
+                })],
                 [null, tr('Unknown error')]
             ])}
             {process.env.NODE_ENV === 'development'
