@@ -91,6 +91,7 @@
   "dependencies": {
     "babelfish-plus": "0.0.10",
     "classnames": "^2.2.3",
+    "es6-error": "^2.1.0",
     "modern-router": "0.x.x",
     "react": "^0.x.x",
     "react-dom": "^0.14.7",

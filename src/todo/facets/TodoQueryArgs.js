@@ -1,15 +1,14 @@
 /* @flow */
 import type {SelectedGroup} from 'reactive-di-todomvc/i/todoInterfaces'
 import type {Route} from 'modern-router/i/routerInterfaces'
-import type {Tr} from 'reactive-di-todomvc/i/commonInterfaces'
+import QueryError from 'reactive-di-todomvc/common/errors/QueryError'
 
 export default class TodoQueryArgs {
     selectedGroup: SelectedGroup;
-    error: ?string;
+    error: ?QueryError;
 
     constructor(
-        route: Route,
-        tr: Tr
+        route: Route
     ) {
         switch (route.query.group) {
             case 'all':
@@ -18,9 +17,7 @@ export default class TodoQueryArgs {
                 this.selectedGroup = route.query.group
                 break
             default:
-                this.error = tr('Error group')
-                this.selectedGroup = 'all'
-                break
+                throw new QueryError('group', 'Error group')
         }
     }
 }

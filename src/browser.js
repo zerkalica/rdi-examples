@@ -8,7 +8,7 @@ import {
     createPureStateDi,
     defaultPlugins
 } from 'reactive-di'
-import {RootComponent, ReactPlugin} from 'reactive-di-react'
+import {ReactPlugin} from 'reactive-di-react'
 import {createBrowserRouterManager} from 'modern-router'
 
 import config from 'reactive-di-todomvc/../conf/.configloaderrc'
@@ -20,7 +20,7 @@ import AbstractStorage from 'reactive-di-todomvc/common/services/AbstractStorage
 import BrowserLocalStorage from 'reactive-di-todomvc/common/helpers/browser/BrowserLocalStorage'
 import AbstractRouterManager from 'reactive-di-todomvc/common/services/AbstractRouterManager'
 
-import pageMap from 'reactive-di-todomvc/app/components/pageMap'
+import {pages, ErrorPage} from 'reactive-di-todomvc/app/components/pageMap'
 
 import type {Annotation} from 'reactive-di/i/annotationInterfaces'
 import type {GetDep} from 'reactive-di/i/diInterfaces'
@@ -28,8 +28,12 @@ import type {GetDep} from 'reactive-di/i/diInterfaces'
 import appRdi from 'reactive-di-todomvc/app/rdi/appRdi'
 
 import {factory, alias} from 'reactive-di/dist/annotations'
-import type {RouterManager} from 'modern-router/i/routerInterfaces'
-import createReactProps from 'reactive-di-todomvc/app/helpers/createReactProps'
+import type {
+    Route,
+    RouterManager
+} from 'modern-router/i/routerInterfaces'
+import {createPageGetter} from 'reactive-di-react'
+import type {Widget} from 'reactive-di-react/i/interfaces'
 
 const routerManager: RouterManager = createBrowserRouterManager(window, config.config.router || {});
 
@@ -58,6 +62,17 @@ const di: GetDep = createPureStateDi(
 
 const node: Element = document.getElementById('app');
 
-const props = createReactProps(di, routerManager, pageMap)
+function getWidget(widget: Widget, error: ?Error): React$Element {
+    return createElement(di(widget), {error})
+}
 
-ReactDOM.render(createElement(RootComponent, props), node)
+const getPage = createPageGetter(getWidget, pages, ErrorPage);
+
+function next(route: Route): void {
+    ReactDOM.render(getPage(route.page), node)
+}
+
+routerManager.changes.subscribe({
+    next
+})
+next(routerManager.resolve())

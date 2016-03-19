@@ -11,7 +11,7 @@ export default function todoItemsFacet(
     allItems: Collection<TodoItem>,
     groupState: TodoQueryArgs
 ): TodoItemsFacet {
-    let items: ?Collection<TodoItem>;
+    let items: Collection<TodoItem>;
     switch (groupState.selectedGroup) {
         case 'all':
             items = allItems
@@ -23,8 +23,7 @@ export default function todoItemsFacet(
             items = allItems.filter((item: TodoItem) => !item.isCompleted)
             break
         default:
-            items = []
-            break
+            throw new Error('Unhandlered group')
     }
 
     return {
