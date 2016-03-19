@@ -42,6 +42,7 @@ const browserRdi: Array<Annotation> = appRdi.concat([
     alias(AbstractRouterManager, factory(() => routerManager))
 ]);
 
+const baseQuery = new BaseQuery(routerManager.resolve());
 const di: GetDep = createPureStateDi(
     createState(
         new BaseEnv({
@@ -50,7 +51,7 @@ const di: GetDep = createPureStateDi(
             language: navigator.language,
             platform: 'default'
         }),
-        new BaseQuery(routerManager.resolve()),
+        baseQuery,
         config,
         window.todoMvcSettings || {}
     ),
@@ -75,4 +76,4 @@ function next(route: Route): void {
 routerManager.changes.subscribe({
     next
 })
-next(routerManager.resolve())
+next(baseQuery)
