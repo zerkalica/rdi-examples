@@ -1,5 +1,6 @@
 /* @flow */
-import {asyncsetter, syncsetter, factory} from 'reactive-di/dist/annotations'
+import {composed} from 'reactive-di/configurations'
+import {setter} from 'reactive-di-observable/configurations'
 
 import {
     cancelAdding,
@@ -29,33 +30,32 @@ import {
 import TodoGroupState from 'reactive-di-todomvc/todo/models/TodoGroupState'
 import TodoItemAdding from 'reactive-di-todomvc/todo/models/TodoItemAdding'
 import TodoItemEditing from 'reactive-di-todomvc/todo/models/TodoItemEditing'
-import TodoAppState from 'reactive-di-todomvc/todo/models/TodoAppState'
 import TodoItemCollection from 'reactive-di-todomvc/todo/models/TodoItemCollection'
 import Fetcher from 'reactive-di-todomvc/common/services/Fetcher'
 
 import AbstractRouterManager from 'reactive-di-todomvc/common/services/AbstractRouterManager'
 
-import type {Annotation} from 'reactive-di/i/annotationInterfaces'
+import type {Annotation} from 'reactive-di/i/coreInterfaces'
 
 const deps: Array<Annotation> = [
-    factory(showAll, AbstractRouterManager),
-    factory(showActive, AbstractRouterManager),
-    factory(showCompleted, AbstractRouterManager),
+    composed(showAll, AbstractRouterManager),
+    composed(showActive, AbstractRouterManager),
+    composed(showCompleted, AbstractRouterManager),
 
-    syncsetter(cancelAdding, TodoItemAdding),
-    syncsetter(changeAdding, TodoItemAdding),
+    setter(cancelAdding, TodoItemAdding),
+    setter(changeAdding, TodoItemAdding),
 
-    syncsetter(beginEditing, TodoItemEditing),
-    syncsetter(cancelEditing, TodoItemEditing),
-    syncsetter(changeEditing, TodoItemEditing),
+    setter(beginEditing, TodoItemEditing),
+    setter(cancelEditing, TodoItemEditing),
+    setter(changeEditing, TodoItemEditing),
 
-    asyncsetter(toggleAll, TodoAppState, Fetcher, TodoGroupState),
-    asyncsetter(clearCompleted, TodoItemCollection, Fetcher),
-    asyncsetter(removeTodoItem, TodoItemCollection, Fetcher),
-    asyncsetter(toggleTodoItem, TodoItemCollection, Fetcher),
+    setter(toggleAll, TodoGroupState, TodoItemCollection, Fetcher),
+    setter(clearCompleted, TodoItemCollection, Fetcher),
+    setter(removeTodoItem, TodoItemCollection, Fetcher),
+    setter(toggleTodoItem, TodoItemCollection, Fetcher),
 
-    asyncsetter(commitAdding, TodoAppState, Fetcher),
-    asyncsetter(commitEditing, TodoAppState, Fetcher)
+    setter(commitAdding, TodoItemCollection, TodoItemEditing, Fetcher),
+    setter(commitEditing, TodoItemCollection, TodoItemAdding, Fetcher)
 ];
 
 export default deps

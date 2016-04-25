@@ -1,5 +1,5 @@
 /* @flow */
-import React from 'react'
+
 import {
     KEY_ENTER,
     KEY_ESC

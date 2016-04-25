@@ -1,5 +1,4 @@
 /* @flow */
-import React from 'react'
 import type {Element} from 'reactive-di-react/i/interfaces'
 
 export default function LoadingPage(): Element {

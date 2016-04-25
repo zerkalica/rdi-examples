@@ -1,6 +1,4 @@
 /* @flow */
-import React from 'react'
-
 type ErrorableElementProps = {
     children: React$Element;
     error?: React$Element;

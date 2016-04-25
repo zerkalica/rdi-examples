@@ -1,12 +1,14 @@
 /* @flow */
-import React from 'react'
-import type {EntityMeta} from 'reactive-di/i/nodeInterfaces'
+
+import type {Meta} from 'reactive-di-observable/i/interfaces'
 import type {Element} from 'reactive-di-react/i/interfaces'
 import type {Tr} from 'reactive-di-todomvc/i/commonInterfaces'
+
 type TodoPageLoadingStateProps = {
     tr: Tr;
-    meta: EntityMeta<Error>;
+    meta: Meta;
 }
+
 export default function TodoPageLoadingState({
     meta,
     tr

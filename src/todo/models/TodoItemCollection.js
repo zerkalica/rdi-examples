@@ -1,7 +1,6 @@
 /* @flow */
 
-import {BaseCollection} from 'reactive-di'
-import type {Collection} from 'reactive-di/i/collection' // eslint-disable-line
+import BaseCollection from 'reactive-di-todomvc/common/helpers/BaseCollection'
 import {assignString, assignBoolean} from 'reactive-di-todomvc/common/helpers'
 
 import type {TodoItem} from 'reactive-di-todomvc/i/todoInterfaces'
@@ -25,7 +24,6 @@ export class TodoItemImpl {
     }
 }
 
-// implements Collection<TodoItem>
 export default class TodoItemCollection extends BaseCollection<TodoItem> {
     createItem(rec: TodoItemRec): TodoItem {
         return new TodoItemImpl(rec)

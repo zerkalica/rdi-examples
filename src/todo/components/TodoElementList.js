@@ -1,5 +1,5 @@
 /* @flow */
-import React from 'react'
+
 import type {TodoItem} from 'reactive-di-todomvc/i/todoInterfaces'
 import type {Widget, Element} from 'reactive-di-react/i/interfaces'
 

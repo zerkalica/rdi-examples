@@ -20,6 +20,7 @@ examples/.*
 
 [libs]
 node_modules/reactive-di/lib
+node_modules/reactive-di-observable/lib
 
 [options]
 munge_underscores=true

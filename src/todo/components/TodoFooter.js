@@ -1,5 +1,5 @@
 /* @flow */
-import React from 'react'
+
 import cn from 'classnames'
 import type {Tr, EventHelper} from 'reactive-di-todomvc/i/commonInterfaces'
 import type {Element} from 'reactive-di-react/i/interfaces'

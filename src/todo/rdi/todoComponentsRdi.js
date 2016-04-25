@@ -1,8 +1,8 @@
 /* @flow */
 import {component} from 'reactive-di-react'
-import {meta} from 'reactive-di/dist/annotations'
+import {meta} from 'reactive-di-observable/configurations'
 
-import type {Annotation} from 'reactive-di/i/annotationInterfaces'
+import type {Annotation} from 'reactive-di/i/coreInterfaces'
 
 import TodoHeader from 'reactive-di-todomvc/todo/components/TodoHeader'
 import TodoElementList from 'reactive-di-todomvc/todo/components/TodoElementList'
@@ -11,6 +11,7 @@ import TodoFooter from 'reactive-di-todomvc/todo/components/TodoFooter'
 import TodoMain from 'reactive-di-todomvc/todo/components/TodoMain'
 import TodoPage from 'reactive-di-todomvc/todo/components/TodoPage'
 import TodoPageLoadingState from 'reactive-di-todomvc/todo/components/TodoPageLoadingState'
+import TodoItemCollection from 'reactive-di-todomvc/todo/models/TodoItemCollection'
 
 import EventHelper from 'reactive-di-todomvc/common/helpers/EventHelper'
 
@@ -47,6 +48,7 @@ import TodoItemAdding from 'reactive-di-todomvc/todo/models/TodoItemAdding'
 import ErrorableElement from 'reactive-di-todomvc/common/components/ErrorableElement'
 import tr from 'reactive-di-todomvc/common/services/tr'
 import AbstractRouterManager from 'reactive-di-todomvc/common/services/AbstractRouterManager'
+import TodoPageLoadingStateMeta from 'reactive-di-todomvc/todo/models/TodoPageLoadingStateMeta'
 
 const deps: Array<Annotation> = [
     component(TodoHeader, {
@@ -79,7 +81,6 @@ const deps: Array<Annotation> = [
         commitEditing,
         cancelEditing,
         changeEditing,
-        // item: props(),
         editingItem: TodoItemEditing,
         helper: EventHelper
     }),
@@ -96,16 +97,20 @@ const deps: Array<Annotation> = [
         helper: EventHelper
     }),
 
+    meta(TodoPageLoadingStateMeta,
+        TodoItemCollection,
+        toggleAll,
+        removeTodoItem,
+        toggleTodoItem,
+        commitEditing,
+        commitAdding
+    ),
+
     component(TodoPageLoadingState, {
-        tr,
-        meta: meta(
-            toggleAll,
-            removeTodoItem,
-            toggleTodoItem,
-            todoItemsFacet,
-            commitEditing,
-            commitAdding
-        )
+        deps: {
+            tr,
+            meta: TodoPageLoadingStateMeta
+        }
     }),
     component(TodoPage, {
         TodoPageLoadingState,

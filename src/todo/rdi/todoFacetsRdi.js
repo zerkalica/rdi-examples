@@ -1,19 +1,19 @@
 /* @flow */
 
-import {factory, klass} from 'reactive-di/dist/annotations'
+import {factory, klass} from 'reactive-di-observable/configurations'
 
 import isAllCompletedFacet from 'reactive-di-todomvc/todo/facets/isAllCompletedFacet'
 import todoItemsFacet from 'reactive-di-todomvc/todo/facets/todoItemsFacet'
-import LoadableTodoItemCollection from 'reactive-di-todomvc/todo/loaders/LoadableTodoItemCollection'
+import TodoItemCollection from 'reactive-di-todomvc/todo/models/TodoItemCollection'
 
-import type {Annotation} from 'reactive-di/i/annotationInterfaces'
+import type {Annotation} from 'reactive-di/i/coreInterfaces'
 import TodoQueryArgs from 'reactive-di-todomvc/todo/facets/TodoQueryArgs'
 import LoadableBaseQuery from 'reactive-di-todomvc/common/loaders/LoadableBaseQuery'
 import tr from 'reactive-di-todomvc/common/services/tr'
 
 const deps: Array<Annotation> = [
-    factory(todoItemsFacet, LoadableTodoItemCollection, TodoQueryArgs),
-    factory(isAllCompletedFacet, LoadableTodoItemCollection),
+    factory(todoItemsFacet, TodoItemCollection, TodoQueryArgs),
+    factory(isAllCompletedFacet, TodoItemCollection),
     klass(TodoQueryArgs, LoadableBaseQuery, tr)
 ];
 
