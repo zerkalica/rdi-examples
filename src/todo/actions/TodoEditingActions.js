@@ -1,5 +1,5 @@
 /* @flow */
-import {merge} from 'reactive-di'
+import m from 'reactive-di-todomvc/common/helpers/merge'
 import type {
     TodoItem,
     TodoItemAdding,
@@ -7,43 +7,71 @@ import type {
     TodoItemRec
 } from 'reactive-di-todomvc/i/todoInterfaces'
 import {TodoItemImpl} from 'reactive-di-todomvc/todo/models/TodoItemCollection'
+import type {OperationItem} from 'reactive-di-observable/i/interfaces'
 
-export function changeAdding(adding: TodoItemAdding, rec: TodoItemRec): TodoItemAdding {
-    return merge(adding, {
-        errors: {},
-        item: merge(adding.item, rec)
-    })
+export function changeAdding(adding: TodoItemAdding, rec: TodoItemRec): Array<OperationItem> {
+    return [
+        {
+            object: m(adding, {
+                errors: {},
+                item: m(adding.item, rec)
+            })
+        }
+    ]
 }
 
-export function beginAdding(adding: TodoItemAdding): TodoItemAdding {
-    return merge(adding, {
-        item: new TodoItemImpl(),
-        isAdding: true
-    })
+export function beginAdding(adding: TodoItemAdding): Array<OperationItem> {
+    return [
+        {
+            object: m(adding, {
+                item: new TodoItemImpl(),
+                isAdding: true
+            })
+        }
+    ]
 }
 
-export function cancelAdding(adding: TodoItemAdding): TodoItemAdding {
-    return merge(adding, {
-        isAdding: false
-    })
+export function cancelAdding(adding: TodoItemAdding): Array<OperationItem> {
+    return [
+        {
+            object: m(adding, {
+                isAdding: false
+            })
+        }
+    ]
 }
 
-export function changeEditing(editing: TodoItemEditing, rec: TodoItemRec): TodoItemEditing {
-    return merge(editing, {
-        errors: {},
-        item: merge(editing.item, rec)
-    })
+export function changeEditing(editing: TodoItemEditing, rec: TodoItemRec): Array<OperationItem> {
+    return [
+        {
+            object: m(editing, {
+                errors: {},
+                item: m(editing.item, rec)
+            })
+        }
+    ]
 }
 
-export function beginEditing(editing: TodoItemEditing, currentItem: TodoItem): TodoItemEditing {
-    return merge(editing, {
-        item: currentItem,
-        isEditing: true
-    })
+export function beginEditing(
+    editing: TodoItemEditing,
+    currentItem: TodoItem
+): Array<OperationItem> {
+    return [
+        {
+            object: m(editing, {
+                item: currentItem,
+                isEditing: true
+            })
+        }
+    ]
 }
 
-export function cancelEditing(editing: TodoItemEditing): TodoItemEditing {
-    return merge(editing, {
-        isEditing: false
-    })
+export function cancelEditing(editing: TodoItemEditing): Array<OperationItem> {
+    return [
+        {
+            object: m(editing, {
+                isEditing: false
+            })
+        }
+    ]
 }

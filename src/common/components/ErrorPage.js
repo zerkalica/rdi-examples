@@ -1,5 +1,4 @@
 /* @flow */
-import React from 'react'
 import instanceMap from 'reactive-di-todomvc/common/helpers/instanceMap'
 
 import QueryError from 'reactive-di-todomvc/common/errors/QueryError'

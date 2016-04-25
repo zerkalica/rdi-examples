@@ -4,14 +4,13 @@ import type {
     TodoItem,
     TodoItemsFacet
 } from 'reactive-di-todomvc/i/todoInterfaces'
-import type {Collection} from 'reactive-di/i/collection'
 import TodoQueryArgs from 'reactive-di-todomvc/todo/facets/TodoQueryArgs'
 
 export default function todoItemsFacet(
-    allItems: Collection<TodoItem>,
+    allItems: Array<TodoItem>,
     groupState: TodoQueryArgs
 ): TodoItemsFacet {
-    let items: Collection<TodoItem>;
+    let items: Array<TodoItem>;
     switch (groupState.selectedGroup) {
         case 'all':
             items = allItems

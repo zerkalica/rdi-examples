@@ -4,76 +4,92 @@ import 'reactive-di-todomvc/assets/main.css'
 
 import ReactDOM from 'react-dom'
 import {createElement} from 'react'
+
+import merge from 'node-config-loader/utils/merge'
+
 import {
-    createPureStateDi,
-    defaultPlugins
+    createManagerFactory,
+    defaultPlugins,
+    createHotRelationUpdater
 } from 'reactive-di'
-import {ReactPlugin} from 'reactive-di-react'
+
+import {value} from 'reactive-di/configurations'
+
+import type {
+    Container,
+    ContainerManager,
+    CreateContainerManager
+} from 'reactive-di/i/coreInterfaces'
+
+import {observablePlugins} from 'reactive-di-observable'
+
+import {
+    createPageGetter,
+    ReactPlugin
+} from 'reactive-di-react'
+
+import type {Widget} from 'reactive-di-react/i/interfaces'
+
 import {createBrowserRouterManager} from 'modern-router'
 
-import config from 'reactive-di-todomvc/../conf/.configloaderrc'
-import createState from 'reactive-di-todomvc/app/helpers/createState'
-import BaseEnv from 'reactive-di-todomvc/common/models/BaseEnv'
-import BaseQuery from 'reactive-di-todomvc/common/models/BaseQuery'
-
-import AbstractStorage from 'reactive-di-todomvc/common/services/AbstractStorage'
-import BrowserLocalStorage from 'reactive-di-todomvc/common/helpers/browser/BrowserLocalStorage'
-import AbstractRouterManager from 'reactive-di-todomvc/common/services/AbstractRouterManager'
-
-import {pages, ErrorPage} from 'reactive-di-todomvc/app/components/pageMap'
-
-import type {Annotation} from 'reactive-di/i/annotationInterfaces'
-import type {GetDep} from 'reactive-di/i/diInterfaces'
-
-import appRdi from 'reactive-di-todomvc/app/rdi/appRdi'
-
-import {factory, alias} from 'reactive-di/dist/annotations'
 import type {
     Route,
     RouterManager
 } from 'modern-router/i/routerInterfaces'
-import {createPageGetter} from 'reactive-di-react'
-import type {Widget} from 'reactive-di-react/i/interfaces'
 
-const routerManager: RouterManager = createBrowserRouterManager(window, config.config.router || {});
+import staticConfig from 'reactive-di-todomvc/../conf/.configloaderrc'
 
-const browserRdi: Array<Annotation> = appRdi.concat([
-    alias(AbstractStorage, factory(() => new BrowserLocalStorage(window.localStorage))),
-    alias(AbstractRouterManager, factory(() => routerManager))
-]);
+import BaseEnv from 'reactive-di-todomvc/common/models/BaseEnv'
+import BaseQuery from 'reactive-di-todomvc/common/models/BaseQuery'
+import AbstractStorage from 'reactive-di-todomvc/common/services/AbstractStorage'
+import BrowserLocalStorage from 'reactive-di-todomvc/common/helpers/browser/BrowserLocalStorage'
+import AbstractRouterManager from 'reactive-di-todomvc/common/services/AbstractRouterManager'
+
+import {pages, ErrorPage} from 'reactive-di-todomvc/app/pageMap'
+import appRdi from 'reactive-di-todomvc/app/appRdi'
+
+const createContainerManager: CreateContainerManager = createManagerFactory(
+    defaultPlugins.concat([ReactPlugin], observablePlugins),
+    createHotRelationUpdater
+);
+
+const config = merge(staticConfig, window.todoMvcConfig || {})
+
+const routerManager: RouterManager = createBrowserRouterManager(window, config.RouterConfig);
 
 const baseQuery = new BaseQuery(routerManager.resolve());
-const di: GetDep = createPureStateDi(
-    createState(
-        new BaseEnv({
-            referrer: document.referrer,
-            userAgent: navigator.userAgent,
-            language: navigator.language,
-            platform: 'default'
-        }),
-        baseQuery,
-        config,
-        window.todoMvcSettings || {}
-    ),
-    browserRdi,
-    defaultPlugins.concat([
-        new ReactPlugin()
-    ])
-);
+
+const appCm: ContainerManager = createContainerManager(appRdi.concat([
+    value(AbstractStorage, new BrowserLocalStorage(window.localStorage)),
+    value(AbstractRouterManager, routerManager),
+    value(BaseEnv, new BaseEnv({
+        referrer: document.referrer,
+        userAgent: navigator.userAgent,
+        language: navigator.language,
+        platform: 'default'
+    })),
+    value(BaseQuery, baseQuery)
+]));
+
+const appDi: Container = appCm.createContainer();
 
 const node: Element = document.getElementById('app');
 
 function getWidget(widget: Widget, error: ?Error): React$Element {
-    return createElement(di(widget), {error})
+    return createElement(appDi.get(widget), {error})
 }
 
 const getPage = createPageGetter(getWidget, pages, ErrorPage);
 
-function next(route: Route): void {
-    ReactDOM.render(getPage(route.page), node)
-}
+const observer = {
+    next(route: Route): void {
+        ReactDOM.render(getPage(route.page), node)
+    },
+    error(err: Error): void {
+        throw err
+    },
+    complete(): void {}
+};
 
-routerManager.changes.subscribe({
-    next
-})
-next(baseQuery)
+routerManager.changes.subscribe(observer)
+observer.next(baseQuery)

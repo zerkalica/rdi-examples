@@ -1,21 +1,22 @@
 /* @flow */
 import {
-    model,
-    loader,
     factory,
     klass
-} from 'reactive-di/dist/annotations'
+} from 'reactive-di/configurations'
+import {
+    setter,
+    observable
+} from 'reactive-di-observable/configurations'
 
 import {component} from 'reactive-di-react'
 
-import type {Annotation} from 'reactive-di/i/annotationInterfaces'
+import type {Annotation} from 'reactive-di/i/coreInterfaces'
 
 import Fetcher from 'reactive-di-todomvc/common/services/Fetcher'
 import AbstractRouterManager from 'reactive-di-todomvc/common/services/AbstractRouterManager'
 import AbstractStorage from 'reactive-di-todomvc/common/services/AbstractStorage'
 import storageFetch from 'reactive-di-todomvc/common/services/fetchers/storageFetch'
 
-import CommonState from 'reactive-di-todomvc/common/models/CommonState'
 import FetcherConfig from 'reactive-di-todomvc/common/models/FetcherConfig'
 import BaseEnv from 'reactive-di-todomvc/common/models/BaseEnv'
 import BaseQuery from 'reactive-di-todomvc/common/models/BaseQuery'
@@ -36,13 +37,12 @@ const deps: Array<Annotation> = [
     factory(storageFetch, AbstractStorage),
     klass(Fetcher, FetcherConfig, storageFetch),
 
-    model(Translations),
-    model(CommonState),
-    model(BaseEnv),
-    model(BaseQuery),
-    model(FetcherConfig),
+    observable(Translations),
+    observable(BaseEnv),
+    observable(BaseQuery),
+    observable(FetcherConfig),
 
-    loader(LoadableBaseQuery, BaseQuery, AbstractRouterManager),
+    setter(LoadableBaseQuery, BaseQuery, AbstractRouterManager),
 
     klass(EventHelper),
 

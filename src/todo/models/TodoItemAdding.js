@@ -1,7 +1,7 @@
 /* @flow */
 import {TodoItemImpl} from 'reactive-di-todomvc/todo/models/TodoItemCollection'
 import type {TodoItem} from 'reactive-di-todomvc/i/todoInterfaces'
-import {assignModel, assignBoolean} from 'reactive-di-todomvc/common/helpers'
+import {assignBoolean} from 'reactive-di-todomvc/common/helpers'
 
 export default class TodoItemAdding {
     isAdding: boolean;
@@ -14,7 +14,7 @@ export default class TodoItemAdding {
         errors?: {[id: string]: string}
     } = {}) {
         this.errors = rec.errors || {}
-        this.item = assignModel(rec.item, TodoItemImpl)
+        this.item = rec.item || new TodoItemImpl()
         this.isAdding = assignBoolean(rec.isAdding)
     }
 }

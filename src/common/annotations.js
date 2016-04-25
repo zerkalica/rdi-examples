@@ -1,11 +1,7 @@
 /* @flow */
 
-import {
-    DefaultIdCreator
-} from 'reactive-di'
+import createidCreator from 'reactive-di/dist/utils/createIdCreator'
 
-const idCreator = new DefaultIdCreator()
+const createId = createidCreator()
 
-export function createId(): string {
-    return idCreator.createId()
-}
+export {createId}

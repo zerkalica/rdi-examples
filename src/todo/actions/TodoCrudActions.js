@@ -1,81 +1,92 @@
 /* @flow */
 
-import {merge} from 'reactive-di'
+import m from 'reactive-di-todomvc/common/helpers/merge'
 import {createId} from 'reactive-di-todomvc/common/annotations'
-import TodoAppState from 'reactive-di-todomvc/todo/models/TodoAppState'
 import TodoGroupState from 'reactive-di-todomvc/todo/models/TodoGroupState'
 import TodoItemCollection, {TodoItemImpl} from 'reactive-di-todomvc/todo/models/TodoItemCollection'
 import Fetcher from 'reactive-di-todomvc/common/services/Fetcher'
+import TodoItemEditing from 'reactive-di-todomvc/todo/models/TodoItemEditing'
+import TodoItemAdding from 'reactive-di-todomvc/todo/models/TodoItemAdding'
 
 import type {TodoItem} from 'reactive-di-todomvc/i/todoInterfaces'
+import type {OperationItem} from 'reactive-di-observable/i/interfaces'
+
+function empty(): Array<OperationItem> {
+    return []
+}
 
 export function toggleAll(
-    todoState: TodoAppState,
-    fetcher: Fetcher,
-    groupState: TodoGroupState
-): [TodoAppState, Promise<TodoAppState>] {
+    todos: TodoItemCollection,
+    groupState: TodoGroupState,
+    fetcher: Fetcher
+): Array<OperationItem> {
     const isCompleted = !groupState.isAllCompleted
-    const newTodoState = merge(todoState, {
-        items: todoState.items.update(null, (item) => merge(item, {isCompleted})),
-        groupState: merge(todoState.groupState, {isAllCompleted: isCompleted})
-    });
-
-    const promise: Promise<any> = fetcher.load('todos', {
-        method: 'POST',
-        json: {
-            isCompleted
+    return [
+        {object: todos.update(null, (item) => m(item, {isCompleted}))},
+        {object: m(groupState, {isAllCompleted: isCompleted})},
+        {
+            promise: fetcher.load('todos', {
+                method: 'POST',
+                json: {
+                    isCompleted
+                }
+            }).then(empty)
         }
-    }).then(() => null);
-
-    return [newTodoState, promise]
+    ]
 }
 
 export function clearCompleted(
     items: TodoItemCollection,
     fetcher: Fetcher
-): [TodoItemCollection, Promise<null>] {
-    const newItems = items.filter((item) => !item.isCompleted)
-    const promise: Promise<null> = fetcher.load(`todos`, {
-        method: 'DELETE',
-        json: {
-            isCompleted: true
+): Array<OperationItem> {
+    return [
+        {object: items.filter((item) => !item.isCompleted)},
+        {
+            promise: fetcher.load(`todos`, {
+                method: 'DELETE',
+                json: {
+                    isCompleted: true
+                }
+            }).then(empty)
         }
-    }).then(() => null);
-
-    return [newItems, promise]
+    ]
 }
 
 export function removeTodoItem(
     items: TodoItemCollection,
     fetcher: Fetcher,
     id: string
-): [TodoItemCollection, Promise<null>] {
-    const newItems = items.remove(id)
-
-    const promise: Promise<null> = fetcher.load(`todo/${id}`, {
-        method: 'DELETE'
-    }).then(() => null);
-
-    return [newItems, promise]
+): Array<OperationItem> {
+    return [
+        {object: items.remove(id)},
+        {
+            promise: fetcher.load(`todo/${id}`, {
+                method: 'DELETE'
+            }).then(empty)
+        }
+    ]
 }
 
 export function toggleTodoItem(
     items: TodoItemCollection,
     fetcher: Fetcher,
     id: string
-): [TodoItemCollection, Promise<null>] {
+): Array<OperationItem> {
     const newItems = items.update(
         id,
-        (item: TodoItem) => merge(item, {isCompleted: !item.isCompleted})
-    )
+        (item: TodoItem) => m(item, {isCompleted: !item.isCompleted})
+    );
 
-    const promise: Promise<null> = fetcher.load(`todo/${id}`, {
-        method: 'POST',
-        json: newItems.get(id)
-    })
-    .then(() => null);
-
-    return [newItems, promise]
+    return [
+        {object: newItems},
+        {
+            promise: fetcher.load(`todo/${id}`, {
+                method: 'POST',
+                json: newItems.get(id)
+            })
+            .then(empty)
+        }
+    ]
 }
 
 function getTodoItemAddingErrors(newItem: TodoItem): {
@@ -94,42 +105,44 @@ function getTodoItemAddingErrors(newItem: TodoItem): {
 }
 
 export function commitEditing(
-    todoState: TodoAppState,
+    todos: TodoItemCollection,
+    todoItemEditing: TodoItemEditing,
     fetcher: Fetcher,
-
     newItem: TodoItem
-): [TodoAppState, Promise<null>] {
+): Array<OperationItem> {
     const {isError, errors} = getTodoItemAddingErrors(newItem)
     if (isError) {
         return [
-            merge(todoState, {
-                editingItem: merge(todoState.editingItem, {
-                    errors
-                })
-            })
+            {object: m(todoItemEditing, {errors})}
         ]
     }
 
-    const newState = merge(todoState, {
-        items: todoState.items.set(newItem.id, newItem),
-        editingItem: merge(todoState.editingItem, {
-            isEditing: false
-        })
-    })
-    const promise: Promise<null> = fetcher.load(`todo/${newItem.id}`, {
-        method: 'POST',
-        json: newItem
-    })
-    .then(() => null);
-
-    return [newState, promise]
+    return [
+        {
+            object: todos.set(newItem.id, newItem)
+        },
+        {
+            object: m(todoItemEditing, {
+                isEditing: false,
+                errors
+            })
+        },
+        {
+            promise: fetcher.load(`todo/${newItem.id}`, {
+                method: 'POST',
+                json: newItem
+            })
+            .then(empty)
+        }
+    ]
 }
 
 export function commitAdding(
-    todoState: TodoAppState,
+    todos: TodoItemCollection,
+    todoItemAdding: TodoItemAdding,
     fetcher: Fetcher,
     newItem: TodoItem
-): [TodoAppState, ?Promise<TodoItemCollection>] {
+): Array<OperationItem> {
     const ni = new TodoItemImpl({
         ...newItem,
         id: createId()
@@ -137,33 +150,33 @@ export function commitAdding(
     const {isError, errors} = getTodoItemAddingErrors(newItem)
     if (isError) {
         return [
-            merge(todoState, {
-                addingItem: merge(todoState.addingItem, {
-                    errors
-                })
-            })
+            {object: m(todoItemAdding, {errors})}
         ]
     }
 
-    const newItems = todoState.items.add(ni)
-    const newStore = merge(todoState, {
-        items: newItems,
-        addingItem: merge(todoState.addingItem, {
-            errors,
-            item: merge(todoState.addingItem.item, {
-                title: ''
+    const newItems = todos.add(ni)
+    const transaction: Array<OperationItem> = [
+        {object: newItems},
+        {
+            object: m(todoItemAdding, {
+                errors,
+                item: m(todoItemAdding.item, {
+                    title: ''
+                })
             })
-        })
-    })
+        }
+    ];
 
-    const promise = isError ? null : fetcher.load('todo', {
-        method: 'PUT',
-        json: ni
-    }).then(({id}: {id: string}) =>
-        merge(newStore, {
-            items: newItems.set(ni.id, merge(ni, {id}))
+    if (!isError) {
+        transaction.push({
+            promise: fetcher.load('todo', {
+                method: 'PUT',
+                json: ni
+            }).then(({id}) => ([
+                {object: newItems.set(ni.id, m(ni, {id}))}
+            ]))
         })
-    )
+    }
 
-    return [newStore, promise]
+    return transaction
 }

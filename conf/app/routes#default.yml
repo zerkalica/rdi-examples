@@ -1,14 +1,13 @@
-config:
-    router:
-        isFull: false
-        routes:
-            index:
-                pattern: (/)
-                page: TodoPage
-                defaults:
-                    group: all
-            TodoPage:
-                pattern: /(<group>)
-                page: TodoPage
-                defaults:
-                    group: all
+RouterConfig:
+    isFull: false
+    routes:
+        index:
+            pattern: (/)
+            page: TodoPage
+            defaults:
+                group: all
+        TodoPage:
+            pattern: /(<group>)
+            page: TodoPage
+            defaults:
+                group: all
