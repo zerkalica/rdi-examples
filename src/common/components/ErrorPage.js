@@ -2,7 +2,7 @@
 import instanceMap from 'reactive-di-todomvc/common/helpers/instanceMap'
 
 import QueryError from 'reactive-di-todomvc/common/errors/QueryError'
-import {PageNotFoundError} from 'reactive-di-react'
+import {PageNotFoundError} from 'modern-router'
 
 import type {Tr} from 'reactive-di-todomvc/i/commonInterfaces'
 import type {Element} from 'reactive-di-react/i/interfaces'

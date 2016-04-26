@@ -1,5 +1,5 @@
 /* @flow */
-import {composed} from 'reactive-di/configurations'
+import {compose} from 'reactive-di/configurations'
 import {setter} from 'reactive-di-observable/configurations'
 
 import {
@@ -38,9 +38,9 @@ import AbstractRouterManager from 'reactive-di-todomvc/common/services/AbstractR
 import type {Annotation} from 'reactive-di/i/coreInterfaces'
 
 const deps: Array<Annotation> = [
-    composed(showAll, AbstractRouterManager),
-    composed(showActive, AbstractRouterManager),
-    composed(showCompleted, AbstractRouterManager),
+    compose(showAll, AbstractRouterManager),
+    compose(showActive, AbstractRouterManager),
+    compose(showCompleted, AbstractRouterManager),
 
     setter(cancelAdding, TodoItemAdding),
     setter(changeAdding, TodoItemAdding),
