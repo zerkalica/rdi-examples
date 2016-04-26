@@ -52,49 +52,59 @@ import TodoPageLoadingStateMeta from 'reactive-di-todomvc/todo/models/TodoPageLo
 
 const deps: Array<Annotation> = [
     component(TodoHeader, {
-        tr,
-        ErrorableElement,
-        addingItem: TodoItemAdding,
-        commitAdding,
-        changeAdding,
-        cancelAdding,
-        helper: EventHelper
+        props: {
+            tr,
+            ErrorableElement,
+            addingItem: TodoItemAdding,
+            commitAdding,
+            changeAdding,
+            cancelAdding,
+            helper: EventHelper
+        }
     }),
 
     component(TodoFooter, {
-        tr,
-        router: AbstractRouterManager,
-        data: todoItemsFacet,
-        helper: EventHelper,
-        clearCompleted,
-        showAll,
-        showActive,
-        showCompleted
+        props: {
+            tr,
+            router: AbstractRouterManager,
+            data: todoItemsFacet,
+            helper: EventHelper,
+            clearCompleted,
+            showAll,
+            showActive,
+            showCompleted
+        }
     }),
 
     component(TodoElement, {
-        ErrorableElement,
-        removeTodoItem,
-        toggleTodoItem,
+        props: {
+            ErrorableElement,
+            removeTodoItem,
+            toggleTodoItem,
 
-        beginEditing,
-        commitEditing,
-        cancelEditing,
-        changeEditing,
-        editingItem: TodoItemEditing,
-        helper: EventHelper
+            beginEditing,
+            commitEditing,
+            cancelEditing,
+            changeEditing,
+            editingItem: TodoItemEditing,
+            helper: EventHelper
+        }
     }),
 
     component(TodoElementList, {
-        TodoElement,
-        data: todoItemsFacet
+        props: {
+            TodoElement,
+            data: todoItemsFacet
+        }
     }),
     component(TodoMain, {
-        tr,
-        toggleAll,
-        isAllCompleted: isAllCompletedFacet,
-        TodoElementList,
-        helper: EventHelper
+        props: {
+            tr,
+            toggleAll,
+            isAllCompleted: isAllCompletedFacet,
+            TodoElementList,
+            helper: EventHelper
+        }
     }),
 
     meta(TodoPageLoadingStateMeta,
@@ -107,17 +117,19 @@ const deps: Array<Annotation> = [
     ),
 
     component(TodoPageLoadingState, {
-        deps: {
+        props: {
             tr,
             meta: TodoPageLoadingStateMeta
         }
     }),
     component(TodoPage, {
-        TodoPageLoadingState,
-        TodoHeader,
-        TodoMain,
-        TodoFooter,
-        data: todoItemsFacet
+        props: {
+            TodoPageLoadingState,
+            TodoHeader,
+            TodoMain,
+            TodoFooter,
+            data: todoItemsFacet
+        }
     })
 ];
 

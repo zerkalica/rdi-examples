@@ -6,7 +6,7 @@ import type {RouterManager} from 'modern-router/i/routerInterfaces'
 import 'reactive-di-todomvc/assets/main.css'
 
 import merge from 'node-config-loader/utils/merge'
-import {value} from 'reactive-di/configurations'
+import {observable} from 'reactive-di-observable/configurations'
 import {createReactBrowserRenderer} from 'reactive-di-react'
 
 import {
@@ -21,6 +21,7 @@ import BaseQuery from 'reactive-di-todomvc/common/models/BaseQuery'
 import AbstractStorage from 'reactive-di-todomvc/common/services/AbstractStorage'
 import BrowserLocalStorage from 'reactive-di-todomvc/common/helpers/browser/BrowserLocalStorage'
 import AbstractRouterManager from 'reactive-di-todomvc/common/services/AbstractRouterManager'
+import BaseQueryLoader from 'reactive-di-todomvc/common/loaders/BaseQueryLoader'
 
 import {
     pages,
@@ -33,15 +34,20 @@ const routerManager: RouterManager = createBrowserRouterManager(window, config.R
 const baseQuery = new BaseQuery(routerManager.resolve());
 
 const container: Container = createContainer([
-    value(AbstractStorage, new BrowserLocalStorage(window.localStorage)),
-    value(AbstractRouterManager, routerManager),
-    value(BaseEnv, new BaseEnv({
-        referrer: document.referrer,
-        userAgent: navigator.userAgent,
-        language: navigator.language,
-        platform: 'default'
-    })),
-    value(BaseQuery, baseQuery)
+    observable(AbstractStorage, {value: new BrowserLocalStorage(window.localStorage)}),
+    observable(AbstractRouterManager, {value: routerManager}),
+    observable(BaseEnv, {
+        value: new BaseEnv({
+            referrer: document.referrer,
+            userAgent: navigator.userAgent,
+            language: navigator.language,
+            platform: 'default'
+        })
+    }),
+    observable(BaseQuery, {
+        value: baseQuery,
+        loader: BaseQueryLoader
+    })
 ]);
 
 const observer: Observer = new RouterObserver(
