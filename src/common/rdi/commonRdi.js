@@ -19,9 +19,8 @@ import storageFetch from 'reactive-di-todomvc/common/services/fetchers/storageFe
 
 import FetcherConfig from 'reactive-di-todomvc/common/models/FetcherConfig'
 import BaseEnv from 'reactive-di-todomvc/common/models/BaseEnv'
-import BaseQuery from 'reactive-di-todomvc/common/models/BaseQuery'
 
-import LoadableBaseQuery from 'reactive-di-todomvc/common/loaders/LoadableBaseQuery'
+import BaseQueryLoader from 'reactive-di-todomvc/common/loaders/BaseQueryLoader'
 
 import EventHelper from 'reactive-di-todomvc/common/helpers/EventHelper'
 
@@ -38,17 +37,19 @@ const deps: Array<Annotation> = [
     klass(Fetcher, FetcherConfig, storageFetch),
 
     observable(Translations),
-    observable(BaseEnv),
-    observable(BaseQuery),
     observable(FetcherConfig),
 
-    setter(LoadableBaseQuery, BaseQuery, AbstractRouterManager),
+    setter(BaseQueryLoader, AbstractRouterManager),
 
     klass(EventHelper),
 
     component(ErrorableElement),
     component(LoadingPage),
-    component(ErrorPage, {tr})
+    component(ErrorPage, {
+        props: {
+            tr
+        }
+    })
 ];
 
 export default deps

@@ -14,10 +14,7 @@ function routeToBaseQuery(route: Route): BaseQuery {
     return new BaseQuery(route)
 }
 
-export default function LoadableBaseQuery(
-    query: BaseQuery,
-    rm: RouterManager
-): Array<OperationItem> {
+export default function BaseQueryLoader(rm: RouterManager): Array<OperationItem> {
     return [
         {observable: rm.changes.map(routeToBaseQuery)}
     ]
