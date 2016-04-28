@@ -54,8 +54,8 @@ const deps: Array<Annotation> = [
     setter(removeTodoItem, TodoItemCollection, Fetcher),
     setter(toggleTodoItem, TodoItemCollection, Fetcher),
 
-    setter(commitAdding, TodoItemCollection, TodoItemEditing, Fetcher),
-    setter(commitEditing, TodoItemCollection, TodoItemAdding, Fetcher)
+    setter(commitAdding, TodoItemCollection, TodoItemAdding, Fetcher),
+    setter(commitEditing, TodoItemCollection, TodoItemEditing, Fetcher)
 ];
 
 export default deps

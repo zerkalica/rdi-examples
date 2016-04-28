@@ -11,7 +11,6 @@ import TodoFooter from 'reactive-di-todomvc/todo/components/TodoFooter'
 import TodoMain from 'reactive-di-todomvc/todo/components/TodoMain'
 import TodoPage from 'reactive-di-todomvc/todo/components/TodoPage'
 import TodoPageLoadingState from 'reactive-di-todomvc/todo/components/TodoPageLoadingState'
-import TodoItemCollection from 'reactive-di-todomvc/todo/models/TodoItemCollection'
 
 import EventHelper from 'reactive-di-todomvc/common/helpers/EventHelper'
 
@@ -49,6 +48,7 @@ import ErrorableElement from 'reactive-di-todomvc/common/components/ErrorableEle
 import tr from 'reactive-di-todomvc/common/services/tr'
 import AbstractRouterManager from 'reactive-di-todomvc/common/services/AbstractRouterManager'
 import TodoPageLoadingStateMeta from 'reactive-di-todomvc/todo/models/TodoPageLoadingStateMeta'
+import TodoItemCollectionLoader from 'reactive-di-todomvc/todo/loaders/TodoItemCollectionLoader'
 
 const deps: Array<Annotation> = [
     component(TodoHeader, {
@@ -108,7 +108,7 @@ const deps: Array<Annotation> = [
     }),
 
     meta(TodoPageLoadingStateMeta,
-        TodoItemCollection,
+        TodoItemCollectionLoader,
         toggleAll,
         removeTodoItem,
         toggleTodoItem,

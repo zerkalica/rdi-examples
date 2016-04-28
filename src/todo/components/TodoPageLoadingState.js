@@ -20,9 +20,9 @@ export default function TodoPageLoadingState({
                     <h3>{tr('Pending...')}</h3>
                 </div>
             : null}
-            {meta.rejected ?
+            {meta.error ?
                 <div className="todoerror">
-                    {meta.reason ? meta.reason.message : tr('Unknown error')}
+                    {meta.error.message || tr('Unknown error')}
                 </div>
             : null}
         </div>
