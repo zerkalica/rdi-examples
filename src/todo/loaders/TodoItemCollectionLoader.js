@@ -4,8 +4,10 @@ import Fetcher from 'reactive-di-todomvc/common/services/Fetcher'
 import type {TodoItem} from 'reactive-di-todomvc/i/todoInterfaces'
 import type {OperationItem} from 'reactive-di-observable/i/interfaces'
 
-function normalizeTodoItems(recs: Array<TodoItem>): Collection<TodoItem> {
-    return new TodoItemCollection(recs)
+function normalizeTodoItems(recs: Array<TodoItem>): Array<OperationItem> {
+    return [
+        {object: new TodoItemCollection(recs)}
+    ]
 }
 
 export default function TodoItemCollectionLoader(

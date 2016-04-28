@@ -10,8 +10,12 @@ import type {
     RouterManager
 } from 'modern-router/i/routerInterfaces'
 
-function routeToBaseQuery(route: Route): BaseQuery {
-    return new BaseQuery(route)
+function routeToBaseQuery(route: Route): Array<OperationItem> {
+    return [
+        {
+            object: new BaseQuery(route)
+        }
+    ]
 }
 
 export default function BaseQueryLoader(rm: RouterManager): Array<OperationItem> {
