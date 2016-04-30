@@ -110,6 +110,7 @@ const deps: Array<Annotation> = [
     meta(TodoPageLoadingStateMeta,
         TodoItemCollectionLoader,
         toggleAll,
+        clearCompleted,
         removeTodoItem,
         toggleTodoItem,
         commitEditing,
