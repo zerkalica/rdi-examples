@@ -25,7 +25,7 @@ export function toggleAll(
         {object: todos.update(null, (item) => m(item, {isCompleted}))},
         {object: m(groupState, {isAllCompleted: isCompleted})},
         {
-            promise: fetcher.load('todos', {
+            promise: () => fetcher.load('todos', {
                 method: 'POST',
                 json: {
                     isCompleted
@@ -42,7 +42,7 @@ export function clearCompleted(
     return [
         {object: items.filter((item) => !item.isCompleted)},
         {
-            promise: fetcher.load(`todos`, {
+            promise: () => fetcher.load(`todos`, {
                 method: 'DELETE',
                 json: {
                     isCompleted: true
@@ -60,7 +60,7 @@ export function removeTodoItem(
     return [
         {object: items.remove(id)},
         {
-            promise: fetcher.load(`todo/${id}`, {
+            promise: () => fetcher.load(`todo/${id}`, {
                 method: 'DELETE'
             }).then(empty)
         }
@@ -80,7 +80,7 @@ export function toggleTodoItem(
     return [
         {object: newItems},
         {
-            promise: fetcher.load(`todo/${id}`, {
+            promise: () => fetcher.load(`todo/${id}`, {
                 method: 'POST',
                 json: newItems.get(id)
             })
@@ -128,7 +128,7 @@ export function commitEditing(
             })
         },
         {
-            promise: fetcher.load(`todo/${newItem.id}`, {
+            promise: () => fetcher.load(`todo/${newItem.id}`, {
                 method: 'POST',
                 json: newItem
             })
@@ -169,7 +169,7 @@ export function commitAdding(
 
     if (!isError) {
         transaction.push({
-            promise: fetcher.load('todo', {
+            promise: () => fetcher.load('todo', {
                 method: 'PUT',
                 json: ni
             }).then(({id}) => ([
