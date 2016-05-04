@@ -7,9 +7,9 @@ import type {
     TodoItemRec
 } from 'reactive-di-todomvc/i/todoInterfaces'
 import {TodoItemImpl} from 'reactive-di-todomvc/todo/models/TodoItemCollection'
-import type {OperationItem} from 'reactive-di-observable/i/interfaces'
+import type {Operation} from 'reactive-di-observable/i/interfaces'
 
-export function changeAdding(adding: TodoItemAdding, rec: TodoItemRec): Array<OperationItem> {
+export function changeAdding(adding: TodoItemAdding, rec: TodoItemRec): Array<Operation> {
     return [
         {
             object: m(adding, {
@@ -20,7 +20,7 @@ export function changeAdding(adding: TodoItemAdding, rec: TodoItemRec): Array<Op
     ]
 }
 
-export function beginAdding(adding: TodoItemAdding): Array<OperationItem> {
+export function beginAdding(adding: TodoItemAdding): Array<Operation> {
     return [
         {
             object: m(adding, {
@@ -31,7 +31,7 @@ export function beginAdding(adding: TodoItemAdding): Array<OperationItem> {
     ]
 }
 
-export function cancelAdding(adding: TodoItemAdding): Array<OperationItem> {
+export function cancelAdding(adding: TodoItemAdding): Array<Operation> {
     return [
         {
             object: m(adding, {
@@ -41,7 +41,7 @@ export function cancelAdding(adding: TodoItemAdding): Array<OperationItem> {
     ]
 }
 
-export function changeEditing(editing: TodoItemEditing, rec: TodoItemRec): Array<OperationItem> {
+export function changeEditing(editing: TodoItemEditing, rec: TodoItemRec): Array<Operation> {
     return [
         {
             object: m(editing, {
@@ -55,7 +55,7 @@ export function changeEditing(editing: TodoItemEditing, rec: TodoItemRec): Array
 export function beginEditing(
     editing: TodoItemEditing,
     currentItem: TodoItem
-): Array<OperationItem> {
+): Array<Operation> {
     return [
         {
             object: m(editing, {
@@ -66,7 +66,7 @@ export function beginEditing(
     ]
 }
 
-export function cancelEditing(editing: TodoItemEditing): Array<OperationItem> {
+export function cancelEditing(editing: TodoItemEditing): Array<Operation> {
     return [
         {
             object: m(editing, {

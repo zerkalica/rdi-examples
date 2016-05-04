@@ -2,7 +2,7 @@
 
 import BaseQuery from 'reactive-di-todomvc/common/models/BaseQuery'
 import type {
-    OperationItem
+    Operation
 } from 'reactive-di-observable/i/interfaces'
 
 import type {
@@ -10,7 +10,7 @@ import type {
     RouterManager
 } from 'modern-router/i/routerInterfaces'
 
-function routeToBaseQuery(route: Route): Array<OperationItem> {
+function routeToBaseQuery(route: Route): Array<Operation> {
     return [
         {
             object: new BaseQuery(route)
@@ -18,7 +18,7 @@ function routeToBaseQuery(route: Route): Array<OperationItem> {
     ]
 }
 
-export default function BaseQueryLoader(rm: RouterManager): Array<OperationItem> {
+export default function BaseQueryLoader(rm: RouterManager): Array<Operation> {
     return [
         {observable: rm.changes.map(routeToBaseQuery)}
     ]
