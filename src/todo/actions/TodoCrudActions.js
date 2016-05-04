@@ -1,7 +1,7 @@
 /* @flow */
 
 import m from 'reactive-di-todomvc/common/helpers/merge'
-import {createId} from 'reactive-di-todomvc/common/annotations'
+import createId from 'reactive-di-todomvc/common/helpers/createId'
 import TodoGroupState from 'reactive-di-todomvc/todo/models/TodoGroupState'
 import TodoItemCollection, {TodoItemImpl} from 'reactive-di-todomvc/todo/models/TodoItemCollection'
 import Fetcher from 'reactive-di-todomvc/common/services/Fetcher'
@@ -9,9 +9,9 @@ import TodoItemEditing from 'reactive-di-todomvc/todo/models/TodoItemEditing'
 import TodoItemAdding from 'reactive-di-todomvc/todo/models/TodoItemAdding'
 
 import type {TodoItem} from 'reactive-di-todomvc/i/todoInterfaces'
-import type {OperationItem} from 'reactive-di-observable/i/interfaces'
+import type {Operation} from 'reactive-di-observable/i/interfaces'
 
-function empty(): Array<OperationItem> {
+function empty(): Array<Operation> {
     return []
 }
 
@@ -19,7 +19,7 @@ export function toggleAll(
     todos: TodoItemCollection,
     groupState: TodoGroupState,
     fetcher: Fetcher
-): Array<OperationItem> {
+): Array<Operation> {
     const isCompleted = !groupState.isAllCompleted
     return [
         {object: todos.update(null, (item) => m(item, {isCompleted}))},
@@ -38,7 +38,7 @@ export function toggleAll(
 export function clearCompleted(
     items: TodoItemCollection,
     fetcher: Fetcher
-): Array<OperationItem> {
+): Array<Operation> {
     return [
         {object: items.filter((item) => !item.isCompleted)},
         {
@@ -56,7 +56,7 @@ export function removeTodoItem(
     items: TodoItemCollection,
     fetcher: Fetcher,
     id: string
-): Array<OperationItem> {
+): Array<Operation> {
     return [
         {object: items.remove(id)},
         {
@@ -71,7 +71,7 @@ export function toggleTodoItem(
     items: TodoItemCollection,
     fetcher: Fetcher,
     id: string
-): Array<OperationItem> {
+): Array<Operation> {
     const newItems = items.update(
         id,
         (item: TodoItem) => m(item, {isCompleted: !item.isCompleted})
@@ -109,7 +109,7 @@ export function commitEditing(
     todoItemEditing: TodoItemEditing,
     fetcher: Fetcher,
     newItem: TodoItem
-): Array<OperationItem> {
+): Array<Operation> {
     const {isError, errors} = getTodoItemAddingErrors(newItem)
     if (isError) {
         return [
@@ -142,7 +142,7 @@ export function commitAdding(
     todoItemAdding: TodoItemAdding,
     fetcher: Fetcher,
     newItem: TodoItem
-): Array<OperationItem> {
+): Array<Operation> {
     const ni = new TodoItemImpl({
         ...newItem,
         id: createId()
@@ -155,7 +155,7 @@ export function commitAdding(
     }
 
     const newItems = todos.add(ni)
-    const transaction: Array<OperationItem> = [
+    const transaction: Array<Operation> = [
         {object: newItems},
         {
             object: m(todoItemAdding, {

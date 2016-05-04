@@ -1,7 +1,6 @@
 /* @flow */
 
 import BaseCollection from 'reactive-di-todomvc/common/helpers/BaseCollection'
-import {assignString, assignBoolean} from 'reactive-di-todomvc/common/helpers'
 
 import type {TodoItem} from 'reactive-di-todomvc/i/todoInterfaces'
 
@@ -18,9 +17,9 @@ export class TodoItemImpl {
     isCompleted: boolean;
 
     constructor(rec: TodoItemRec = {}) {
-        this.id = assignString(rec.id)
-        this.title = assignString(rec.title)
-        this.isCompleted = assignBoolean(rec.isCompleted)
+        this.id = rec.id || ''
+        this.title = rec.title || this.id
+        this.isCompleted = rec.isCompleted || false
     }
 }
 
