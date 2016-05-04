@@ -20,6 +20,8 @@ function routeToBaseQuery(route: Route): Array<Operation> {
 
 export default function BaseQueryLoader(rm: RouterManager): Array<Operation> {
     return [
-        {observable: rm.changes.map(routeToBaseQuery)}
+        {
+            observable: () => rm.changes.map(routeToBaseQuery)
+        }
     ]
 }
