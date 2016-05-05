@@ -46,7 +46,7 @@ import TodoItemEditing from 'reactive-di-todomvc/todo/models/TodoItemEditing'
 import TodoItemAdding from 'reactive-di-todomvc/todo/models/TodoItemAdding'
 import ErrorableElement from 'reactive-di-todomvc/common/components/ErrorableElement'
 import tr from 'reactive-di-todomvc/common/services/tr'
-import AbstractRouterManager from 'reactive-di-todomvc/common/services/AbstractRouterManager'
+import {AbstractRouterManager} from 'modern-router'
 import TodoPageLoadingStateMeta from 'reactive-di-todomvc/todo/models/TodoPageLoadingStateMeta'
 import TodoItemCollectionLoader from 'reactive-di-todomvc/todo/loaders/TodoItemCollectionLoader'
 

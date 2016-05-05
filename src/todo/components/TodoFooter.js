@@ -4,7 +4,7 @@ import cn from 'classnames'
 import type {Tr, EventHelper} from 'reactive-di-todomvc/i/commonInterfaces'
 import type {Element} from 'reactive-di-react/i/interfaces'
 import type {SelectedGroup} from 'reactive-di-todomvc/i/todoInterfaces'
-import AbstractRouterManager from 'reactive-di-todomvc/common/services/AbstractRouterManager'
+import {AbstractRouterManager} from 'modern-router'
 
 type TodoFooterPropsData = {
     itemsCount: number;

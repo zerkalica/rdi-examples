@@ -33,7 +33,7 @@ import TodoItemEditing from 'reactive-di-todomvc/todo/models/TodoItemEditing'
 import TodoItemCollection from 'reactive-di-todomvc/todo/models/TodoItemCollection'
 import Fetcher from 'reactive-di-todomvc/common/services/Fetcher'
 
-import AbstractRouterManager from 'reactive-di-todomvc/common/services/AbstractRouterManager'
+import {AbstractRouterManager} from 'modern-router'
 
 import type {Annotation} from 'reactive-di/i/coreInterfaces'
 

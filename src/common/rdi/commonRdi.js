@@ -4,7 +4,6 @@ import {
     klass
 } from 'reactive-di/configurations'
 import {
-    setter,
     observable
 } from 'reactive-di-observable/configurations'
 
@@ -13,14 +12,11 @@ import {component} from 'reactive-di-react'
 import type {Annotation} from 'reactive-di/i/coreInterfaces'
 
 import Fetcher from 'reactive-di-todomvc/common/services/Fetcher'
-import AbstractRouterManager from 'reactive-di-todomvc/common/services/AbstractRouterManager'
 import AbstractStorage from 'reactive-di-todomvc/common/services/AbstractStorage'
 import storageFetch from 'reactive-di-todomvc/common/services/fetchers/storageFetch'
 
 import FetcherConfig from 'reactive-di-todomvc/common/models/FetcherConfig'
 import BaseEnv from 'reactive-di-todomvc/common/models/BaseEnv'
-
-import BaseQueryLoader from 'reactive-di-todomvc/common/loaders/BaseQueryLoader'
 
 import EventHelper from 'reactive-di-todomvc/common/helpers/EventHelper'
 
@@ -38,8 +34,6 @@ const deps: Array<Annotation> = [
 
     observable(Translations),
     observable(FetcherConfig),
-
-    setter(BaseQueryLoader, AbstractRouterManager),
 
     klass(EventHelper),
 
