@@ -6,22 +6,30 @@ import type {RouterManager} from 'modern-router/i/routerInterfaces'
 import 'reactive-di-todomvc/assets/main.css'
 
 import merge from 'node-config-loader/utils/merge'
+import {value} from 'reactive-di/configurations'
 import {observable} from 'reactive-di-observable/configurations'
 import {createReactBrowserRenderer} from 'reactive-di-react'
 
 import {
-    RouterObserver,
-    createBrowserRouterManager
+    Route,
+    RouterObserver
 } from 'modern-router'
+
+import {
+    createBrowserRouterManager
+} from 'modern-router/browser'
+
+import Resolution from 'observable-helpers/Resolution'
 
 import staticConfig from 'reactive-di-todomvc/../conf/.configloaderrc'
 
 import BaseEnv from 'reactive-di-todomvc/common/models/BaseEnv'
-import BaseQuery from 'reactive-di-todomvc/common/models/BaseQuery'
+
 import AbstractStorage from 'reactive-di-todomvc/common/services/AbstractStorage'
 import BrowserLocalStorage from 'reactive-di-todomvc/common/helpers/browser/BrowserLocalStorage'
-import AbstractRouterManager from 'reactive-di-todomvc/common/services/AbstractRouterManager'
-import BaseQueryLoader from 'reactive-di-todomvc/common/loaders/BaseQueryLoader'
+import {AbstractRouterManager} from 'modern-router'
+
+import {createBrowserResolution} from 'observable-helpers/browser'
 
 import {
     pages,
@@ -31,22 +39,20 @@ import createContainer from 'reactive-di-todomvc/app/createContainer'
 
 const config = merge(staticConfig, window.todoMvcConfig || {})
 const routerManager: RouterManager = createBrowserRouterManager(window, config.RouterConfig);
-const baseQuery = new BaseQuery(routerManager.resolve());
+const route: Route = routerManager.resolve();
 
 const container: Container = createContainer([
-    observable(AbstractStorage, {value: new BrowserLocalStorage(window.localStorage)}),
-    observable(AbstractRouterManager, {value: routerManager}),
-    observable(BaseEnv, {
-        value: new BaseEnv({
-            referrer: document.referrer,
-            userAgent: navigator.userAgent,
-            language: navigator.language,
-            platform: 'default'
-        })
-    }),
-    observable(BaseQuery, {
-        value: baseQuery,
-        loader: BaseQueryLoader
+    value(AbstractStorage, new BrowserLocalStorage(window.localStorage)),
+    value(AbstractRouterManager, routerManager),
+    value(BaseEnv, new BaseEnv({
+        referrer: document.referrer,
+        userAgent: navigator.userAgent,
+        language: navigator.language
+    })),
+    observable(Resolution, createBrowserResolution(window)),
+    observable(Route, {
+        value: route,
+        observable: routerManager.changes
     })
 ]);
 
@@ -61,4 +67,4 @@ const observer: Observer = new RouterObserver(
 
 routerManager.changes.subscribe(observer)
 
-observer.next(baseQuery)
+observer.next(route)
