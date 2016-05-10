@@ -1,16 +1,14 @@
 /* @flow */
 
-import type {
-    Tr
-} from 'reactive-di-todomvc/i/commonInterfaces'
+import type {Tr} from 'reactive-di-todomvc/i/commonInterfaces'
 import type {RouterManager} from 'modern-router/i/routerInterfaces'
+import type {TodoItemsFacet} from 'reactive-di-todomvc/i/todoInterfaces'
+import type {Annotation} from 'reactive-di/i/coreInterfaces'
 
 import _ from 'babel-plugin-transform-metadata/_'
 
 import {component} from 'reactive-di-react'
 import {meta} from 'reactive-di-observable/configurations'
-
-import type {Annotation} from 'reactive-di/i/coreInterfaces'
 
 import TodoHeader from 'reactive-di-todomvc/todo/components/TodoHeader'
 import TodoElementList from 'reactive-di-todomvc/todo/components/TodoElementList'
@@ -48,7 +46,6 @@ import {
 } from 'reactive-di-todomvc/todo/actions/TodoFilterActions'
 
 import isAllCompletedFacet from 'reactive-di-todomvc/todo/facets/isAllCompletedFacet'
-import todoItemsFacet from 'reactive-di-todomvc/todo/facets/todoItemsFacet'
 
 import TodoItemEditing from 'reactive-di-todomvc/todo/models/TodoItemEditing'
 import TodoItemAdding from 'reactive-di-todomvc/todo/models/TodoItemAdding'
@@ -73,7 +70,7 @@ const deps: Array<Annotation> = [
         props: {
             tr: (_: Tr),
             router: (_: RouterManager),
-            data: todoItemsFacet,
+            data: (_: TodoItemsFacet),
             helper: EventHelper,
             clearCompleted,
             showAll,
@@ -100,7 +97,7 @@ const deps: Array<Annotation> = [
     component(TodoElementList, {
         props: {
             TodoElement,
-            data: todoItemsFacet
+            data: (_: TodoItemsFacet)
         }
     }),
     component(TodoMain, {
@@ -135,7 +132,7 @@ const deps: Array<Annotation> = [
             TodoHeader,
             TodoMain,
             TodoFooter,
-            data: todoItemsFacet
+            data: (_: TodoItemsFacet)
         }
     })
 ];

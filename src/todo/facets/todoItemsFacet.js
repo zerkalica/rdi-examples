@@ -5,21 +5,22 @@ import type {
     TodoItemsFacet
 } from 'reactive-di-todomvc/i/todoInterfaces'
 import TodoQueryArgs from 'reactive-di-todomvc/todo/facets/TodoQueryArgs'
+import TodoItemCollection from 'reactive-di-todomvc/todo/models/TodoItemCollection'
 
 export default function todoItemsFacet(
-    allItems: Array<TodoItem>,
+    allItems: TodoItemCollection,
     groupState: TodoQueryArgs
 ): TodoItemsFacet {
     let items: Array<TodoItem>;
     switch (groupState.selectedGroup) {
         case 'all':
-            items = allItems
+            items = allItems.items
             break
         case 'completed':
-            items = allItems.filter((item: TodoItem) => item.isCompleted)
+            items = allItems.items.filter((item: TodoItem) => item.isCompleted)
             break
         case 'active':
-            items = allItems.filter((item: TodoItem) => !item.isCompleted)
+            items = allItems.items.filter((item: TodoItem) => !item.isCompleted)
             break
         default:
             throw new Error('Unhandlered group')

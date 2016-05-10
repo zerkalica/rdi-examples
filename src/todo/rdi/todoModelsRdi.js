@@ -9,8 +9,6 @@ import TodoItemCollection from 'reactive-di-todomvc/todo/models/TodoItemCollecti
 
 import TodoItemCollectionLoader from 'reactive-di-todomvc/todo/loaders/TodoItemCollectionLoader'
 
-import Fetcher from 'reactive-di-todomvc/common/services/Fetcher'
-
 import type {Annotation} from 'reactive-di/i/coreInterfaces'
 
 const deps: Array<Annotation> = [
@@ -18,7 +16,7 @@ const deps: Array<Annotation> = [
     observable(TodoItemAdding),
     observable(TodoItemEditing),
 
-    setter(TodoItemCollectionLoader, Fetcher),
+    setter(TodoItemCollectionLoader),
     observable(TodoItemCollection, {
         pending: true,
         loader: TodoItemCollectionLoader

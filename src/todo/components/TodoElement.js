@@ -1,19 +1,20 @@
 /* @flow */
 
+import type {EventHelper} from 'reactive-di-todomvc/i/commonInterfaces'
+import type {Element} from 'reactive-di-react/i/interfaces'
+import type {
+    TodoItem,
+    TodoItemRec
+} from 'reactive-di-todomvc/i/todoInterfaces'
+
+import cn from 'classnames'
+
 import {
     KEY_ENTER,
     KEY_ESC
 } from 'reactive-di-todomvc/common/helpers/keyCodes'
-import type {EventHelper} from 'reactive-di-todomvc/i/commonInterfaces'
-import type {Element} from 'reactive-di-react/i/interfaces'
 
-import cn from 'classnames'
-
-import type {
-    TodoItem,
-    TodoItemEditing,
-    TodoItemRec
-} from 'reactive-di-todomvc/i/todoInterfaces'
+import TodoItemEditing from 'reactive-di-todomvc/todo/models/TodoItemEditing'
 
 type TodoElementProps = {
     ErrorableElement: Class<React$Component<void, {

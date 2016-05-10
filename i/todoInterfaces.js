@@ -9,18 +9,6 @@ export type TodoItem = {
     isCompleted: boolean;
 };
 
-export type TodoItemEditing = {
-    item: TodoItem;
-    errors: {[id: string]: ?string};
-    isEditing: boolean;
-}
-
-export type TodoItemAdding = {
-    item: TodoItem;
-    errors: {[id: string]: ?string};
-    isEditing: boolean;
-}
-
 export type TodoItemRec = {
     title?: string;
     isCompleted?: boolean;

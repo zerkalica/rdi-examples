@@ -1,17 +1,17 @@
 /* @flow */
 
-
-import {
-    KEY_ENTER,
-    KEY_ESC
-} from 'reactive-di-todomvc/common/helpers/keyCodes'
 import type {Tr, EventHelper} from 'reactive-di-todomvc/i/commonInterfaces'
 import type {Element} from 'reactive-di-react/i/interfaces'
 import type {
     TodoItem,
-    TodoItemAdding,
     TodoItemRec
 } from 'reactive-di-todomvc/i/todoInterfaces'
+
+import TodoItemAdding from 'reactive-di-todomvc/todo/models/TodoItemAdding'
+import {
+    KEY_ENTER,
+    KEY_ESC
+} from 'reactive-di-todomvc/common/helpers/keyCodes'
 
 type TodoHeaderProps = {
     tr: Tr,

@@ -1,13 +1,15 @@
 /* @flow */
-import m from 'reactive-di-todomvc/common/helpers/merge'
+import type {Operation} from 'reactive-di-observable/i/interfaces'
 import type {
     TodoItem,
-    TodoItemAdding,
-    TodoItemEditing,
     TodoItemRec
 } from 'reactive-di-todomvc/i/todoInterfaces'
+
+import m from 'reactive-di-todomvc/common/helpers/merge'
+
 import {TodoItemImpl} from 'reactive-di-todomvc/todo/models/TodoItemCollection'
-import type {Operation} from 'reactive-di-observable/i/interfaces'
+import TodoItemAdding from 'reactive-di-todomvc/todo/models/TodoItemAdding'
+import TodoItemEditing from 'reactive-di-todomvc/todo/models/TodoItemEditing'
 
 export function changeAdding(
     adding: TodoItemAdding,
