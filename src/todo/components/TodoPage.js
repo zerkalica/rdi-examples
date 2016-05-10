@@ -5,16 +5,16 @@ import type {
 
 import type {Element} from 'reactive-di-react/i/interfaces'
 
-import TodoHeader from 'reactive-di-todomvc/todo/components/TodoHeader'
-import TodoMain from 'reactive-di-todomvc/todo/components/TodoMain'
-import TodoFooter from 'reactive-di-todomvc/todo/components/TodoFooter'
-import TodoPageLoadingState from 'reactive-di-todomvc/todo/components/TodoPageLoadingState'
+import TodoHeaderImpl from 'reactive-di-todomvc/todo/components/TodoHeader'
+import TodoMainImpl from 'reactive-di-todomvc/todo/components/TodoMain'
+import TodoFooterImpl from 'reactive-di-todomvc/todo/components/TodoFooter'
+import TodoPageLoadingStateImpl from 'reactive-di-todomvc/todo/components/TodoPageLoadingState'
 
 type TodoMainPageProps = {
-    TodoPageLoadingState: TodoPageLoadingState;
-    TodoHeader: TodoHeader;
-    TodoMain: TodoMain;
-    TodoFooter: TodoFooter;
+    TodoPageLoadingState: TodoPageLoadingStateImpl;
+    TodoHeader: TodoHeaderImpl;
+    TodoMain: TodoMainImpl;
+    TodoFooter: TodoFooterImpl;
     data: TodoItemsFacet;
 }
 
