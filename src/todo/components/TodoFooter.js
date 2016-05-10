@@ -4,7 +4,7 @@ import cn from 'classnames'
 import type {Tr, EventHelper} from 'reactive-di-todomvc/i/commonInterfaces'
 import type {Element} from 'reactive-di-react/i/interfaces'
 import type {SelectedGroup} from 'reactive-di-todomvc/i/todoInterfaces'
-import {AbstractRouterManager} from 'modern-router'
+import type {RouterManager} from 'modern-router/i/routerInterfaces'
 
 type TodoFooterPropsData = {
     itemsCount: number;
@@ -15,7 +15,7 @@ type TodoFooterPropsData = {
 
 type TodoFooterProps = {
     tr: Tr,
-    router: AbstractRouterManager;
+    router: RouterManager;
     data: TodoFooterPropsData;
     helper: EventHelper;
     clearCompleted(): void;

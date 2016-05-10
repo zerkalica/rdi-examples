@@ -9,7 +9,10 @@ import type {
 import {TodoItemImpl} from 'reactive-di-todomvc/todo/models/TodoItemCollection'
 import type {Operation} from 'reactive-di-observable/i/interfaces'
 
-export function changeAdding(adding: TodoItemAdding, rec: TodoItemRec): Array<Operation> {
+export function changeAdding(
+    adding: TodoItemAdding,
+    /* @args */ rec: TodoItemRec
+): Array<Operation> {
     return [
         {
             object: m(adding, {
@@ -41,7 +44,10 @@ export function cancelAdding(adding: TodoItemAdding): Array<Operation> {
     ]
 }
 
-export function changeEditing(editing: TodoItemEditing, rec: TodoItemRec): Array<Operation> {
+export function changeEditing(
+    editing: TodoItemEditing,
+    /* @args */ rec: TodoItemRec
+): Array<Operation> {
     return [
         {
             object: m(editing, {
@@ -54,7 +60,7 @@ export function changeEditing(editing: TodoItemEditing, rec: TodoItemRec): Array
 
 export function beginEditing(
     editing: TodoItemEditing,
-    currentItem: TodoItem
+    /* @args */ currentItem: TodoItem
 ): Array<Operation> {
     return [
         {

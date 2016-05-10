@@ -55,7 +55,7 @@ export function clearCompleted(
 export function removeTodoItem(
     items: TodoItemCollection,
     fetcher: Fetcher,
-    id: string
+    /* @args */ id: string
 ): Array<Operation> {
     return [
         {object: items.remove(id)},
@@ -70,7 +70,7 @@ export function removeTodoItem(
 export function toggleTodoItem(
     items: TodoItemCollection,
     fetcher: Fetcher,
-    id: string
+    /* @args */ id: string
 ): Array<Operation> {
     const newItems = items.update(
         id,
@@ -108,7 +108,7 @@ export function commitEditing(
     todos: TodoItemCollection,
     todoItemEditing: TodoItemEditing,
     fetcher: Fetcher,
-    newItem: TodoItem
+    /* @args */ newItem: TodoItem
 ): Array<Operation> {
     const {isError, errors} = getTodoItemAddingErrors(newItem)
     if (isError) {
@@ -141,7 +141,7 @@ export function commitAdding(
     todos: TodoItemCollection,
     todoItemAdding: TodoItemAdding,
     fetcher: Fetcher,
-    newItem: TodoItem
+    /* @args */ newItem: TodoItem
 ): Array<Operation> {
     const ni = new TodoItemImpl({
         ...newItem,

@@ -1,5 +1,7 @@
 /* @flow */
 
+import _ from 'babel-plugin-transform-metadata/_'
+
 import type {Container} from 'reactive-di/i/coreInterfaces'
 import type {RouterManager} from 'modern-router/i/routerInterfaces'
 
@@ -27,7 +29,6 @@ import BaseEnv from 'reactive-di-todomvc/common/models/BaseEnv'
 
 import AbstractStorage from 'reactive-di-todomvc/common/services/AbstractStorage'
 import BrowserLocalStorage from 'reactive-di-todomvc/common/helpers/browser/BrowserLocalStorage'
-import {AbstractRouterManager} from 'modern-router'
 
 import {createBrowserResolution} from 'observable-helpers/browser'
 
@@ -43,7 +44,7 @@ const route: Route = routerManager.resolve();
 
 const container: Container = createContainer([
     value(AbstractStorage, new BrowserLocalStorage(window.localStorage)),
-    value(AbstractRouterManager, routerManager),
+    value((_: RouterManager), routerManager),
     value(BaseEnv, new BaseEnv({
         referrer: document.referrer,
         userAgent: navigator.userAgent,

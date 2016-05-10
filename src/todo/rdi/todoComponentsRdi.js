@@ -3,6 +3,7 @@
 import type {
     Tr
 } from 'reactive-di-todomvc/i/commonInterfaces'
+import type {RouterManager} from 'modern-router/i/routerInterfaces'
 
 import _ from 'babel-plugin-transform-metadata/_'
 
@@ -52,7 +53,6 @@ import todoItemsFacet from 'reactive-di-todomvc/todo/facets/todoItemsFacet'
 import TodoItemEditing from 'reactive-di-todomvc/todo/models/TodoItemEditing'
 import TodoItemAdding from 'reactive-di-todomvc/todo/models/TodoItemAdding'
 import ErrorableElement from 'reactive-di-todomvc/common/components/ErrorableElement'
-import {AbstractRouterManager} from 'modern-router'
 import TodoPageLoadingStateMeta from 'reactive-di-todomvc/todo/models/TodoPageLoadingStateMeta'
 import TodoItemCollectionLoader from 'reactive-di-todomvc/todo/loaders/TodoItemCollectionLoader'
 
@@ -72,7 +72,7 @@ const deps: Array<Annotation> = [
     component(TodoFooter, {
         props: {
             tr: (_: Tr),
-            router: AbstractRouterManager,
+            router: (_: RouterManager),
             data: todoItemsFacet,
             helper: EventHelper,
             clearCompleted,
