@@ -1,7 +1,7 @@
 /* @flow */
 import type {
     Container,
-    Annotation,
+    RawAnnotation,
     ContainerManager,
     CreateContainerManager
 } from 'reactive-di/i/coreInterfaces'
@@ -18,12 +18,12 @@ import {ReactPlugin} from 'reactive-di-react'
 import todoRdi from 'reactive-di-todomvc/todo/rdi/todoRdi'
 import commonRdi from 'reactive-di-todomvc/common/rdi/commonRdi'
 
-const deps: Array<Annotation> = [].concat(
+const deps: Array<RawAnnotation> = [].concat(
     todoRdi,
     commonRdi
 );
 
-export default function createObserver(config: Array<Annotation>): Container {
+export default function createObserver(config: Array<RawAnnotation>): Container {
     const createContainerManager: CreateContainerManager = createManagerFactory(
         defaultPlugins.concat([ReactPlugin], observablePlugins),
         createHotRelationUpdater
