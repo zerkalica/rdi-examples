@@ -19,3 +19,7 @@ export type EventHelper = {
 
 export type Tr = (message: string, params?: {[id: string]: number|string|Object|Function})
     => Array<string|Object|Function>|string;
+
+export type ErrorableElement = Class<React$Component<void, {
+    error: ?string;
+}, void>>;

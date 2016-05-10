@@ -1,27 +1,30 @@
 /* @flow */
 
-import cn from 'classnames'
-import type {Tr, EventHelper} from 'reactive-di-todomvc/i/commonInterfaces'
 import type {Element} from 'reactive-di-react/i/interfaces'
-import type {SelectedGroup} from 'reactive-di-todomvc/i/todoInterfaces'
 import type {RouterManager} from 'modern-router/i/routerInterfaces'
+import type {
+    Tr,
+    EventHelper
+} from 'reactive-di-todomvc/i/commonInterfaces'
+import type {
+    TodoItemsFacet,
+    ClearCompleted,
+    ShowAll,
+    ShowActive,
+    ShowCompleted
+} from 'reactive-di-todomvc/i/todoInterfaces'
 
-type TodoFooterPropsData = {
-    itemsCount: number;
-    totalCount: number;
-    selectedGroup: SelectedGroup;
-    hasCompleted: boolean;
-}
+import cn from 'classnames'
 
 type TodoFooterProps = {
     tr: Tr,
     router: RouterManager;
-    data: TodoFooterPropsData;
+    data: TodoItemsFacet;
     helper: EventHelper;
-    clearCompleted(): void;
-    showAll(): void;
-    showActive(): void;
-    showCompleted(): void;
+    clearCompleted: ClearCompleted;
+    showAll: ShowAll;
+    showActive: ShowActive;
+    showCompleted: ShowCompleted;
 };
 
 export default function TodoFooter({

@@ -1,33 +1,40 @@
 /* @flow */
 
-import type {EventHelper} from 'reactive-di-todomvc/i/commonInterfaces'
+import type {
+    EventHelper,
+    ErrorableElement as IErrorableElement
+} from 'reactive-di-todomvc/i/commonInterfaces'
 import type {Element} from 'reactive-di-react/i/interfaces'
 import type {
     TodoItem,
-    TodoItemRec
+
+    RemoveTodoItem,
+    ToggleTodoItem,
+
+    BeginEditing,
+    CommitEditing,
+    CancelEditing,
+    ChangeEditing
 } from 'reactive-di-todomvc/i/todoInterfaces'
 
 import cn from 'classnames'
-
 import {
     KEY_ENTER,
     KEY_ESC
 } from 'reactive-di-todomvc/common/helpers/keyCodes'
-
 import TodoItemEditing from 'reactive-di-todomvc/todo/models/TodoItemEditing'
 
 type TodoElementProps = {
-    ErrorableElement: Class<React$Component<void, {
-        error: ?string;
-    }, void>>;
-    removeTodoItem(id: string): void;
-    toggleTodoItem(id: string): void;
-
+    ErrorableElement: IErrorableElement;
     editingItem: TodoItemEditing;
-    beginEditing(item: TodoItem): void;
-    commitEditing(item: TodoItem): void;
-    cancelEditing(): void;
-    changeEditing(rec: TodoItemRec): void;
+
+    removeTodoItem: RemoveTodoItem;
+    toggleTodoItem: ToggleTodoItem;
+
+    beginEditing: BeginEditing;
+    commitEditing: CommitEditing;
+    cancelEditing: CancelEditing;
+    changeEditing: ChangeEditing;
 
     helper: EventHelper;
     /* @args */

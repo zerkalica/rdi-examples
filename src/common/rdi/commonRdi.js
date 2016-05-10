@@ -2,7 +2,8 @@
 import type {
     Tr,
     Fetch,
-    EventHelper
+    EventHelper,
+    ErrorableElement
 } from 'reactive-di-todomvc/i/commonInterfaces'
 
 import _ from 'babel-plugin-transform-metadata/_'
@@ -28,7 +29,7 @@ import EventHelperImpl from 'reactive-di-todomvc/common/helpers/EventHelper'
 
 import LoadingPage from 'reactive-di-todomvc/common/components/LoadingPage'
 import ErrorPage from 'reactive-di-todomvc/common/components/ErrorPage'
-import ErrorableElement from 'reactive-di-todomvc/common/components/ErrorableElement'
+import ErrorableElementImpl from 'reactive-di-todomvc/common/components/ErrorableElement'
 
 import Translations from 'reactive-di-todomvc/common/models/Translations'
 import tr from 'reactive-di-todomvc/common/services/tr'
@@ -42,8 +43,8 @@ const deps: Array<Annotation> = [
     observable(FetcherConfig),
 
     [(_: EventHelper), klass(EventHelperImpl)],
+    [(_: ErrorableElement), component(ErrorableElementImpl)],
 
-    component(ErrorableElement),
     component(LoadingPage),
     component(ErrorPage)
 ];

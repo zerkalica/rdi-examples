@@ -3,7 +3,22 @@
 import type {
     CancelAdding,
     CommitAdding,
-    ChangeAdding
+    ChangeAdding,
+
+    RemoveTodoItem,
+    ToggleTodoItem,
+
+    BeginEditing,
+    CommitEditing,
+    CancelEditing,
+    ChangeEditing,
+
+    ToggleAll,
+    ClearCompleted,
+
+    ShowAll,
+    ShowCompleted,
+    ShowActive
 } from 'reactive-di-todomvc/i/todoInterfaces'
 
 import _ from 'babel-plugin-transform-metadata/_'
@@ -39,24 +54,24 @@ import {
 import type {Annotation} from 'reactive-di/i/coreInterfaces'
 
 const deps: Array<Annotation> = [
-    compose(showAll),
-    compose(showActive),
-    compose(showCompleted),
+    [(_: ShowAll), compose(showAll)],
+    [(_: ShowActive), compose(showActive)],
+    [(_: ShowCompleted), compose(showCompleted)],
 
     [(_: CancelAdding), setter(cancelAdding)],
     [(_: CommitAdding), setter(commitAdding)],
     [(_: ChangeAdding), setter(changeAdding)],
 
-    setter(beginEditing),
-    setter(cancelEditing),
-    setter(changeEditing),
+    [(_: RemoveTodoItem), setter(removeTodoItem)],
+    [(_: ToggleTodoItem), setter(toggleTodoItem)],
 
-    setter(toggleAll),
-    setter(clearCompleted),
-    setter(removeTodoItem),
-    setter(toggleTodoItem),
+    [(_: BeginEditing), setter(beginEditing)],
+    [(_: CancelEditing), setter(cancelEditing)],
+    [(_: ChangeEditing), setter(changeEditing)],
+    [(_: CommitEditing), setter(commitEditing)],
 
-    setter(commitEditing)
+    [(_: ToggleAll), setter(toggleAll)],
+    [(_: ClearCompleted), setter(clearCompleted)]
 ];
 
 export default deps

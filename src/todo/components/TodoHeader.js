@@ -1,6 +1,11 @@
 /* @flow */
 
-import type {Tr, EventHelper} from 'reactive-di-todomvc/i/commonInterfaces'
+import type {
+    Tr,
+    EventHelper,
+    ErrorableElement as IErrorableElement
+} from 'reactive-di-todomvc/i/commonInterfaces'
+
 import type {Element} from 'reactive-di-react/i/interfaces'
 import type {
     CancelAdding,
@@ -8,7 +13,6 @@ import type {
     ChangeAdding
 } from 'reactive-di-todomvc/i/todoInterfaces'
 
-import ErrorableElementImpl from 'reactive-di-todomvc/common/components/ErrorableElement'
 import TodoItemAdding from 'reactive-di-todomvc/todo/models/TodoItemAdding'
 import {
     KEY_ENTER,
@@ -19,7 +23,7 @@ type TodoHeaderProps = {
     tr: Tr,
     addingItem: TodoItemAdding;
     helper: EventHelper;
-    ErrorableElement: ErrorableElementImpl,
+    ErrorableElement: IErrorableElement,
     cancelAdding: CancelAdding;
     commitAdding: CommitAdding;
     changeAdding: ChangeAdding;
