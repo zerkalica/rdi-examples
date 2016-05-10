@@ -1,7 +1,8 @@
 /* @flow */
 import type {
     Tr,
-    Fetch
+    Fetch,
+    EventHelper
 } from 'reactive-di-todomvc/i/commonInterfaces'
 
 import _ from 'babel-plugin-transform-metadata/_'
@@ -23,7 +24,7 @@ import storageFetch from 'reactive-di-todomvc/common/services/fetchers/storageFe
 
 import FetcherConfig from 'reactive-di-todomvc/common/models/FetcherConfig'
 
-import EventHelper from 'reactive-di-todomvc/common/helpers/EventHelper'
+import EventHelperImpl from 'reactive-di-todomvc/common/helpers/EventHelper'
 
 import LoadingPage from 'reactive-di-todomvc/common/components/LoadingPage'
 import ErrorPage from 'reactive-di-todomvc/common/components/ErrorPage'
@@ -40,7 +41,7 @@ const deps: Array<Annotation> = [
     observable(Translations),
     observable(FetcherConfig),
 
-    klass(EventHelper),
+    [(_: EventHelper), klass(EventHelperImpl)],
 
     component(ErrorableElement),
     component(LoadingPage),

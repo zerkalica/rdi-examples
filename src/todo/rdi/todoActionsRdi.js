@@ -1,4 +1,13 @@
 /* @flow */
+
+import type {
+    CancelAdding,
+    CommitAdding,
+    ChangeAdding
+} from 'reactive-di-todomvc/i/todoInterfaces'
+
+import _ from 'babel-plugin-transform-metadata/_'
+
 import {compose} from 'reactive-di/configurations'
 import {setter} from 'reactive-di-observable/configurations'
 
@@ -34,8 +43,9 @@ const deps: Array<Annotation> = [
     compose(showActive),
     compose(showCompleted),
 
-    setter(cancelAdding),
-    setter(changeAdding),
+    [(_: CancelAdding), setter(cancelAdding)],
+    [(_: CommitAdding), setter(commitAdding)],
+    [(_: ChangeAdding), setter(changeAdding)],
 
     setter(beginEditing),
     setter(cancelEditing),
@@ -46,7 +56,6 @@ const deps: Array<Annotation> = [
     setter(removeTodoItem),
     setter(toggleTodoItem),
 
-    setter(commitAdding),
     setter(commitEditing)
 ];
 

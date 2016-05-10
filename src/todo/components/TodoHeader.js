@@ -3,10 +3,12 @@
 import type {Tr, EventHelper} from 'reactive-di-todomvc/i/commonInterfaces'
 import type {Element} from 'reactive-di-react/i/interfaces'
 import type {
-    TodoItem,
-    TodoItemRec
+    CancelAdding,
+    CommitAdding,
+    ChangeAdding
 } from 'reactive-di-todomvc/i/todoInterfaces'
 
+import ErrorableElementImpl from 'reactive-di-todomvc/common/components/ErrorableElement'
 import TodoItemAdding from 'reactive-di-todomvc/todo/models/TodoItemAdding'
 import {
     KEY_ENTER,
@@ -17,12 +19,10 @@ type TodoHeaderProps = {
     tr: Tr,
     addingItem: TodoItemAdding;
     helper: EventHelper;
-    ErrorableElement: Class<React$Component<void, {
-        error: ?string|React$Component,
-    }, void>>,
-    cancelAdding(): void;
-    commitAdding(item: TodoItem): void;
-    changeAdding(rec: TodoItemRec): void;
+    ErrorableElement: ErrorableElementImpl,
+    cancelAdding: CancelAdding;
+    commitAdding: CommitAdding;
+    changeAdding: ChangeAdding;
 };
 
 export default function TodoHeader({

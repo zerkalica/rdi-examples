@@ -23,3 +23,7 @@ export type TodoItemsFacet = {
     itemsCount: number;
     selectedGroup: SelectedGroup;
 }
+
+export type CancelAdding = () => void;
+export type CommitAdding = (item: TodoItem) => void;
+export type ChangeAdding = (rec: TodoItemRec) => void;

@@ -1,9 +1,15 @@
 /* @flow */
 
-import type {Tr} from 'reactive-di-todomvc/i/commonInterfaces'
 import type {RouterManager} from 'modern-router/i/routerInterfaces'
-import type {TodoItemsFacet} from 'reactive-di-todomvc/i/todoInterfaces'
 import type {Annotation} from 'reactive-di/i/coreInterfaces'
+import type {
+    Tr,
+    EventHelper
+} from 'reactive-di-todomvc/i/commonInterfaces'
+import type {
+    CommitAdding,
+    TodoItemsFacet
+} from 'reactive-di-todomvc/i/todoInterfaces'
 
 import _ from 'babel-plugin-transform-metadata/_'
 
@@ -18,12 +24,7 @@ import TodoMain from 'reactive-di-todomvc/todo/components/TodoMain'
 import TodoPage from 'reactive-di-todomvc/todo/components/TodoPage'
 import TodoPageLoadingState from 'reactive-di-todomvc/todo/components/TodoPageLoadingState'
 
-import EventHelper from 'reactive-di-todomvc/common/helpers/EventHelper'
-
 import {
-    cancelAdding,
-    changeAdding,
-
     beginEditing,
     cancelEditing,
     changeEditing
@@ -35,7 +36,6 @@ import {
     removeTodoItem,
     toggleTodoItem,
 
-    commitAdding,
     commitEditing
 } from 'reactive-di-todomvc/todo/actions/TodoCrudActions'
 
@@ -48,30 +48,19 @@ import {
 import isAllCompletedFacet from 'reactive-di-todomvc/todo/facets/isAllCompletedFacet'
 
 import TodoItemEditing from 'reactive-di-todomvc/todo/models/TodoItemEditing'
-import TodoItemAdding from 'reactive-di-todomvc/todo/models/TodoItemAdding'
 import ErrorableElement from 'reactive-di-todomvc/common/components/ErrorableElement'
 import TodoPageLoadingStateMeta from 'reactive-di-todomvc/todo/models/TodoPageLoadingStateMeta'
 import TodoItemCollectionLoader from 'reactive-di-todomvc/todo/loaders/TodoItemCollectionLoader'
 
 const deps: Array<Annotation> = [
-    component(TodoHeader, {
-        props: {
-            tr: (_: Tr),
-            ErrorableElement,
-            addingItem: TodoItemAdding,
-            commitAdding,
-            changeAdding,
-            cancelAdding,
-            helper: EventHelper
-        }
-    }),
+    component(TodoHeader),
 
     component(TodoFooter, {
         props: {
             tr: (_: Tr),
             router: (_: RouterManager),
             data: (_: TodoItemsFacet),
-            helper: EventHelper,
+            helper: (_: EventHelper),
             clearCompleted,
             showAll,
             showActive,
@@ -90,7 +79,7 @@ const deps: Array<Annotation> = [
             cancelEditing,
             changeEditing,
             editingItem: TodoItemEditing,
-            helper: EventHelper
+            helper: (_: EventHelper)
         }
     }),
 
@@ -106,7 +95,7 @@ const deps: Array<Annotation> = [
             toggleAll,
             isAllCompleted: isAllCompletedFacet,
             TodoElementList,
-            helper: EventHelper
+            helper: (_: EventHelper)
         }
     }),
 
@@ -117,7 +106,7 @@ const deps: Array<Annotation> = [
         removeTodoItem,
         toggleTodoItem,
         commitEditing,
-        commitAdding
+        (_: CommitAdding)
     ),
 
     component(TodoPageLoadingState, {
