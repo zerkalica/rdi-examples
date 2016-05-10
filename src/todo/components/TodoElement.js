@@ -16,7 +16,6 @@ import type {
 } from 'reactive-di-todomvc/i/todoInterfaces'
 
 type TodoElementProps = {
-    item: TodoItem;
     ErrorableElement: Class<React$Component<void, {
         error: ?string;
     }, void>>;
@@ -30,6 +29,8 @@ type TodoElementProps = {
     changeEditing(rec: TodoItemRec): void;
 
     helper: EventHelper;
+    /* @args */
+    item: TodoItem;
 };
 
 export default function TodoElement({

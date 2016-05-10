@@ -8,8 +8,9 @@ import type {Tr} from 'reactive-di-todomvc/i/commonInterfaces'
 import type {Element} from 'reactive-di-react/i/interfaces'
 
 type ErrorPageProps = {
-    error: Error;
     tr: Tr;
+    /* @args */
+    error: Error;
 }
 
 export default function ErrorPage({

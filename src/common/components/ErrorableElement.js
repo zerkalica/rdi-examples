@@ -1,5 +1,7 @@
 /* @flow */
+
 type ErrorableElementProps = {
+    /* @args */
     children: React$Element;
     error?: React$Element;
 }
