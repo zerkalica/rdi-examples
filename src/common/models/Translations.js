@@ -1,5 +1,7 @@
 /* @flow */
 
+import {observable} from 'reactive-di-observable/annotations'
+
 export default class Translations {
     phrases: {[id: string]: string};
 
@@ -7,3 +9,4 @@ export default class Translations {
         this.phrases = {}
     }
 }
+observable(Translations)

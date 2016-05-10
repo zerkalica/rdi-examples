@@ -8,8 +8,12 @@ import type {
 } from 'reactive-di-todomvc/i/todoInterfaces'
 import {TodoItemImpl} from 'reactive-di-todomvc/todo/models/TodoItemCollection'
 import type {Operation} from 'reactive-di-observable/i/interfaces'
+import {setter} from 'reactive-di-observable/annotations'
 
-export function changeAdding(adding: TodoItemAdding, rec: TodoItemRec): Array<Operation> {
+export function changeAdding(
+    adding: TodoItemAdding,
+    /* @args */ rec: TodoItemRec
+): Array<Operation> {
     return [
         {
             object: m(adding, {
@@ -19,6 +23,7 @@ export function changeAdding(adding: TodoItemAdding, rec: TodoItemRec): Array<Op
         }
     ]
 }
+setter(changeAdding)
 
 export function beginAdding(adding: TodoItemAdding): Array<Operation> {
     return [
@@ -30,6 +35,7 @@ export function beginAdding(adding: TodoItemAdding): Array<Operation> {
         }
     ]
 }
+setter(beginAdding)
 
 export function cancelAdding(adding: TodoItemAdding): Array<Operation> {
     return [
@@ -40,8 +46,12 @@ export function cancelAdding(adding: TodoItemAdding): Array<Operation> {
         }
     ]
 }
+setter(cancelAdding)
 
-export function changeEditing(editing: TodoItemEditing, rec: TodoItemRec): Array<Operation> {
+export function changeEditing(
+    editing: TodoItemEditing,
+    /* @args */ rec: TodoItemRec
+): Array<Operation> {
     return [
         {
             object: m(editing, {
@@ -51,10 +61,11 @@ export function changeEditing(editing: TodoItemEditing, rec: TodoItemRec): Array
         }
     ]
 }
+setter(changeEditing)
 
 export function beginEditing(
     editing: TodoItemEditing,
-    currentItem: TodoItem
+    /* @args */ currentItem: TodoItem
 ): Array<Operation> {
     return [
         {
@@ -65,6 +76,7 @@ export function beginEditing(
         }
     ]
 }
+setter(beginEditing)
 
 export function cancelEditing(editing: TodoItemEditing): Array<Operation> {
     return [
@@ -75,3 +87,4 @@ export function cancelEditing(editing: TodoItemEditing): Array<Operation> {
         }
     ]
 }
+setter(cancelEditing)

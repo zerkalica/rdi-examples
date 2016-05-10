@@ -1,35 +1,42 @@
 /* @flow */
+import {component} from 'reactive-di-react/annotations'
 
-import type {Widget, Element} from 'reactive-di-react/i/interfaces'
+import type {
+    TodoFooterPropsData
+} from 'reactive-di-todomvc/i/todoInterfaces'
+
+import TodoPageLoadingState from 'reactive-di-todomvc/todo/components/TodoPageLoadingState'
+import TodoHeader from 'reactive-di-todomvc/todo/components/TodoHeader'
+import TodoMain from 'reactive-di-todomvc/todo/components/TodoMain'
+import TodoFooter from 'reactive-di-todomvc/todo/components/TodoFooter'
 
 type TodoMainPageProps = {
-    TodoPageLoadingState: Widget<void>;
-    TodoHeader: Widget<void>;
-    TodoMain: Widget<void>;
-    TodoFooter: Widget<void>;
-    data: {
-        totalCount: number;
-        itemsCount: number;
-    }
+    todoPageLoadingState: TodoPageLoadingState;
+    todoHeader: TodoHeader;
+    todoMain: TodoMain;
+    todoFooter: TodoFooter;
+    data: TodoFooterPropsData;
 }
 
-export default function TodoPage({
+function TodoPage({
     data,
-    TodoPageLoadingState,
-    TodoMain,
-    TodoFooter,
-    TodoHeader
-}: TodoMainPageProps): Element {
+    todoPageLoadingState,
+    todoMain,
+    todoFooter,
+    todoHeader
+}: TodoMainPageProps): any {
     return (
         <section className="todowrap">
             <div>
-                <TodoPageLoadingState/>
+                <todoPageLoadingState/>
                 <section className="todoapp">
-                    <TodoHeader/>
-                    {data.itemsCount > 0 ? <TodoMain/> : null}
-                    {data.totalCount > 0 ? <TodoFooter/> : null}
+                    <todoHeader/>
+                    {data.itemsCount > 0 ? <todoMain/> : null}
+                    {data.totalCount > 0 ? <todoFooter/> : null}
                 </section>
             </div>
         </section>
     )
 }
+
+export default component(TodoPage)

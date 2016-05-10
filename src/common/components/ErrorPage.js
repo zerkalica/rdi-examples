@@ -1,5 +1,6 @@
 /* @flow */
 import instanceMap from 'reactive-di-todomvc/common/helpers/instanceMap'
+import {component} from 'reactive-di-react/annotations'
 
 import QueryError from 'reactive-di-todomvc/common/errors/QueryError'
 import {PageNotFoundError} from 'modern-router'
@@ -8,8 +9,9 @@ import type {Tr} from 'reactive-di-todomvc/i/commonInterfaces'
 import type {Element} from 'reactive-di-react/i/interfaces'
 
 type ErrorPageProps = {
-    error: Error;
     tr: Tr;
+    /* @args */
+    error: Error;
 }
 
 export default function ErrorPage({
@@ -35,3 +37,4 @@ export default function ErrorPage({
         </div>
     )
 }
+component(ErrorPage)

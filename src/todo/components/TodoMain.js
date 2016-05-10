@@ -1,23 +1,31 @@
 /* @flow */
 
-import type {Tr, EventHelper} from 'reactive-di-todomvc/i/commonInterfaces'
-import type {Widget, Element} from 'reactive-di-react/i/interfaces'
+import type {
+    Tr,
+    EventHelper
+} from 'reactive-di-todomvc/i/commonInterfaces'
+import type {
+    ToggleAll
+} from 'reactive-di-todomvc/i/todoInterfaces'
+import type {Widget} from 'reactive-di-react/i/interfaces'
+
+import {component} from 'reactive-di-react/annotations'
 
 type TodoMainProps = {
     tr: Tr;
-    toggleAll(): void;
+    toggleAll: ToggleAll;
     isAllCompleted: boolean;
     TodoElementList: Widget<void>;
     helper: EventHelper;
 };
 
-export default function TodoMain({
+function TodoMain({
     tr,
     toggleAll,
     isAllCompleted,
     TodoElementList,
     helper
-}: TodoMainProps): Element {
+}: TodoMainProps): any {
     return (
         <section className="main">
             <input
@@ -32,3 +40,5 @@ export default function TodoMain({
         </section>
     )
 }
+
+export default component(TodoMain)

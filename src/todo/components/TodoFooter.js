@@ -1,30 +1,30 @@
 /* @flow */
 
-import cn from 'classnames'
 import type {Tr, EventHelper} from 'reactive-di-todomvc/i/commonInterfaces'
-import type {Element} from 'reactive-di-react/i/interfaces'
-import type {SelectedGroup} from 'reactive-di-todomvc/i/todoInterfaces'
-import {AbstractRouterManager} from 'modern-router'
+import type {
+    ClearCompleted,
+    ShowAll,
+    ShowActive,
+    ShowCompleted,
+    TodoFooterPropsData
+} from 'reactive-di-todomvc/i/todoInterfaces'
 
-type TodoFooterPropsData = {
-    itemsCount: number;
-    totalCount: number;
-    selectedGroup: SelectedGroup;
-    hasCompleted: boolean;
-}
+import {component} from 'reactive-di-react/annotations'
+import cn from 'classnames'
+import {AbstractRouterManager} from 'modern-router'
 
 type TodoFooterProps = {
     tr: Tr,
     router: AbstractRouterManager;
     data: TodoFooterPropsData;
     helper: EventHelper;
-    clearCompleted(): void;
-    showAll(): void;
-    showActive(): void;
-    showCompleted(): void;
+    clearCompleted: ClearCompleted;
+    showAll: ShowAll;
+    showActive: ShowActive;
+    showCompleted: ShowCompleted;
 };
 
-export default function TodoFooter({
+function TodoFooter({
     tr,
     router,
     showAll,
@@ -33,7 +33,7 @@ export default function TodoFooter({
     clearCompleted,
     data,
     helper
-}: TodoFooterProps): Element {
+}: TodoFooterProps): any {
     return (
         <footer className="footer">
             <span className="todo-count">
@@ -76,3 +76,5 @@ export default function TodoFooter({
         </footer>
     )
 }
+
+export default component(TodoFooter)

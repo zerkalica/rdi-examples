@@ -1,4 +1,6 @@
 /* @flow */
+import {component} from 'reactive-di-react/annotations'
+
 import type {Element} from 'reactive-di-react/i/interfaces'
 
 export default function LoadingPage(): Element {
@@ -8,3 +10,4 @@ export default function LoadingPage(): Element {
         </div>
     )
 }
+component(LoadingPage)

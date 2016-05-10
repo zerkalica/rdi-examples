@@ -1,11 +1,10 @@
 /* @flow */
+import type {Tr} from 'reactive-di-todomvc/i/commonInterfaces'
+import {factory} from 'reactive-di/annotations'
 
 import BaseEnv from 'reactive-di-todomvc/common/models/BaseEnv'
 import Translations from 'reactive-di-todomvc/common/models/Translations'
 import Translator from 'babelfish-plus/Translator'
-
-type Tr = (message: string, params: ?Map<string, string|Object|Function>)
-    => Array<string|Object|Function>|string;
 
 export default function tr(
     baseEnv: BaseEnv,
@@ -18,3 +17,4 @@ export default function tr(
 
     return translator.t
 }
+factory(tr)

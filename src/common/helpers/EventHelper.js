@@ -1,6 +1,6 @@
 /* @flow */
 import type {EventHandler} from 'reactive-di-todomvc/i/commonInterfaces'
-
+import {klass} from 'reactive-di/annotations'
 export default class EventHelper {
     click<V>(
         func: EventHandler<V>,
@@ -42,3 +42,4 @@ export default class EventHelper {
         }
     }
 }
+klass(EventHelper)

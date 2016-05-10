@@ -1,7 +1,4 @@
 /* @flow */
-import {compose} from 'reactive-di/configurations'
-import {setter} from 'reactive-di-observable/configurations'
-
 import {
     cancelAdding,
     changeAdding,
@@ -27,35 +24,27 @@ import {
     showCompleted
 } from 'reactive-di-todomvc/todo/actions/TodoFilterActions'
 
-import TodoGroupState from 'reactive-di-todomvc/todo/models/TodoGroupState'
-import TodoItemAdding from 'reactive-di-todomvc/todo/models/TodoItemAdding'
-import TodoItemEditing from 'reactive-di-todomvc/todo/models/TodoItemEditing'
-import TodoItemCollection from 'reactive-di-todomvc/todo/models/TodoItemCollection'
-import Fetcher from 'reactive-di-todomvc/common/services/Fetcher'
+import type {Dependency} from 'reactive-di/i/coreInterfaces'
 
-import {AbstractRouterManager} from 'modern-router'
+const deps: Array<Dependency> = [
+    showAll,
+    showActive,
+    showCompleted,
 
-import type {Annotation} from 'reactive-di/i/coreInterfaces'
+    cancelAdding,
+    changeAdding,
 
-const deps: Array<Annotation> = [
-    compose(showAll, AbstractRouterManager),
-    compose(showActive, AbstractRouterManager),
-    compose(showCompleted, AbstractRouterManager),
+    beginEditing,
+    cancelEditing,
+    changeEditing,
 
-    setter(cancelAdding, TodoItemAdding),
-    setter(changeAdding, TodoItemAdding),
+    toggleAll,
+    clearCompleted,
+    removeTodoItem,
+    toggleTodoItem,
 
-    setter(beginEditing, TodoItemEditing),
-    setter(cancelEditing, TodoItemEditing),
-    setter(changeEditing, TodoItemEditing),
-
-    setter(toggleAll, TodoGroupState, TodoItemCollection, Fetcher),
-    setter(clearCompleted, TodoItemCollection, Fetcher),
-    setter(removeTodoItem, TodoItemCollection, Fetcher),
-    setter(toggleTodoItem, TodoItemCollection, Fetcher),
-
-    setter(commitAdding, TodoItemCollection, TodoItemAdding, Fetcher),
-    setter(commitEditing, TodoItemCollection, TodoItemEditing, Fetcher)
+    commitAdding,
+    commitEditing
 ];
 
 export default deps

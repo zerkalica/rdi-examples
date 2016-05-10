@@ -24,6 +24,7 @@ node_modules/reactive-di-observable/lib
 
 [options]
 munge_underscores=true
+esproposal.decorators=ignore
 esproposal.class_static_fields=enable
 esproposal.class_instance_fields=enable
 suppress_comment= \\(.\\|\n\\)*\\$FlowDisable

@@ -1,18 +1,18 @@
 /* @flow */
+import {component} from 'reactive-di-react/annotations'
+import TodoPageLoadingStateMeta from 'reactive-di-todomvc/todo/models/TodoPageLoadingStateMeta'
 
-import type {Meta} from 'reactive-di-observable/i/interfaces'
-import type {Element} from 'reactive-di-react/i/interfaces'
 import type {Tr} from 'reactive-di-todomvc/i/commonInterfaces'
 
-type TodoPageLoadingStateProps = {
+type TodoPageLoadingStateState = {
     tr: Tr;
-    meta: Meta;
+    meta: TodoPageLoadingStateMeta;
 }
 
-export default function TodoPageLoadingState({
+function TodoPageLoadingState({
     meta,
     tr
-}: TodoPageLoadingStateProps): Element {
+}: TodoPageLoadingStateState): any {
     return (
         <div className="TodoPageLoadingState">
             {meta.pending ?
@@ -28,3 +28,5 @@ export default function TodoPageLoadingState({
         </div>
     )
 }
+
+export default component(TodoPageLoadingState)

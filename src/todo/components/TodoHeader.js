@@ -1,31 +1,35 @@
 /* @flow */
+import type {
+    IErrorableElement,
+    Tr,
+    EventHelper
+} from 'reactive-di-todomvc/i/commonInterfaces'
 
+import type {
+    TodoItemAdding,
+    CancelAdding,
+    CommitAdding,
+    ChangeAdding
+} from 'reactive-di-todomvc/i/todoInterfaces'
+
+import {component} from 'reactive-di-react/annotations'
 
 import {
     KEY_ENTER,
     KEY_ESC
 } from 'reactive-di-todomvc/common/helpers/keyCodes'
-import type {Tr, EventHelper} from 'reactive-di-todomvc/i/commonInterfaces'
-import type {Element} from 'reactive-di-react/i/interfaces'
-import type {
-    TodoItem,
-    TodoItemAdding,
-    TodoItemRec
-} from 'reactive-di-todomvc/i/todoInterfaces'
 
 type TodoHeaderProps = {
     tr: Tr,
     addingItem: TodoItemAdding;
     helper: EventHelper;
-    ErrorableElement: Class<React$Component<void, {
-        error: ?string|React$Component,
-    }, void>>,
-    cancelAdding(): void;
-    commitAdding(item: TodoItem): void;
-    changeAdding(rec: TodoItemRec): void;
+    ErrorableElement: IErrorableElement,
+    cancelAdding: CancelAdding;
+    commitAdding: CommitAdding;
+    changeAdding: ChangeAdding;
 };
 
-export default function TodoHeader({
+function TodoHeader({
     tr,
     addingItem,
     ErrorableElement,
@@ -33,7 +37,7 @@ export default function TodoHeader({
     commitAdding,
     cancelAdding,
     helper
-}: TodoHeaderProps): Element {
+}: TodoHeaderProps): any {
     return (
         <header className="header">
             <h1>{tr('todos')}</h1>
@@ -55,3 +59,5 @@ export default function TodoHeader({
         </header>
     )
 }
+
+export default component(TodoHeader)

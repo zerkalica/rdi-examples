@@ -1,5 +1,7 @@
 /* @flow */
 
+import {observable} from 'reactive-di-observable/annotations'
+
 type FetcherConfigRec = {
     apiPrefix?: string;
 }
@@ -11,3 +13,4 @@ export default class FetcherConfig {
         this.apiPrefix = rec.apiPrefix || ''
     }
 }
+observable(FetcherConfig)

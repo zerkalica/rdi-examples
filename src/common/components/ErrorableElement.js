@@ -1,5 +1,8 @@
 /* @flow */
+import {component} from 'reactive-di-react/annotations'
+
 type ErrorableElementProps = {
+    /* @args */
     children: React$Element;
     error?: React$Element;
 }
@@ -18,3 +21,4 @@ export default function ErrorableElement({children, error}: ErrorableElementProp
         </div>
     )
 }
+component(ErrorableElement)

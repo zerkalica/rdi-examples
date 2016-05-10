@@ -1,38 +1,49 @@
 /* @flow */
 
-import {
-    KEY_ENTER,
-    KEY_ESC
-} from 'reactive-di-todomvc/common/helpers/keyCodes'
-import type {EventHelper} from 'reactive-di-todomvc/i/commonInterfaces'
-import type {Element} from 'reactive-di-react/i/interfaces'
-
-import cn from 'classnames'
+import type {
+    IErrorableElement,
+    EventHelper
+} from 'reactive-di-todomvc/i/commonInterfaces'
 
 import type {
     TodoItem,
     TodoItemEditing,
-    TodoItemRec
+
+    BeginEditing,
+    CommitEditing,
+    CancelEditing,
+    ChangeEditing,
+    RemoveTodoItem,
+    ToggleTodoItem
 } from 'reactive-di-todomvc/i/todoInterfaces'
 
+import {component} from 'reactive-di-react/annotations'
+
+import {
+    KEY_ENTER,
+    KEY_ESC
+} from 'reactive-di-todomvc/common/helpers/keyCodes'
+
+import cn from 'classnames'
+
 type TodoElementProps = {
-    item: TodoItem;
-    ErrorableElement: Class<React$Component<void, {
-        error: ?string;
-    }, void>>;
-    removeTodoItem(id: string): void;
-    toggleTodoItem(id: string): void;
-
+    ErrorableElement: IErrorableElement;
     editingItem: TodoItemEditing;
-    beginEditing(item: TodoItem): void;
-    commitEditing(item: TodoItem): void;
-    cancelEditing(): void;
-    changeEditing(rec: TodoItemRec): void;
-
     helper: EventHelper;
+
+    removeTodoItem: RemoveTodoItem;
+    toggleTodoItem: ToggleTodoItem;
+
+    beginEditing: BeginEditing;
+    commitEditing: CommitEditing;
+    cancelEditing: CancelEditing;
+    changeEditing: ChangeEditing;
+
+    /* @args */
+    item: TodoItem;
 };
 
-export default function TodoElement({
+function TodoElement({
     item,
     ErrorableElement,
     toggleTodoItem,
@@ -45,7 +56,7 @@ export default function TodoElement({
 
     editingItem,
     helper
-}: TodoElementProps): Element {
+}: TodoElementProps): any {
     const isEditing = editingItem.isEditing && editingItem.item.id === item.id
     return (
         <li
@@ -86,3 +97,5 @@ export default function TodoElement({
         </li>
     )
 }
+
+export default component(TodoElement)

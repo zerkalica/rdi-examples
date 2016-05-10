@@ -1,9 +1,13 @@
 /* @flow */
 
-import localServerActions from 'reactive-di-todomvc/common/services/fetchers/localServerActions'
 import type {Fetch, FetchParams} from 'reactive-di-todomvc/i/commonInterfaces'
 
-export default function storageFetch(storage: Storage): Fetch {
+import {factory} from 'reactive-di/annotations'
+
+import AbstractStorage from 'reactive-di-todomvc/common/services/AbstractStorage'
+import localServerActions from 'reactive-di-todomvc/common/services/fetchers/localServerActions'
+
+export default function storageFetch(storage: AbstractStorage): Fetch {
     return function _storageFetch<V: Object>(
         url: string,
         params: FetchParams<V> = {
@@ -24,3 +28,4 @@ export default function storageFetch(storage: Storage): Fetch {
         return Promise.reject(new TypeError('Not found path'))
     }
 }
+factory(storageFetch)

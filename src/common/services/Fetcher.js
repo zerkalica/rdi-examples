@@ -1,5 +1,7 @@
 /* @flow */
 import FetcherConfig from 'reactive-di-todomvc/common/models/FetcherConfig'
+import {klass} from 'reactive-di/annotations'
+
 import type {
     FetchParams,
     Fetch
@@ -18,3 +20,4 @@ export default class Fetcher {
         return this._fetch(`${this._apiPrefix}/${url}`, params)
     }
 }
+klass(Fetcher)

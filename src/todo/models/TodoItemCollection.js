@@ -1,5 +1,7 @@
 /* @flow */
 
+import {observable} from 'reactive-di-observable/annotations'
+
 import BaseCollection from 'reactive-di-todomvc/common/helpers/BaseCollection'
 
 import type {TodoItem} from 'reactive-di-todomvc/i/todoInterfaces'
@@ -23,6 +25,10 @@ export class TodoItemImpl {
     }
 }
 
+@observable({
+    pending: true,
+    loader: TodoItemCollectionLoader
+})
 export default class TodoItemCollection extends BaseCollection<TodoItem> {
     createItem(rec: TodoItemRec): TodoItem {
         return new TodoItemImpl(rec)

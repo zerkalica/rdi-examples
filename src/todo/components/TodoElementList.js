@@ -1,22 +1,27 @@
 /* @flow */
 
-import type {TodoItem} from 'reactive-di-todomvc/i/todoInterfaces'
-import type {Widget, Element} from 'reactive-di-react/i/interfaces'
+import {component} from 'reactive-di-react/annotations'
+
+import type {
+    TodoItemsFacet
+} from 'reactive-di-todomvc/i/todoInterfaces'
+
+import TodoElement from 'reactive-di-todomvc/todo/components/TodoElement'
 
 type TodoElementListProps = {
-    TodoElement: Widget<{item: TodoItem, key: string}>;
-    data: {
-        items: Array<TodoItem>;
-    }
-};
+    todoElement: TodoElement;
+    data: TodoItemsFacet
+}
 
-export default function TodoElementList({
+function TodoElementList({
     data,
-    TodoElement
-}: TodoElementListProps): Element {
+    todoElement
+}: TodoElementListProps): any {
     return (
         <ul className="todo-list">
-            {data.items.map((item) => <TodoElement item={item} key={item.id} />)}
+            {data.items.map((item) => <todoElement item={item} key={item.id} />)}
         </ul>
     )
 }
+
+export default component(TodoElementList)
