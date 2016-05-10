@@ -1,13 +1,22 @@
 /* @flow */
 
-import type {Tr, EventHelper} from 'reactive-di-todomvc/i/commonInterfaces'
-import type {Widget, Element} from 'reactive-di-react/i/interfaces'
+import type {
+    Tr,
+    EventHelper
+} from 'reactive-di-todomvc/i/commonInterfaces'
+import type {
+    ToggleAll,
+    IsAllCompleted
+} from 'reactive-di-todomvc/i/todoInterfaces'
+import type {Element} from 'reactive-di-react/i/interfaces'
+
+import TodoElementListImpl from 'reactive-di-todomvc/todo/components/TodoElementList'
 
 type TodoMainProps = {
     tr: Tr;
-    toggleAll(): void;
-    isAllCompleted: boolean;
-    TodoElementList: Widget<void>;
+    toggleAll: ToggleAll;
+    isAllCompleted: IsAllCompleted;
+    TodoElementList: TodoElementListImpl;
     helper: EventHelper;
 };
 

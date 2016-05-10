@@ -1,16 +1,21 @@
 /* @flow */
+import type {
+    TodoItemsFacet
+} from 'reactive-di-todomvc/i/todoInterfaces'
 
-import type {Widget, Element} from 'reactive-di-react/i/interfaces'
+import type {Element} from 'reactive-di-react/i/interfaces'
+
+import TodoHeader from 'reactive-di-todomvc/todo/components/TodoHeader'
+import TodoMain from 'reactive-di-todomvc/todo/components/TodoMain'
+import TodoFooter from 'reactive-di-todomvc/todo/components/TodoFooter'
+import TodoPageLoadingState from 'reactive-di-todomvc/todo/components/TodoPageLoadingState'
 
 type TodoMainPageProps = {
-    TodoPageLoadingState: Widget<void>;
-    TodoHeader: Widget<void>;
-    TodoMain: Widget<void>;
-    TodoFooter: Widget<void>;
-    data: {
-        totalCount: number;
-        itemsCount: number;
-    }
+    TodoPageLoadingState: TodoPageLoadingState;
+    TodoHeader: TodoHeader;
+    TodoMain: TodoMain;
+    TodoFooter: TodoFooter;
+    data: TodoItemsFacet;
 }
 
 export default function TodoPage({

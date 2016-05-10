@@ -1,9 +1,13 @@
 /* @flow */
 
+import type {
+    IsAllCompleted
+} from 'reactive-di-todomvc/i/todoInterfaces'
+
 import TodoItemCollection from 'reactive-di-todomvc/todo/models/TodoItemCollection'
 
 export default function isAllCompletedFacet(
     allItems: TodoItemCollection
-): boolean {
+): IsAllCompleted {
     return allItems.filter((item) => !item.isCompleted).length === 0
 }

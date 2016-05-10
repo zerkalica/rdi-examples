@@ -25,6 +25,8 @@ export type TodoItemsFacet = {
     selectedGroup: SelectedGroup;
 }
 
+export type IsAllCompleted = boolean;
+
 export type CancelAdding = () => void;
 export type CommitAdding = (item: TodoItem) => void;
 export type ChangeAdding = (rec: TodoItemRec) => void;

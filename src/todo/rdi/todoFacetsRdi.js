@@ -1,6 +1,7 @@
 /* @flow */
 import type {
-    TodoItemsFacet
+    TodoItemsFacet,
+    IsAllCompleted
 } from 'reactive-di-todomvc/i/todoInterfaces'
 import _ from 'babel-plugin-transform-metadata/_'
 
@@ -13,7 +14,7 @@ import TodoQueryArgs from 'reactive-di-todomvc/todo/facets/TodoQueryArgs'
 
 const deps: Array<Annotation> = [
     [(_: TodoItemsFacet), factory(todoItemsFacet)],
-    factory(isAllCompletedFacet),
+    [(_: IsAllCompleted), factory(isAllCompletedFacet)],
     klass(TodoQueryArgs)
 ];
 

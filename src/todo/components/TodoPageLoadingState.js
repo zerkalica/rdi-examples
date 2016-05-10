@@ -1,12 +1,12 @@
 /* @flow */
 
-import type {Meta} from 'reactive-di-observable/i/interfaces'
 import type {Element} from 'reactive-di-react/i/interfaces'
 import type {Tr} from 'reactive-di-todomvc/i/commonInterfaces'
+import TodoPageLoadingStateMeta from 'reactive-di-todomvc/todo/models/TodoPageLoadingStateMeta'
 
 type TodoPageLoadingStateProps = {
     tr: Tr;
-    meta: Meta;
+    meta: TodoPageLoadingStateMeta;
 }
 
 export default function TodoPageLoadingState({
