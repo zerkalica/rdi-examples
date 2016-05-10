@@ -1,4 +1,11 @@
 /* @flow */
+
+import type {
+    Tr
+} from 'reactive-di-todomvc/i/commonInterfaces'
+
+import _ from 'babel-plugin-transform-metadata/_'
+
 import {component} from 'reactive-di-react'
 import {meta} from 'reactive-di-observable/configurations'
 
@@ -45,7 +52,6 @@ import todoItemsFacet from 'reactive-di-todomvc/todo/facets/todoItemsFacet'
 import TodoItemEditing from 'reactive-di-todomvc/todo/models/TodoItemEditing'
 import TodoItemAdding from 'reactive-di-todomvc/todo/models/TodoItemAdding'
 import ErrorableElement from 'reactive-di-todomvc/common/components/ErrorableElement'
-import tr from 'reactive-di-todomvc/common/services/tr'
 import {AbstractRouterManager} from 'modern-router'
 import TodoPageLoadingStateMeta from 'reactive-di-todomvc/todo/models/TodoPageLoadingStateMeta'
 import TodoItemCollectionLoader from 'reactive-di-todomvc/todo/loaders/TodoItemCollectionLoader'
@@ -53,7 +59,7 @@ import TodoItemCollectionLoader from 'reactive-di-todomvc/todo/loaders/TodoItemC
 const deps: Array<Annotation> = [
     component(TodoHeader, {
         props: {
-            tr,
+            tr: (_: Tr),
             ErrorableElement,
             addingItem: TodoItemAdding,
             commitAdding,
@@ -65,7 +71,7 @@ const deps: Array<Annotation> = [
 
     component(TodoFooter, {
         props: {
-            tr,
+            tr: (_: Tr),
             router: AbstractRouterManager,
             data: todoItemsFacet,
             helper: EventHelper,
@@ -99,7 +105,7 @@ const deps: Array<Annotation> = [
     }),
     component(TodoMain, {
         props: {
-            tr,
+            tr: (_: Tr),
             toggleAll,
             isAllCompleted: isAllCompletedFacet,
             TodoElementList,
@@ -119,7 +125,7 @@ const deps: Array<Annotation> = [
 
     component(TodoPageLoadingState, {
         props: {
-            tr,
+            tr: (_: Tr),
             meta: TodoPageLoadingStateMeta
         }
     }),

@@ -1,6 +1,7 @@
 /* @flow */
 import type {SelectedGroup} from 'reactive-di-todomvc/i/todoInterfaces'
-import type {Route} from 'modern-router/i/routerInterfaces'
+
+import {Route} from 'modern-router'
 import QueryError from 'reactive-di-todomvc/common/errors/QueryError'
 
 export default class TodoQueryArgs {

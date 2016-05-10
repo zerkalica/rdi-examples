@@ -2,8 +2,9 @@
 
 import localServerActions from 'reactive-di-todomvc/common/services/fetchers/localServerActions'
 import type {Fetch, FetchParams} from 'reactive-di-todomvc/i/commonInterfaces'
+import AbstractStorage from 'reactive-di-todomvc/common/services/AbstractStorage'
 
-export default function storageFetch(storage: Storage): Fetch {
+export default function storageFetch(storage: AbstractStorage): Fetch {
     return function _storageFetch<V: Object>(
         url: string,
         params: FetchParams<V> = {

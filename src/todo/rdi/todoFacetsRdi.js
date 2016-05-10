@@ -8,13 +8,11 @@ import TodoItemCollection from 'reactive-di-todomvc/todo/models/TodoItemCollecti
 
 import type {Annotation} from 'reactive-di/i/coreInterfaces'
 import TodoQueryArgs from 'reactive-di-todomvc/todo/facets/TodoQueryArgs'
-import {Route} from 'modern-router'
-import tr from 'reactive-di-todomvc/common/services/tr'
 
 const deps: Array<Annotation> = [
     factory(todoItemsFacet, TodoItemCollection, TodoQueryArgs),
     factory(isAllCompletedFacet, TodoItemCollection),
-    klass(TodoQueryArgs, Route, tr)
+    klass(TodoQueryArgs)
 ];
 
 export default deps

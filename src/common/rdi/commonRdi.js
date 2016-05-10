@@ -1,4 +1,11 @@
 /* @flow */
+import type {
+    Tr,
+    Fetch
+} from 'reactive-di-todomvc/i/commonInterfaces'
+
+import _ from 'babel-plugin-transform-metadata/_'
+
 import {
     factory,
     klass
@@ -12,11 +19,9 @@ import {component} from 'reactive-di-react'
 import type {Annotation} from 'reactive-di/i/coreInterfaces'
 
 import Fetcher from 'reactive-di-todomvc/common/services/Fetcher'
-import AbstractStorage from 'reactive-di-todomvc/common/services/AbstractStorage'
 import storageFetch from 'reactive-di-todomvc/common/services/fetchers/storageFetch'
 
 import FetcherConfig from 'reactive-di-todomvc/common/models/FetcherConfig'
-import BaseEnv from 'reactive-di-todomvc/common/models/BaseEnv'
 
 import EventHelper from 'reactive-di-todomvc/common/helpers/EventHelper'
 
@@ -28,9 +33,9 @@ import Translations from 'reactive-di-todomvc/common/models/Translations'
 import tr from 'reactive-di-todomvc/common/services/tr'
 
 const deps: Array<Annotation> = [
-    factory(tr, BaseEnv, Translations),
-    factory(storageFetch, AbstractStorage),
-    klass(Fetcher, FetcherConfig, storageFetch),
+    [(_: Tr), factory(tr)],
+    [(_: Fetch), factory(storageFetch)],
+    klass(Fetcher),
 
     observable(Translations),
     observable(FetcherConfig),
@@ -39,11 +44,7 @@ const deps: Array<Annotation> = [
 
     component(ErrorableElement),
     component(LoadingPage),
-    component(ErrorPage, {
-        props: {
-            tr
-        }
-    })
+    component(ErrorPage)
 ];
 
 export default deps
