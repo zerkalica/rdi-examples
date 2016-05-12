@@ -1,7 +1,7 @@
 /* @flow */
 
 import localServerActions from 'reactive-di-todomvc/common/services/fetchers/localServerActions'
-import type {Fetch, FetchParams} from 'reactive-di-todomvc/i/commonInterfaces'
+import type {Fetch, FetchParams} from 'reactive-di-todomvc/common'
 import AbstractStorage from 'reactive-di-todomvc/common/services/AbstractStorage'
 
 export default function storageFetch(storage: AbstractStorage): Fetch {

@@ -1,6 +1,6 @@
 /* @flow */
-import type {FetchParams} from 'reactive-di-todomvc/i/commonInterfaces'
-import type {TodoItem} from 'reactive-di-todomvc/i/todoInterfaces'
+import type {FetchParams} from 'reactive-di-todomvc/common'
+import type {TodoItem} from 'reactive-di-todomvc/todo'
 
 import AbstractStorage from 'reactive-di-todomvc/common/services/AbstractStorage'
 
@@ -23,7 +23,7 @@ const defaultTodos: Array<TodoItem> = [
     }
 ];
 
-function delayedResult<V>(getData: () => V): Promise<V> {
+function delayedResult(getData: () => any): Promise<any> {
     return new Promise((resolve, reject) => {
         if ((Math.random() * 2) > 2) {
             setTimeout(() => reject(new Error('Fake server error')), 700)
@@ -48,20 +48,15 @@ const serverActions: Array<ServerAction> = [
         url: new RegExp('/todos'),
         execute<V>(storage: AbstractStorage, params: FetchParams<V>, match: Array<string>): Promise<V> { // eslint-disable-line
             const data: ?Array<TodoItem> = storage.getItem('todos');
-            return delayedResult(() => data
-                ? data
-                : defaultTodos
-            )
+            return delayedResult(() => data || defaultTodos)
         }
     },
     {
         method: 'POST',
         url: new RegExp('/todos'),
-        execute<V>(storage: AbstractStorage, params: FetchParams<V>, match: Array<string>): Promise<null> { // eslint-disable-line
+        execute(storage: AbstractStorage, params: FetchParams, match: Array<string>): Promise<null> { // eslint-disable-line
             const data: ?Array<TodoItem> = storage.getItem('todos');
-            const todos = data
-                ? data
-                : defaultTodos;
+            const todos = data || defaultTodos;
 
             const newTodos = todos.map((todo) => ({
                 ...todo,
@@ -77,14 +72,12 @@ const serverActions: Array<ServerAction> = [
     {
         method: 'DELETE',
         url: new RegExp('/todos'),
-        execute<V>(storage: AbstractStorage, params: FetchParams<V>, match: Array<string>): Promise<null> { // eslint-disable-line
+        execute(storage: AbstractStorage, params: FetchParams, match: Array<string>): Promise<null> { // eslint-disable-line
             const data: ?Array<TodoItem> = storage.getItem('todos');
 
-            const todos = data
-                ? data
-                : defaultTodos;
+            const todos = data || defaultTodos;
 
-            const newTodos = todos.filter((todo) => findByKeys(todo, params.json))
+            const newTodos = todos.filter((todo) => findByKeys(todo, (params.json: any)))
             return delayedResult(() => {
                 storage.setItem('todos', newTodos)
                 return null
@@ -109,7 +102,7 @@ const serverActions: Array<ServerAction> = [
     {
         method: 'POST',
         url: new RegExp('/todo/(.*)'),
-        execute<V>(storage: AbstractStorage, params: FetchParams<V>, match: Array<string>): Promise<V> { // eslint-disable-line
+        execute(storage: AbstractStorage, params: FetchParams, match: Array<string>): Promise { // eslint-disable-line
             const data: ?Array<TodoItem> = storage.getItem('todos');
             const todos = data || []
             const id = match[1]
@@ -128,16 +121,16 @@ const serverActions: Array<ServerAction> = [
     {
         method: 'PUT',
         url: new RegExp('/todo'),
-        execute<V>(storage: AbstractStorage, params: FetchParams<V>, match: Array<string>): Promise<V> { // eslint-disable-line
+        execute(storage: AbstractStorage, params: FetchParams, match: Array<string>): Promise<any> { // eslint-disable-line
             const data: ?Array<TodoItem> = storage.getItem('todos');
             const todos = data || []
-            todos.push(params.json)
+            todos.push((params.json: any))
 
             return delayedResult(() => {
                 storage.setItem('todos', todos)
                 return {
                     ...params.json,
-                    id: `${params.json.id}.saved`
+                    id: `${(params.json: any).id}.saved`
                 }
             })
         }

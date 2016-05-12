@@ -2,8 +2,8 @@
 
 import _ from 'babel-plugin-transform-metadata/_'
 
-import type {Container} from 'reactive-di/i/coreInterfaces'
-import type {RouterManager} from 'modern-router/i/routerInterfaces'
+import type {Container} from 'reactive-di'
+import type {RouterManager} from 'modern-router'
 
 import 'reactive-di-todomvc/assets/main.css'
 
@@ -21,21 +21,20 @@ import {
     createBrowserRouterManager
 } from 'modern-router/browser'
 
+import {createBrowserResolution} from 'observable-helpers/browser'
 import Resolution from 'observable-helpers/Resolution'
 
 import staticConfig from 'reactive-di-todomvc/../conf/.configloaderrc'
 
 import BaseEnv from 'reactive-di-todomvc/common/models/BaseEnv'
-
 import AbstractStorage from 'reactive-di-todomvc/common/services/AbstractStorage'
 import BrowserLocalStorage from 'reactive-di-todomvc/common/helpers/browser/BrowserLocalStorage'
-
-import {createBrowserResolution} from 'observable-helpers/browser'
 
 import {
     pages,
     ErrorPage
 } from 'reactive-di-todomvc/app/pageMap'
+
 import createContainer from 'reactive-di-todomvc/app/createContainer'
 
 const config = merge(staticConfig, window.todoMvcConfig || {})

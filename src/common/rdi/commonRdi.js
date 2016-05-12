@@ -1,10 +1,12 @@
 /* @flow */
 import type {
-    Tr,
     Fetch,
-    EventHelper,
-    ErrorableElement
-} from 'reactive-di-todomvc/i/commonInterfaces'
+    EventHelper
+} from 'reactive-di-todomvc/common'
+
+import type {
+    TokenizedTranslate
+} from 'any-translate'
 
 import _ from 'babel-plugin-transform-metadata/_'
 
@@ -18,7 +20,7 @@ import {
 
 import {component} from 'reactive-di-react'
 
-import type {Annotation} from 'reactive-di/i/coreInterfaces'
+import type {Annotation} from 'reactive-di'
 
 import Fetcher from 'reactive-di-todomvc/common/services/Fetcher'
 import storageFetch from 'reactive-di-todomvc/common/services/fetchers/storageFetch'
@@ -34,8 +36,12 @@ import ErrorableElementImpl from 'reactive-di-todomvc/common/components/Errorabl
 import Translations from 'reactive-di-todomvc/common/models/Translations'
 import tr from 'reactive-di-todomvc/common/services/tr'
 
+import type {ILoadingPage} from 'reactive-di-todomvc/common/components/LoadingPage'
+import type {IErrorPage} from 'reactive-di-todomvc/common/components/ErrorPage'
+import type {IErrorableElement} from 'reactive-di-todomvc/common/components/ErrorableElement'
+
 const deps: Array<Annotation> = [
-    [(_: Tr), factory(tr)],
+    [(_: TokenizedTranslate), factory(tr)],
     [(_: Fetch), factory(storageFetch)],
     klass(Fetcher),
 
@@ -43,10 +49,10 @@ const deps: Array<Annotation> = [
     observable(FetcherConfig),
 
     [(_: EventHelper), klass(EventHelperImpl)],
-    [(_: ErrorableElement), component(ErrorableElementImpl)],
 
-    component(LoadingPage),
-    component(ErrorPage)
+    [(_: IErrorableElement), component(ErrorableElementImpl)],
+    [(_: ILoadingPage), component(LoadingPage)],
+    [(_: IErrorPage), component(ErrorPage)]
 ];
 
 export default deps

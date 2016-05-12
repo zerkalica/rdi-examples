@@ -1,21 +1,29 @@
 /* @flow */
 
 import type {
-    Tr
-} from 'reactive-di-todomvc/i/commonInterfaces'
+    Translator,
+    TokenizedTranslate
+} from 'any-translate'
 
 import BaseEnv from 'reactive-di-todomvc/common/models/BaseEnv'
 import Translations from 'reactive-di-todomvc/common/models/Translations'
-import Translator from 'babelfish-plus/Translator'
+
+import {
+    createTranslate
+} from 'any-translate'
+
+import {
+    createBabelfishTranslator
+} from 'any-translate-adapter-babelfish'
 
 export default function tr(
     baseEnv: BaseEnv,
     translations: Translations
-): Tr {
-    const translator = new Translator({
-        locale: baseEnv.language,
-        phrases: translations.phrases
-    });
+): TokenizedTranslate {
+    const translator: Translator = createBabelfishTranslator(
+        baseEnv.language,
+        translations.phrases
+    );
 
-    return translator.t
+    return createTranslate(translator)
 }

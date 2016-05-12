@@ -1,5 +1,5 @@
 /* @flow */
-import type {EventHandler} from 'reactive-di-todomvc/i/commonInterfaces'
+import type {EventHandler} from 'reactive-di-todomvc/common'
 
 export default class EventHelper {
     click<V>(

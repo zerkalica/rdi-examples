@@ -1,22 +1,25 @@
 /* @flow */
+
+import type {TodoItemsFacet} from 'reactive-di-todomvc/todo'
 import type {
-    TodoItemsFacet
-} from 'reactive-di-todomvc/i/todoInterfaces'
+    FlowFix,
+    Element
+} from 'reactive-di-todomvc/common'
 
-import type {Element} from 'reactive-di-react/i/interfaces'
-
-import TodoHeaderImpl from 'reactive-di-todomvc/todo/components/TodoHeader'
-import TodoMainImpl from 'reactive-di-todomvc/todo/components/TodoMain'
-import TodoFooterImpl from 'reactive-di-todomvc/todo/components/TodoFooter'
-import TodoPageLoadingStateImpl from 'reactive-di-todomvc/todo/components/TodoPageLoadingState'
+import type {ITodoHeader} from 'reactive-di-todomvc/todo/components/TodoHeader'
+import type {ITodoMain} from 'reactive-di-todomvc/todo/components/TodoMain'
+import type {ITodoFooter} from 'reactive-di-todomvc/todo/components/TodoFooter'
+import type {ITodoPageLoadingState} from 'reactive-di-todomvc/todo/components/TodoPageLoadingState'
 
 type TodoMainPageProps = {
-    TodoPageLoadingState: TodoPageLoadingStateImpl;
-    TodoHeader: TodoHeaderImpl;
-    TodoMain: TodoMainImpl;
-    TodoFooter: TodoFooterImpl;
+    TodoPageLoadingState: ITodoPageLoadingState;
+    TodoHeader: ITodoHeader;
+    TodoMain: ITodoMain;
+    TodoFooter: ITodoFooter;
     data: TodoItemsFacet;
 }
+
+export type ITodoPage = FlowFix<void>;
 
 export default function TodoPage({
     data,

@@ -1,9 +1,9 @@
 /* @flow */
-import type {Operation} from 'reactive-di-observable/i/interfaces'
+import type {Operation} from 'reactive-di-observable'
 import type {
     TodoItem,
     TodoItemRec
-} from 'reactive-di-todomvc/i/todoInterfaces'
+} from 'reactive-di-todomvc/todo'
 
 import m from 'reactive-di-todomvc/common/helpers/merge'
 

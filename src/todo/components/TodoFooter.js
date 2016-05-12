@@ -1,23 +1,24 @@
 /* @flow */
 
-import type {Element} from 'reactive-di-react/i/interfaces'
-import type {RouterManager} from 'modern-router/i/routerInterfaces'
 import type {
-    Tr,
+    FlowFix,
+    Element,
     EventHelper
-} from 'reactive-di-todomvc/i/commonInterfaces'
+} from 'reactive-di-todomvc/common'
+import type {RouterManager} from 'modern-router'
+import type {TokenizedTranslate} from 'any-translate'
 import type {
     TodoItemsFacet,
     ClearCompleted,
     ShowAll,
     ShowActive,
     ShowCompleted
-} from 'reactive-di-todomvc/i/todoInterfaces'
+} from 'reactive-di-todomvc/todo'
 
 import cn from 'classnames'
 
 type TodoFooterProps = {
-    tr: Tr,
+    tr: TokenizedTranslate,
     router: RouterManager;
     data: TodoItemsFacet;
     helper: EventHelper;
@@ -26,6 +27,8 @@ type TodoFooterProps = {
     showActive: ShowActive;
     showCompleted: ShowCompleted;
 };
+
+export type ITodoFooter = FlowFix<void>;
 
 export default function TodoFooter({
     tr,

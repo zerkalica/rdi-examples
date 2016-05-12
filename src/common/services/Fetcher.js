@@ -3,7 +3,7 @@ import FetcherConfig from 'reactive-di-todomvc/common/models/FetcherConfig'
 import type {
     FetchParams,
     Fetch
-} from 'reactive-di-todomvc/i/commonInterfaces'
+} from 'reactive-di-todomvc/common'
 
 export default class Fetcher {
     _apiPrefix: string;

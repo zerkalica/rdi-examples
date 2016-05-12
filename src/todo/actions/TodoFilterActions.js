@@ -1,6 +1,6 @@
 /* @flow */
 
-import type {RouterManager} from 'modern-router/i/routerInterfaces'
+import type {RouterManager} from 'modern-router'
 
 export function showAll(rm: RouterManager): void {
     rm.update(null, {

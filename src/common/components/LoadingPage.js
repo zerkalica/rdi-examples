@@ -1,5 +1,10 @@
 /* @flow */
-import type {Element} from 'reactive-di-react/i/interfaces'
+import type {
+    FlowFix,
+    Element
+} from 'reactive-di-todomvc/common'
+
+export type ILoadingPage = FlowFix<void>;
 
 export default function LoadingPage(): Element {
     return (

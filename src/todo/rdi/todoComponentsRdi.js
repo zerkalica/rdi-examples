@@ -1,6 +1,6 @@
 /* @flow */
 
-import type {Annotation} from 'reactive-di/i/coreInterfaces'
+import type {ConfigItem} from 'reactive-di'
 import type {
     CommitAdding,
     RemoveTodoItem,
@@ -9,7 +9,7 @@ import type {
     CommitEditing,
     ToggleAll,
     ClearCompleted
-} from 'reactive-di-todomvc/i/todoInterfaces'
+} from 'reactive-di-todomvc/todo'
 
 import _ from 'babel-plugin-transform-metadata/_'
 
@@ -18,25 +18,31 @@ import {meta} from 'reactive-di-observable/configurations'
 
 import TodoElementList from 'reactive-di-todomvc/todo/components/TodoElementList'
 import TodoElement from 'reactive-di-todomvc/todo/components/TodoElement'
-
 import TodoHeader from 'reactive-di-todomvc/todo/components/TodoHeader'
 import TodoMain from 'reactive-di-todomvc/todo/components/TodoMain'
 import TodoFooter from 'reactive-di-todomvc/todo/components/TodoFooter'
 import TodoPageLoadingState from 'reactive-di-todomvc/todo/components/TodoPageLoadingState'
-
 import TodoPage from 'reactive-di-todomvc/todo/components/TodoPage'
 
 import TodoPageLoadingStateMeta from 'reactive-di-todomvc/todo/models/TodoPageLoadingStateMeta'
 import TodoItemCollectionLoader from 'reactive-di-todomvc/todo/loaders/TodoItemCollectionLoader'
 
-const deps: Array<Annotation> = [
-    component(TodoHeader),
-    component(TodoFooter),
-    component(TodoElement),
-    component(TodoElementList),
-    component(TodoMain),
-    component(TodoPageLoadingState),
-    component(TodoPage),
+import type {ITodoElementList} from 'reactive-di-todomvc/todo/components/TodoElementList'
+import type {ITodoElement} from 'reactive-di-todomvc/todo/components/TodoElement'
+import type {ITodoHeader} from 'reactive-di-todomvc/todo/components/TodoHeader'
+import type {ITodoMain} from 'reactive-di-todomvc/todo/components/TodoMain'
+import type {ITodoFooter} from 'reactive-di-todomvc/todo/components/TodoFooter'
+import type {ITodoPageLoadingState} from 'reactive-di-todomvc/todo/components/TodoPageLoadingState'
+import type {ITodoPage} from 'reactive-di-todomvc/todo/components/TodoPage'
+
+const deps: Array<ConfigItem> = [
+    [(_: ITodoHeader), component(TodoHeader)],
+    [(_: ITodoFooter), component(TodoFooter)],
+    [(_: ITodoElement), component(TodoElement)],
+    [(_: ITodoElementList), component(TodoElementList)],
+    [(_: ITodoMain), component(TodoMain)],
+    [(_: ITodoPageLoadingState), component(TodoPageLoadingState)],
+    [(_: ITodoPage), component(TodoPage)],
 
     meta(TodoPageLoadingStateMeta,
         TodoItemCollectionLoader,

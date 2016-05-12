@@ -1,24 +1,27 @@
 /* @flow */
 
+import type {TokenizedTranslate} from 'any-translate'
 import type {
-    Tr,
+    FlowFix,
+    Element,
     EventHelper
-} from 'reactive-di-todomvc/i/commonInterfaces'
+} from 'reactive-di-todomvc/common'
 import type {
     ToggleAll,
     IsAllCompleted
-} from 'reactive-di-todomvc/i/todoInterfaces'
-import type {Element} from 'reactive-di-react/i/interfaces'
+} from 'reactive-di-todomvc/todo'
 
-import TodoElementListImpl from 'reactive-di-todomvc/todo/components/TodoElementList'
+import type {ITodoElementList} from 'reactive-di-todomvc/todo/components/TodoElementList'
 
 type TodoMainProps = {
-    tr: Tr;
+    tr: TokenizedTranslate;
     toggleAll: ToggleAll;
     isAllCompleted: IsAllCompleted;
-    TodoElementList: TodoElementListImpl;
+    TodoElementList: ITodoElementList;
     helper: EventHelper;
 };
+
+export type ITodoMain = FlowFix<void>;
 
 export default function TodoMain({
     tr,

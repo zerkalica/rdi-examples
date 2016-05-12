@@ -1,8 +1,8 @@
 /* @flow */
 
-import BaseCollection from 'reactive-di-todomvc/common/helpers/BaseCollection'
+import type {TodoItem} from 'reactive-di-todomvc/todo'
 
-import type {TodoItem} from 'reactive-di-todomvc/i/todoInterfaces'
+import BaseCollection from 'reactive-di-todomvc/common/helpers/BaseCollection'
 
 export type TodoItemRec = {
     id?: string;

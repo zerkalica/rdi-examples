@@ -1,17 +1,23 @@
 /* @flow */
-import instanceMap from 'reactive-di-todomvc/common/helpers/instanceMap'
 
+import type {TokenizedTranslate} from 'any-translate'
+import type {
+    FlowFix,
+    Element
+} from 'reactive-di-todomvc/common'
+
+import instanceMap from 'reactive-di-todomvc/common/helpers/instanceMap'
 import QueryError from 'reactive-di-todomvc/common/errors/QueryError'
 import {PageNotFoundError} from 'modern-router'
 
-import type {Tr} from 'reactive-di-todomvc/i/commonInterfaces'
-import type {Element} from 'reactive-di-react/i/interfaces'
-
-type ErrorPageProps = {
-    tr: Tr;
-    /* @args */
+type Props = {
     error: Error;
 }
+type ErrorPageProps = Props & {
+    tr: TokenizedTranslate;
+}
+
+export type IErrorPage = FlowFix<Props>;
 
 export default function ErrorPage({
     tr,
@@ -19,7 +25,7 @@ export default function ErrorPage({
 }: ErrorPageProps): Element {
     return (
         <div className="unhandlered-error-page">
-            <h1>Page error</h1>
+            <h1>{tr('Page error')}</h1>
             {instanceMap(error, [
                 [QueryError, tr('Error in query params')],
                 [PageNotFoundError, tr('Page not found: #{pageName}', {

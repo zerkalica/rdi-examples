@@ -3,13 +3,15 @@
 import m from 'reactive-di-todomvc/common/helpers/merge'
 import createId from 'reactive-di-todomvc/common/helpers/createId'
 import TodoGroupState from 'reactive-di-todomvc/todo/models/TodoGroupState'
-import TodoItemCollection, {TodoItemImpl} from 'reactive-di-todomvc/todo/models/TodoItemCollection'
+import TodoItemCollection, {
+    TodoItemImpl
+} from 'reactive-di-todomvc/todo/models/TodoItemCollection'
 import Fetcher from 'reactive-di-todomvc/common/services/Fetcher'
 import TodoItemEditing from 'reactive-di-todomvc/todo/models/TodoItemEditing'
 import TodoItemAdding from 'reactive-di-todomvc/todo/models/TodoItemAdding'
 
-import type {TodoItem} from 'reactive-di-todomvc/i/todoInterfaces'
-import type {Operation} from 'reactive-di-observable/i/interfaces'
+import type {TodoItem} from 'reactive-di-todomvc/todo'
+import type {Operation} from 'reactive-di-observable'
 
 function empty(): Array<Operation> {
     return []

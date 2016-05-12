@@ -1,6 +1,8 @@
 /* @flow */
+
+import type {TodoItem} from 'reactive-di-todomvc/todo'
+
 import {TodoItemImpl} from 'reactive-di-todomvc/todo/models/TodoItemCollection'
-import type {TodoItem} from 'reactive-di-todomvc/i/todoInterfaces'
 
 export default class TodoItemAdding {
     isAdding: boolean;

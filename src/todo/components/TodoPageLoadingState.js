@@ -1,13 +1,18 @@
 /* @flow */
 
-import type {Element} from 'reactive-di-react/i/interfaces'
-import type {Tr} from 'reactive-di-todomvc/i/commonInterfaces'
+import type {
+    FlowFix,
+    Element
+} from 'reactive-di-todomvc/common'
+import type {TokenizedTranslate} from 'any-translate'
 import TodoPageLoadingStateMeta from 'reactive-di-todomvc/todo/models/TodoPageLoadingStateMeta'
 
 type TodoPageLoadingStateProps = {
-    tr: Tr;
+    tr: TokenizedTranslate;
     meta: TodoPageLoadingStateMeta;
 }
+
+export type ITodoPageLoadingState = FlowFix<void>;
 
 export default function TodoPageLoadingState({
     meta,

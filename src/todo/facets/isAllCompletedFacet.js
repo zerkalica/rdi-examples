@@ -2,7 +2,7 @@
 
 import type {
     IsAllCompleted
-} from 'reactive-di-todomvc/i/todoInterfaces'
+} from 'reactive-di-todomvc/todo'
 
 import TodoItemCollection from 'reactive-di-todomvc/todo/models/TodoItemCollection'
 

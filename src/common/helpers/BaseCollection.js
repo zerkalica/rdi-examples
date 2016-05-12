@@ -1,7 +1,7 @@
 /* @flow */
 import type {
     Id,
-    Collection, // eslint-disable-line
+    Collection,
     CollectionItem,
     ItemRec,
     MapFn,
@@ -10,7 +10,7 @@ import type {
     UpdateFn,
     FindFn,
     FilterFn
-} from 'reactive-di-todomvc/i/collection'
+} from 'reactive-di-todomvc/collection'
 import merge from 'reactive-di-todomvc/common/helpers/merge'
 
 type DeletedItems<T> = {[id: Id]: [T, number]};

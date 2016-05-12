@@ -1,5 +1,7 @@
 /* @flow */
 
+import type {ConfigItem} from 'reactive-di'
+
 import {observable, setter} from 'reactive-di-observable/configurations'
 
 import TodoGroupState from 'reactive-di-todomvc/todo/models/TodoGroupState'
@@ -9,9 +11,7 @@ import TodoItemCollection from 'reactive-di-todomvc/todo/models/TodoItemCollecti
 
 import TodoItemCollectionLoader from 'reactive-di-todomvc/todo/loaders/TodoItemCollectionLoader'
 
-import type {Annotation} from 'reactive-di/i/coreInterfaces'
-
-const deps: Array<Annotation> = [
+const deps: Array<ConfigItem> = [
     observable(TodoGroupState),
     observable(TodoItemAdding),
     observable(TodoItemEditing),

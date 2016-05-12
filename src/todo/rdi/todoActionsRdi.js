@@ -1,5 +1,7 @@
 /* @flow */
 
+import type {ConfigItem} from 'reactive-di'
+
 import type {
     CancelAdding,
     CommitAdding,
@@ -19,7 +21,7 @@ import type {
     ShowAll,
     ShowCompleted,
     ShowActive
-} from 'reactive-di-todomvc/i/todoInterfaces'
+} from 'reactive-di-todomvc/todo'
 
 import _ from 'babel-plugin-transform-metadata/_'
 
@@ -51,9 +53,7 @@ import {
     showCompleted
 } from 'reactive-di-todomvc/todo/actions/TodoFilterActions'
 
-import type {Annotation} from 'reactive-di/i/coreInterfaces'
-
-const deps: Array<Annotation> = [
+const deps: Array<ConfigItem> = [
     [(_: ShowAll), compose(showAll)],
     [(_: ShowActive), compose(showActive)],
     [(_: ShowCompleted), compose(showCompleted)],
