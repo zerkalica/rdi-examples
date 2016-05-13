@@ -1,6 +1,6 @@
 /* @flow */
 
-import type {TokenizedTranslate} from 'any-translate'
+import type {Tr} from 'any-translate'
 import type {
     FlowFix,
     Element,
@@ -14,7 +14,7 @@ import type {
 import type {ITodoElementList} from 'reactive-di-todomvc/todo/components/TodoElementList'
 
 type TodoMainProps = {
-    tr: TokenizedTranslate;
+    tr: Tr;
     toggleAll: ToggleAll;
     isAllCompleted: IsAllCompleted;
     TodoElementList: ITodoElementList;

@@ -5,7 +5,7 @@ import type {
 } from 'reactive-di-todomvc/common'
 
 import type {
-    TokenizedTranslate
+    Tr
 } from 'any-translate'
 
 import _ from 'babel-plugin-transform-metadata/_'
@@ -18,7 +18,7 @@ import {
     observable
 } from 'reactive-di-observable/configurations'
 
-import {component} from 'reactive-di-react'
+import {component} from 'reactive-di-react/configurations'
 
 import type {Annotation} from 'reactive-di'
 
@@ -41,7 +41,7 @@ import type {IErrorPage} from 'reactive-di-todomvc/common/components/ErrorPage'
 import type {IErrorableElement} from 'reactive-di-todomvc/common/components/ErrorableElement'
 
 const deps: Array<Annotation> = [
-    [(_: TokenizedTranslate), factory(tr)],
+    [(_: Tr), factory(tr)],
     [(_: Fetch), factory(storageFetch)],
     klass(Fetcher),
 

@@ -4,11 +4,11 @@ import type {
     FlowFix,
     Element
 } from 'reactive-di-todomvc/common'
-import type {TokenizedTranslate} from 'any-translate'
+import type {Tr} from 'any-translate'
 import TodoPageLoadingStateMeta from 'reactive-di-todomvc/todo/models/TodoPageLoadingStateMeta'
 
 type TodoPageLoadingStateProps = {
-    tr: TokenizedTranslate;
+    tr: Tr;
     meta: TodoPageLoadingStateMeta;
 }
 

@@ -13,7 +13,7 @@ import type {
 
 import _ from 'babel-plugin-transform-metadata/_'
 
-import {component} from 'reactive-di-react'
+import {component} from 'reactive-di-react/configurations'
 import {meta} from 'reactive-di-observable/configurations'
 
 import TodoElementList from 'reactive-di-todomvc/todo/components/TodoElementList'

@@ -1,6 +1,6 @@
 /* @flow */
 
-import type {TokenizedTranslate} from 'any-translate'
+import type {Tr} from 'any-translate'
 import type {
     FlowFix,
     Element,
@@ -20,7 +20,7 @@ import {
 } from 'reactive-di-todomvc/common/helpers/keyCodes'
 
 type TodoHeaderProps = {
-    tr: TokenizedTranslate,
+    tr: Tr,
     addingItem: TodoItemAdding;
     helper: EventHelper;
     ErrorableElement: IErrorableElement,

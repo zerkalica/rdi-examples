@@ -1,6 +1,6 @@
 /* @flow */
 
-import type {TokenizedTranslate} from 'any-translate'
+import type {Tr} from 'any-translate'
 import type {
     FlowFix,
     Element
@@ -14,7 +14,7 @@ type Props = {
     error: Error;
 }
 type ErrorPageProps = Props & {
-    tr: TokenizedTranslate;
+    tr: Tr;
 }
 
 export type IErrorPage = FlowFix<Props>;

@@ -6,7 +6,7 @@ import type {
     EventHelper
 } from 'reactive-di-todomvc/common'
 import type {RouterManager} from 'modern-router'
-import type {TokenizedTranslate} from 'any-translate'
+import type {Tr} from 'any-translate'
 import type {
     TodoItemsFacet,
     ClearCompleted,
@@ -18,7 +18,7 @@ import type {
 import cn from 'classnames'
 
 type TodoFooterProps = {
-    tr: TokenizedTranslate,
+    tr: Tr,
     router: RouterManager;
     data: TodoItemsFacet;
     helper: EventHelper;

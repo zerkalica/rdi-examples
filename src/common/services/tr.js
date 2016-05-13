@@ -2,7 +2,7 @@
 
 import type {
     Translator,
-    TokenizedTranslate
+    Tr
 } from 'any-translate'
 
 import BaseEnv from 'reactive-di-todomvc/common/models/BaseEnv'
@@ -19,7 +19,7 @@ import {
 export default function tr(
     baseEnv: BaseEnv,
     translations: Translations
-): TokenizedTranslate {
+): Tr {
     const translator: Translator = createBabelfishTranslator(
         baseEnv.language,
         translations.phrases
