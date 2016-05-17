@@ -4,6 +4,9 @@ import _ from 'babel-plugin-transform-metadata/_'
 
 import type {Container} from 'reactive-di'
 import type {RouterManager} from 'modern-router'
+import type {
+    IsDebug
+} from 'reactive-di-todomvc/common'
 
 import 'reactive-di-todomvc/assets/main.css'
 
@@ -42,6 +45,7 @@ const routerManager: RouterManager = createBrowserRouterManager(window, config.R
 const route: Route = routerManager.resolve();
 
 const container: Container = createContainer([
+    value((_: IsDebug), true),
     value(AbstractStorage, new BrowserLocalStorage(window.localStorage)),
     value((_: RouterManager), routerManager),
     value(BaseEnv, new BaseEnv({

@@ -2,6 +2,7 @@
 
 import type {Tr} from 'any-translate'
 import type {
+    IsDebug,
     FlowFix,
     Element
 } from 'reactive-di-todomvc/common'
@@ -14,6 +15,7 @@ type Props = {
     error: Error;
 }
 type ErrorPageProps = Props & {
+    isDebug: IsDebug;
     tr: Tr;
 }
 
@@ -21,6 +23,7 @@ export type IErrorPage = FlowFix<Props>;
 
 export default function ErrorPage({
     tr,
+    isDebug,
     error
 }: ErrorPageProps): Element {
     return (
@@ -33,7 +36,7 @@ export default function ErrorPage({
                 })],
                 [null, tr('Unknown error')]
             ])}
-            {process.env.NODE_ENV === 'development'
+            {isDebug
                 ? <div className="debug-message-error">
                     {error.message}
                 </div>

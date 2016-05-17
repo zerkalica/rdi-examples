@@ -1,6 +1,5 @@
 /* @flow */
 import type {
-    Fetch,
     EventHelper
 } from 'reactive-di-todomvc/common'
 
@@ -23,7 +22,6 @@ import {component} from 'reactive-di-react/configurations'
 import type {Annotation} from 'reactive-di'
 
 import Fetcher from 'reactive-di-todomvc/common/services/Fetcher'
-import storageFetch from 'reactive-di-todomvc/common/services/fetchers/storageFetch'
 
 import FetcherConfig from 'reactive-di-todomvc/common/models/FetcherConfig'
 
@@ -42,7 +40,6 @@ import type {IErrorableElement} from 'reactive-di-todomvc/common/components/Erro
 
 const deps: Array<Annotation> = [
     [(_: Tr), factory(tr)],
-    [(_: Fetch), factory(storageFetch)],
     klass(Fetcher),
 
     observable(Translations),

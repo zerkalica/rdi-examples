@@ -7,7 +7,7 @@ import AbstractStorage from 'reactive-di-todomvc/common/services/AbstractStorage
 export type ServerAction<V> = { // eslint-disable-line
     method: 'GET' | 'POST' | 'PUT' | 'DELETE';
     url: RegExp;
-    execute(storage: AbstractStorage, params: FetchParams<V>, match: Array<string>): Promise<V>;
+    execute(storage: AbstractStorage, params: FetchParams<V>, match: Array<string>): () => any;
 }
 
 const defaultTodos: Array<TodoItem> = [
@@ -23,18 +23,6 @@ const defaultTodos: Array<TodoItem> = [
     }
 ];
 
-function delayedResult(getData: () => any): Promise<any> {
-    return new Promise((resolve, reject) => {
-        if ((Math.random() * 2) > 2) {
-            setTimeout(() => reject(new Error('Fake server error')), 700)
-        } else {
-            setTimeout(() => {
-                resolve(getData())
-            }, 1500)
-        }
-    })
-}
-
 function findByKeys(data: Object, criteria: Object): boolean {
     const keys = Object.keys(criteria)
     return keys.filter(
@@ -46,15 +34,15 @@ const serverActions: Array<ServerAction> = [
     {
         method: 'GET',
         url: new RegExp('/todos'),
-        execute<V>(storage: AbstractStorage, params: FetchParams<V>, match: Array<string>): Promise<V> { // eslint-disable-line
+        execute<V>(storage: AbstractStorage, params: FetchParams<V>, match: Array<string>): () => any { // eslint-disable-line
             const data: ?Array<TodoItem> = storage.getItem('todos');
-            return delayedResult(() => data || defaultTodos)
+            return () => (data || defaultTodos)
         }
     },
     {
         method: 'POST',
         url: new RegExp('/todos'),
-        execute(storage: AbstractStorage, params: FetchParams, match: Array<string>): Promise<null> { // eslint-disable-line
+        execute(storage: AbstractStorage, params: FetchParams, match: Array<string>): () => any { // eslint-disable-line
             const data: ?Array<TodoItem> = storage.getItem('todos');
             const todos = data || defaultTodos;
 
@@ -63,46 +51,46 @@ const serverActions: Array<ServerAction> = [
                 ...params.json
             }))
 
-            return delayedResult(() => {
+            return () => {
                 storage.setItem('todos', newTodos)
                 return null
-            })
+            }
         }
     },
     {
         method: 'DELETE',
         url: new RegExp('/todos'),
-        execute(storage: AbstractStorage, params: FetchParams, match: Array<string>): Promise<null> { // eslint-disable-line
+        execute(storage: AbstractStorage, params: FetchParams, match: Array<string>): () => any { // eslint-disable-line
             const data: ?Array<TodoItem> = storage.getItem('todos');
 
             const todos = data || defaultTodos;
 
             const newTodos = todos.filter((todo) => findByKeys(todo, (params.json: any)))
-            return delayedResult(() => {
+            return () => {
                 storage.setItem('todos', newTodos)
                 return null
-            })
+            }
         }
     },
     {
         method: 'DELETE',
         url: new RegExp('/todo/(.*)'),
-        execute<V>(storage: AbstractStorage, params: FetchParams<V>, match: Array<string>): Promise<null> { // eslint-disable-line
+        execute<V>(storage: AbstractStorage, params: FetchParams<V>, match: Array<string>): () => any { // eslint-disable-line
             const data: ?Array<TodoItem> = storage.getItem('todos');
             const todos = data || []
             const id = match[1]
             const newTodos = todos.filter((todo) => todo.id !== id)
 
-            return delayedResult(() => {
+            return () => {
                 storage.setItem('todos', newTodos)
                 return null
-            })
+            }
         }
     },
     {
         method: 'POST',
         url: new RegExp('/todo/(.*)'),
-        execute(storage: AbstractStorage, params: FetchParams, match: Array<string>): Promise { // eslint-disable-line
+        execute(storage: AbstractStorage, params: FetchParams, match: Array<string>): () => any { // eslint-disable-line
             const data: ?Array<TodoItem> = storage.getItem('todos');
             const todos = data || []
             const id = match[1]
@@ -112,27 +100,27 @@ const serverActions: Array<ServerAction> = [
                     : todo
             )
 
-            return delayedResult(() => {
+            return () => {
                 storage.setItem('todos', newTodos)
                 return params.json
-            })
+            }
         }
     },
     {
         method: 'PUT',
         url: new RegExp('/todo'),
-        execute(storage: AbstractStorage, params: FetchParams, match: Array<string>): Promise<any> { // eslint-disable-line
+        execute(storage: AbstractStorage, params: FetchParams, match: Array<string>): () => any { // eslint-disable-line
             const data: ?Array<TodoItem> = storage.getItem('todos');
             const todos = data || []
             todos.push((params.json: any))
 
-            return delayedResult(() => {
+            return () => {
                 storage.setItem('todos', todos)
                 return {
                     ...params.json,
                     id: `${(params.json: any).id}.saved`
                 }
-            })
+            }
         }
     }
 ];

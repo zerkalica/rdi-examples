@@ -24,4 +24,6 @@ declare module 'reactive-di-todomvc/common' {
         change(func: (value: string) => void): (e: Event) => void;
         keyMap(map: Array<[number, EventHandler, any]>): (e: SyntheticKeyboardEvent) => void;
     }
+
+    declare type IsDebug = boolean;
 }
