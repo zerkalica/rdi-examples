@@ -16,6 +16,7 @@ declare module 'reactive-di-todomvc/common' {
     }
 
     declare type Fetch<V> = (url: string, params: FetchParams) => Promise<V>;
+    declare type AnonymFetch<V> = (url: string, params: FetchParams) => Promise<V>;
 
     declare type EventHandler<V> = (value: V) => void;
 

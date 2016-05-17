@@ -1,5 +1,6 @@
 /* @flow */
 import type {
+    AnonymFetch,
     EventHelper
 } from 'reactive-di-todomvc/common'
 
@@ -10,6 +11,7 @@ import type {
 import _ from 'babel-plugin-transform-metadata/_'
 
 import {
+    compose,
     factory,
     klass
 } from 'reactive-di/configurations'
@@ -19,9 +21,7 @@ import {
 
 import {component} from 'reactive-di-react/configurations'
 
-import type {Annotation} from 'reactive-di'
-
-import Fetcher from 'reactive-di-todomvc/common/services/Fetcher'
+import type {ConfigItem} from 'reactive-di'
 
 import FetcherConfig from 'reactive-di-todomvc/common/models/FetcherConfig'
 
@@ -38,9 +38,11 @@ import type {ILoadingPage} from 'reactive-di-todomvc/common/components/LoadingPa
 import type {IErrorPage} from 'reactive-di-todomvc/common/components/ErrorPage'
 import type {IErrorableElement} from 'reactive-di-todomvc/common/components/ErrorableElement'
 
-const deps: Array<Annotation> = [
+import anonymFetch from 'reactive-di-todomvc/common/services/anonymFetch'
+
+const deps: Array<ConfigItem> = [
     [(_: Tr), factory(tr)],
-    klass(Fetcher),
+    [(_: AnonymFetch), compose(anonymFetch)],
 
     observable(Translations),
     observable(FetcherConfig),

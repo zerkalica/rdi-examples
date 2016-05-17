@@ -1,10 +1,13 @@
 /* @flow */
 
+import type {
+    AuthFetch
+} from 'reactive-di-todomvc/auth'
+
 import type {TodoItem} from 'reactive-di-todomvc/todo'
 import type {Operation} from 'reactive-di-observable'
 
 import TodoItemCollection from 'reactive-di-todomvc/todo/models/TodoItemCollection'
-import Fetcher from 'reactive-di-todomvc/common/services/Fetcher'
 
 function normalizeTodoItems(recs: Array<TodoItem>): Array<Operation> {
     return [
@@ -13,11 +16,11 @@ function normalizeTodoItems(recs: Array<TodoItem>): Array<Operation> {
 }
 
 export default function TodoItemCollectionLoader(
-    fetcher: Fetcher
+    fetch: AuthFetch
 ): Array<Operation> {
     return [
         {
-            promise: () => fetcher.load('todos', {
+            promise: () => fetch('todos', {
                 method: 'GET'
             }).then(normalizeTodoItems)
         }

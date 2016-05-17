@@ -1,12 +1,15 @@
 /* @flow */
 
+import type {
+    AuthFetch
+} from 'reactive-di-todomvc/auth'
+
 import m from 'reactive-di-todomvc/common/helpers/merge'
 import createId from 'reactive-di-todomvc/common/helpers/createId'
 import TodoGroupState from 'reactive-di-todomvc/todo/models/TodoGroupState'
 import TodoItemCollection, {
     TodoItemImpl
 } from 'reactive-di-todomvc/todo/models/TodoItemCollection'
-import Fetcher from 'reactive-di-todomvc/common/services/Fetcher'
 import TodoItemEditing from 'reactive-di-todomvc/todo/models/TodoItemEditing'
 import TodoItemAdding from 'reactive-di-todomvc/todo/models/TodoItemAdding'
 
@@ -20,14 +23,14 @@ function empty(): Array<Operation> {
 export function toggleAll(
     todos: TodoItemCollection,
     groupState: TodoGroupState,
-    fetcher: Fetcher
+    fetch: AuthFetch
 ): Array<Operation> {
     const isCompleted = !groupState.isAllCompleted
     return [
         {object: todos.update(null, (item) => m(item, {isCompleted}))},
         {object: m(groupState, {isAllCompleted: isCompleted})},
         {
-            promise: () => fetcher.load('todos', {
+            promise: () => fetch('todos', {
                 method: 'POST',
                 json: {
                     isCompleted
@@ -39,12 +42,12 @@ export function toggleAll(
 
 export function clearCompleted(
     items: TodoItemCollection,
-    fetcher: Fetcher
+    fetch: AuthFetch
 ): Array<Operation> {
     return [
         {object: items.filter((item) => !item.isCompleted)},
         {
-            promise: () => fetcher.load(`todos`, {
+            promise: () => fetch(`todos`, {
                 method: 'DELETE',
                 json: {
                     isCompleted: true
@@ -56,13 +59,13 @@ export function clearCompleted(
 
 export function removeTodoItem(
     items: TodoItemCollection,
-    fetcher: Fetcher,
+    fetch: AuthFetch,
     /* @args */ id: string
 ): Array<Operation> {
     return [
         {object: items.remove(id)},
         {
-            promise: () => fetcher.load(`todo/${id}`, {
+            promise: () => fetch(`todo/${id}`, {
                 method: 'DELETE'
             }).then(empty)
         }
@@ -71,7 +74,7 @@ export function removeTodoItem(
 
 export function toggleTodoItem(
     items: TodoItemCollection,
-    fetcher: Fetcher,
+    fetch: AuthFetch,
     /* @args */ id: string
 ): Array<Operation> {
     const newItems = items.update(
@@ -82,7 +85,7 @@ export function toggleTodoItem(
     return [
         {object: newItems},
         {
-            promise: () => fetcher.load(`todo/${id}`, {
+            promise: () => fetch(`todo/${id}`, {
                 method: 'POST',
                 json: newItems.get(id)
             })
@@ -109,7 +112,7 @@ function getTodoItemAddingErrors(newItem: TodoItem): {
 export function commitEditing(
     todos: TodoItemCollection,
     todoItemEditing: TodoItemEditing,
-    fetcher: Fetcher,
+    fetch: AuthFetch,
     /* @args */ newItem: TodoItem
 ): Array<Operation> {
     const {isError, errors} = getTodoItemAddingErrors(newItem)
@@ -130,7 +133,7 @@ export function commitEditing(
             })
         },
         {
-            promise: () => fetcher.load(`todo/${newItem.id}`, {
+            promise: () => fetch(`todo/${newItem.id}`, {
                 method: 'POST',
                 json: newItem
             })
@@ -142,7 +145,7 @@ export function commitEditing(
 export function commitAdding(
     todos: TodoItemCollection,
     todoItemAdding: TodoItemAdding,
-    fetcher: Fetcher,
+    fetch: AuthFetch,
     /* @args */ newItem: TodoItem
 ): Array<Operation> {
     const ni = new TodoItemImpl({
@@ -171,7 +174,7 @@ export function commitAdding(
 
     if (!isError) {
         transaction.push({
-            promise: () => fetcher.load('todo', {
+            promise: () => fetch('todo', {
                 method: 'PUT',
                 json: ni
             }).then(({id}) => ([

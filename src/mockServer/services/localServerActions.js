@@ -33,6 +33,24 @@ function findByKeys(data: Object, criteria: Object): boolean {
 const serverActions: Array<ServerAction> = [
     {
         method: 'GET',
+        url: new RegExp('/login'),
+        execute<V>(storage: AbstractStorage, params: FetchParams<V>, match: Array<string>): () => any { // eslint-disable-line
+            const data = storage.getItem('login');
+            return () => (data || defaultLogin)
+        }
+    },
+
+    {
+        method: 'POST',
+        url: new RegExp('/login'),
+        execute<V>(storage: AbstractStorage, params: FetchParams<V>, match: Array<string>): () => any { // eslint-disable-line
+            const data = storage.getItem('login');
+            return () => (data || defaultLogin)
+        }
+    },
+
+    {
+        method: 'GET',
         url: new RegExp('/todos'),
         execute<V>(storage: AbstractStorage, params: FetchParams<V>, match: Array<string>): () => any { // eslint-disable-line
             const data: ?Array<TodoItem> = storage.getItem('todos');

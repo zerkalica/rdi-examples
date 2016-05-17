@@ -18,11 +18,13 @@ import {ReactPlugin} from 'reactive-di-react'
 import todoRdi from 'reactive-di-todomvc/todo/rdi/todoRdi'
 import commonRdi from 'reactive-di-todomvc/common/rdi/commonRdi'
 import debugRdi from 'reactive-di-todomvc/mockServer/rdi/debugRdi'
+import authRdi from 'reactive-di-todomvc/auth/rdi/authRdi'
 
 const deps: Array<ConfigItem> = [].concat(
     todoRdi,
     commonRdi,
-    debugRdi
+    debugRdi,
+    authRdi
 );
 
 export default function createObserver(config: Array<ConfigItem>): Container {
