@@ -2,6 +2,14 @@
 
 import type {ConfigItem} from 'reactive-di'
 import type {
+    ITodoElement,
+    ITodoHeader,
+    ITodoMain,
+    ITodoFooter,
+    ITodoPageLoadingState,
+    ITodoPage,
+    ITodoElementList,
+
     CommitAdding,
     RemoveTodoItem,
     ToggleTodoItem,
@@ -27,14 +35,6 @@ import TodoPage from 'reactive-di-todomvc/todo/components/TodoPage'
 import TodoPageLoadingStateMeta from 'reactive-di-todomvc/todo/models/TodoPageLoadingStateMeta'
 import TodoItemCollectionLoader from 'reactive-di-todomvc/todo/loaders/TodoItemCollectionLoader'
 
-import type {ITodoElementList} from 'reactive-di-todomvc/todo/components/TodoElementList'
-import type {ITodoElement} from 'reactive-di-todomvc/todo/components/TodoElement'
-import type {ITodoHeader} from 'reactive-di-todomvc/todo/components/TodoHeader'
-import type {ITodoMain} from 'reactive-di-todomvc/todo/components/TodoMain'
-import type {ITodoFooter} from 'reactive-di-todomvc/todo/components/TodoFooter'
-import type {ITodoPageLoadingState} from 'reactive-di-todomvc/todo/components/TodoPageLoadingState'
-import type {ITodoPage} from 'reactive-di-todomvc/todo/components/TodoPage'
-
 const deps: Array<ConfigItem> = [
     [(_: ITodoHeader), component(TodoHeader)],
     [(_: ITodoFooter), component(TodoFooter)],
@@ -46,6 +46,7 @@ const deps: Array<ConfigItem> = [
 
     meta(TodoPageLoadingStateMeta,
         TodoItemCollectionLoader,
+
         (_: ToggleAll),
         (_: ClearCompleted),
         (_: RemoveTodoItem),

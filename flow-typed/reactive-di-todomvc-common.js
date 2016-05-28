@@ -27,4 +27,15 @@ declare module 'reactive-di-todomvc/common' {
     }
 
     declare type IsDebug = boolean;
+
+    declare type ErrorableElementProps = {
+        error?: DummyComponent;
+    }
+    declare type IErrorableElement = FlowFix<ErrorableElementProps>;
+
+    declare type ErrorPageProps = {
+        error: Error;
+    }
+    declare type IErrorPage = FlowFix<ErrorPageProps>;
+    declare type ILoadingPage = FlowFix<void>;
 }

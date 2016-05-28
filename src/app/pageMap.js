@@ -1,7 +1,7 @@
 /* @flow */
 
-import type {ITodoPage} from 'reactive-di-todomvc/todo/components/TodoPage'
-import type {IErrorPage} from 'reactive-di-todomvc/common/components/ErrorPage'
+import type {ITodoPage} from 'reactive-di-todomvc/todo'
+import type {IErrorPage} from 'reactive-di-todomvc/common'
 import type {PageMap} from 'modern-router'
 import _ from 'babel-plugin-transform-metadata/_'
 

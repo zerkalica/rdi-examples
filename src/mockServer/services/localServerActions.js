@@ -10,6 +10,8 @@ export type ServerAction<V> = { // eslint-disable-line
     execute(storage: AbstractStorage, params: FetchParams<V>, match: Array<string>): () => any;
 }
 
+import HttpError from 'reactive-di-todomvc/common/errors/HttpError'
+
 const defaultTodos: Array<TodoItem> = [
     {
         id: 't1',
@@ -30,21 +32,43 @@ function findByKeys(data: Object, criteria: Object): boolean {
     ).length !== 0
 }
 
+const defaultLogin = {
+    isAuthorized: false
+}
+
 const serverActions: Array<ServerAction> = [
     {
         method: 'GET',
-        url: new RegExp('/login'),
+        url: new RegExp('/session'),
         execute<V>(storage: AbstractStorage, params: FetchParams<V>, match: Array<string>): () => any { // eslint-disable-line
-            const data = storage.getItem('login');
+            const data = storage.getItem('session');
             return () => (data || defaultLogin)
         }
     },
 
     {
-        method: 'POST',
-        url: new RegExp('/login'),
+        method: 'PUT',
+        url: new RegExp('/session'),
+        execute(storage: AbstractStorage, params: FetchParams, match: Array<string>): () => any { // eslint-disable-line
+            const data: Object = params.json
+            return () => {
+                if (data.password !== 'admin') {
+                    throw new HttpError(400, 'invalid login or password')
+                }
+                storage.setItem('session', {isAuthorized: true});
+
+                return {
+                    sessionId: '123213124345346'
+                }
+            }
+        }
+    },
+
+    {
+        method: 'DELETE',
+        url: new RegExp('/session'),
         execute<V>(storage: AbstractStorage, params: FetchParams<V>, match: Array<string>): () => any { // eslint-disable-line
-            const data = storage.getItem('login');
+            const data = storage.setItem('session', {isAuthorized: false});
             return () => (data || defaultLogin)
         }
     },
@@ -54,7 +78,13 @@ const serverActions: Array<ServerAction> = [
         url: new RegExp('/todos'),
         execute<V>(storage: AbstractStorage, params: FetchParams<V>, match: Array<string>): () => any { // eslint-disable-line
             const data: ?Array<TodoItem> = storage.getItem('todos');
-            return () => (data || defaultTodos)
+            return () => {
+                const session = storage.getItem('session')
+                if (!session || !session.isAuthorized) {
+                    throw new HttpError(403, 'not authorized')
+                }
+                return (data || defaultTodos)
+            }
         }
     },
     {
@@ -70,6 +100,10 @@ const serverActions: Array<ServerAction> = [
             }))
 
             return () => {
+                const session = storage.getItem('session')
+                if (!session || !session.isAuthorized) {
+                    throw new HttpError(403, 'not authorized')
+                }
                 storage.setItem('todos', newTodos)
                 return null
             }
@@ -85,6 +119,10 @@ const serverActions: Array<ServerAction> = [
 
             const newTodos = todos.filter((todo) => findByKeys(todo, (params.json: any)))
             return () => {
+                const session = storage.getItem('session')
+                if (!session || !session.isAuthorized) {
+                    throw new HttpError(403, 'not authorized')
+                }
                 storage.setItem('todos', newTodos)
                 return null
             }
@@ -100,6 +138,10 @@ const serverActions: Array<ServerAction> = [
             const newTodos = todos.filter((todo) => todo.id !== id)
 
             return () => {
+                const session = storage.getItem('session')
+                if (!session || !session.isAuthorized) {
+                    throw new HttpError(403, 'not authorized')
+                }
                 storage.setItem('todos', newTodos)
                 return null
             }
@@ -119,6 +161,10 @@ const serverActions: Array<ServerAction> = [
             )
 
             return () => {
+                const session = storage.getItem('session')
+                if (!session || !session.isAuthorized) {
+                    throw new HttpError(403, 'not authorized')
+                }
                 storage.setItem('todos', newTodos)
                 return params.json
             }
@@ -133,6 +179,10 @@ const serverActions: Array<ServerAction> = [
             todos.push((params.json: any))
 
             return () => {
+                const session = storage.getItem('session')
+                if (!session || !session.isAuthorized) {
+                    throw new HttpError(403, 'not authorized')
+                }
                 storage.setItem('todos', todos)
                 return {
                     ...params.json,

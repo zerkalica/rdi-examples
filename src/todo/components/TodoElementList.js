@@ -1,20 +1,16 @@
 /* @flow */
-
 import type {
-    TodoItemsFacet
-} from 'reactive-di-todomvc/todo'
-import type {
-    FlowFix,
     Element
 } from 'reactive-di-todomvc/common'
-import type {ITodoElement} from 'reactive-di-todomvc/todo/components/TodoElement'
+import type {
+    ITodoElement,
+    TodoItemsFacet
+} from 'reactive-di-todomvc/todo'
 
 type TodoElementListProps = {
     TodoElement: ITodoElement;
     data: TodoItemsFacet
 };
-
-export type ITodoElementList = FlowFix<void>;
 
 export default function TodoElementList({
     data,

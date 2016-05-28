@@ -2,6 +2,7 @@
 
 import type {Collection} from 'reactive-di-todomvc/common'
 import type QueryError from 'reactive-di-todomvc/common/errors/QueryError'
+import type {FlowFix} from 'reactive-di-todomvc/common'
 
 declare module 'reactive-di-todomvc/todo' {
     declare type TodoItem = {
@@ -46,4 +47,16 @@ declare module 'reactive-di-todomvc/todo' {
     declare type ShowAll = () => void;
     declare type ShowCompleted = () => void;
     declare type ShowActive = () => void;
+
+    declare type TodoElementProps = {
+        item: TodoItem;
+    }
+    declare type ITodoElement = FlowFix<TodoElementProps>;
+    declare type ITodoElementList = FlowFix<void>;
+
+    declare type ITodoPage = FlowFix<void>;
+    declare type ITodoHeader = FlowFix<void>;
+    declare type ITodoMain = FlowFix<void>;
+    declare type ITodoFooter = FlowFix<void>;
+    declare type ITodoPageLoadingState = FlowFix<void>;
 }

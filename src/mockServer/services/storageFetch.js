@@ -11,7 +11,13 @@ function delayedResult(getData: () => any, errorRate: ErrorRateValue): Promise<a
             setTimeout(() => reject(new Error('Fake server error')), 700)
         } else {
             setTimeout(() => {
-                resolve(getData())
+                try {
+                    const data = getData()
+                    resolve(data)
+                } catch (e) {
+                    reject(e)
+                    throw e
+                }
             }, 1500)
         }
     })

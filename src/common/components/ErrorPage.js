@@ -3,7 +3,7 @@
 import type {Tr} from 'any-translate'
 import type {
     IsDebug,
-    FlowFix,
+    ErrorPageProps,
     Element
 } from 'reactive-di-todomvc/common'
 
@@ -11,34 +11,32 @@ import instanceMap from 'reactive-di-todomvc/common/helpers/instanceMap'
 import QueryError from 'reactive-di-todomvc/common/errors/QueryError'
 import {PageNotFoundError} from 'modern-router'
 
-type Props = {
-    error: Error;
-}
-type ErrorPageProps = Props & {
+type ErrorPageOpts = ErrorPageProps & {
     isDebug: IsDebug;
-    tr: Tr;
+    t: Tr;
 }
-
-export type IErrorPage = FlowFix<Props>;
 
 export default function ErrorPage({
-    tr,
+    t,
     isDebug,
     error
-}: ErrorPageProps): Element {
+}: ErrorPageOpts): Element {
+    if (isDebug && error) {
+        console.error(error)
+    }
     return (
         <div className="unhandlered-error-page">
-            <h1>{tr('Page error')}</h1>
+            <h1>{t('Page error')}</h1>
             {instanceMap(error, [
-                [QueryError, tr('Error in query params')],
-                [PageNotFoundError, tr('Page not found: #{pageName}', {
+                [QueryError, t('Error in query params')],
+                [PageNotFoundError, t('Page not found: #{pageName}', {
                     pageName: error.pageName || 'null'
                 })],
-                [null, tr('Unknown error')]
+                [null, t('Unknown error')]
             ])}
             {isDebug
                 ? <div className="debug-message-error">
-                    {error.message}
+                    <pre className="error-trace">{error.stack}</pre>
                 </div>
                 : null
             }

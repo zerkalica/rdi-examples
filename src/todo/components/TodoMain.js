@@ -2,16 +2,14 @@
 
 import type {Tr} from 'any-translate'
 import type {
-    FlowFix,
     Element,
     EventHelper
 } from 'reactive-di-todomvc/common'
 import type {
+    ITodoElementList,
     ToggleAll,
     IsAllCompleted
 } from 'reactive-di-todomvc/todo'
-
-import type {ITodoElementList} from 'reactive-di-todomvc/todo/components/TodoElementList'
 
 type TodoMainProps = {
     tr: Tr;
@@ -20,8 +18,6 @@ type TodoMainProps = {
     TodoElementList: ITodoElementList;
     helper: EventHelper;
 };
-
-export type ITodoMain = FlowFix<void>;
 
 export default function TodoMain({
     tr,

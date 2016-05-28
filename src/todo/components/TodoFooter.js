@@ -1,7 +1,6 @@
 /* @flow */
 
 import type {
-    FlowFix,
     Element,
     EventHelper
 } from 'reactive-di-todomvc/common'
@@ -27,8 +26,6 @@ type TodoFooterProps = {
     showActive: ShowActive;
     showCompleted: ShowCompleted;
 };
-
-export type ITodoFooter = FlowFix<void>;
 
 export default function TodoFooter({
     tr,

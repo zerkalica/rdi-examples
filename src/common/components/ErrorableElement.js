@@ -1,22 +1,17 @@
 /* @flow */
 
 import type {
-    FlowFix,
+    ErrorableElementProps,
     Element,
     DummyComponent
 } from 'reactive-di-todomvc/common'
 
-type Props = {
-    error?: DummyComponent;
-}
-type ErrorableElementProps = Props & {
+type ErrorableElementOpts = ErrorableElementProps & {
     /* @args */
     children: DummyComponent;
 }
 
-export type IErrorableElement = FlowFix<Props>;
-
-export default function ErrorableElement({children, error}: ErrorableElementProps): Element {
+export default function ErrorableElement({children, error}: ErrorableElementOpts): Element {
     return (
         <div className="ErrorableElement">
             <div className="Element">

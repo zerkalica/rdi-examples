@@ -1,5 +1,9 @@
 /* @flow */
 import type {
+    ILoadingPage,
+    IErrorPage,
+    IErrorableElement,
+
     AnonymFetch,
     EventHelper
 } from 'reactive-di-todomvc/common'
@@ -29,14 +33,10 @@ import EventHelperImpl from 'reactive-di-todomvc/common/helpers/EventHelper'
 
 import LoadingPage from 'reactive-di-todomvc/common/components/LoadingPage'
 import ErrorPage from 'reactive-di-todomvc/common/components/ErrorPage'
-import ErrorableElementImpl from 'reactive-di-todomvc/common/components/ErrorableElement'
+import ErrorableElement from 'reactive-di-todomvc/common/components/ErrorableElement'
 
 import Translations from 'reactive-di-todomvc/common/models/Translations'
 import tr from 'reactive-di-todomvc/common/services/tr'
-
-import type {ILoadingPage} from 'reactive-di-todomvc/common/components/LoadingPage'
-import type {IErrorPage} from 'reactive-di-todomvc/common/components/ErrorPage'
-import type {IErrorableElement} from 'reactive-di-todomvc/common/components/ErrorableElement'
 
 import anonymFetch from 'reactive-di-todomvc/common/services/anonymFetch'
 
@@ -49,7 +49,7 @@ const deps: Array<ConfigItem> = [
 
     [(_: EventHelper), klass(EventHelperImpl)],
 
-    [(_: IErrorableElement), component(ErrorableElementImpl)],
+    [(_: IErrorableElement), component(ErrorableElement)],
     [(_: ILoadingPage), component(LoadingPage)],
     [(_: IErrorPage), component(ErrorPage)]
 ];

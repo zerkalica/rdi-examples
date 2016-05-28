@@ -2,7 +2,6 @@
 
 import type {Tr} from 'any-translate'
 import type {
-    FlowFix,
     Element,
     EventHelper
 } from 'reactive-di-todomvc/common'
@@ -11,7 +10,7 @@ import type {
     CommitAdding,
     ChangeAdding
 } from 'reactive-di-todomvc/todo'
-import type {IErrorableElement} from 'reactive-di-todomvc/common/components/ErrorableElement'
+import type {IErrorableElement} from 'reactive-di-todomvc/common'
 
 import TodoItemAdding from 'reactive-di-todomvc/todo/models/TodoItemAdding'
 import {
@@ -28,8 +27,6 @@ type TodoHeaderProps = {
     commitAdding: CommitAdding;
     changeAdding: ChangeAdding;
 };
-
-export type ITodoHeader = FlowFix<void>;
 
 export default function TodoHeader({
     tr,

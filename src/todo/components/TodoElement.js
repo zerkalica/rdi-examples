@@ -1,13 +1,13 @@
 /* @flow */
 
 import type {
-    FlowFix,
+    IErrorableElement,
     Element,
     EventHelper
 } from 'reactive-di-todomvc/common'
 
 import type {
-    TodoItem,
+    TodoElementProps,
 
     RemoveTodoItem,
     ToggleTodoItem,
@@ -18,8 +18,6 @@ import type {
     ChangeEditing
 } from 'reactive-di-todomvc/todo'
 
-import type {IErrorableElement} from 'reactive-di-todomvc/common/components/ErrorableElement'
-
 import cn from 'classnames'
 import {
     KEY_ENTER,
@@ -27,11 +25,7 @@ import {
 } from 'reactive-di-todomvc/common/helpers/keyCodes'
 import TodoItemEditing from 'reactive-di-todomvc/todo/models/TodoItemEditing'
 
-type Props = {
-    item: TodoItem;
-}
-
-type TodoElementProps = Props & {
+type TodoElementOptions = TodoElementProps & {
     ErrorableElement: IErrorableElement;
     editingItem: TodoItemEditing;
 
@@ -46,8 +40,6 @@ type TodoElementProps = Props & {
     helper: EventHelper;
 };
 
-export type ITodoElement = FlowFix<Props>;
-
 export default function TodoElement({
     item,
     ErrorableElement,
@@ -61,7 +53,7 @@ export default function TodoElement({
 
     editingItem,
     helper
-}: TodoElementProps): Element {
+}: TodoElementOptions): Element {
     const isEditing = editingItem.isEditing && editingItem.item.id === item.id
     return (
         <li
