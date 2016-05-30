@@ -17,6 +17,7 @@
             "argComment": "@args",
             "reflectImport": "reactive-di/inject"
         }],
+        "transform-decorators-legacy",
         "espower",
         "flow-comments",
         "react-require",

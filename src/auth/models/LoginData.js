@@ -1,5 +1,8 @@
 /* @flow */
 
+import {observable} from 'reactive-di-observable/annotations'
+
+@observable()
 export default class LoginData {
     name: string;
     password: string;

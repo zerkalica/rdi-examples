@@ -6,11 +6,11 @@ import type {
     AnonymFetch
 } from 'reactive-di-todomvc/common'
 
-import SessionLoader from 'reactive-di-todomvc/auth/loaders/SessionLoader'
+import Session from 'reactive-di-todomvc/auth/models/Session'
 
 export default function logout(
     fetch: AnonymFetch,
-    loader: SessionLoader
+    loader: Session
 ): Operation[] {
     return [
         {

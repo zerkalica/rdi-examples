@@ -6,13 +6,13 @@ import type {
     AnonymFetch
 } from 'reactive-di-todomvc/common'
 
-import SessionLoader from 'reactive-di-todomvc/auth/loaders/SessionLoader'
+import Session from 'reactive-di-todomvc/auth/models/Session'
 import LoginErrors from 'reactive-di-todomvc/auth/models/LoginErrors'
 import LoginData from 'reactive-di-todomvc/auth/models/LoginData'
 
 export default function login(
     fetch: AnonymFetch,
-    loader: SessionLoader,
+    loader: Session,
     /* @args */
     props: LoginData
 ): Operation[] {
