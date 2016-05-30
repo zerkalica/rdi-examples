@@ -6,7 +6,7 @@ import type {
 
 import type {
     ErrorRateValue
-} from 'reactive-di-todomvc/mockServer'
+} from 'reactive-di-todomvc/mockServer/i'
 
 import _ from 'babel-plugin-transform-metadata/_'
 

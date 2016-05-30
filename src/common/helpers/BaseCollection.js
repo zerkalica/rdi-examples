@@ -10,7 +10,7 @@ import type {
     UpdateFn,
     FindFn,
     FilterFn
-} from 'reactive-di-todomvc/collection'
+} from 'reactive-di-todomvc/collection/i'
 import merge from 'reactive-di-todomvc/common/helpers/merge'
 
 type DeletedItems<T> = {[id: Id]: [T, number]};
@@ -24,7 +24,7 @@ type ItemsMap<Item> = {
     [id: Id]: Item;
 }
 
-type RawItems = {
+type RawItems<Item> = {
     items: Array<Item>,
     deleted: DeletedItems<Item>
 }

@@ -5,7 +5,7 @@ import type {
     IsDebug,
     ErrorPageProps,
     Element
-} from 'reactive-di-todomvc/common'
+} from 'reactive-di-todomvc/common/i'
 
 import instanceMap from 'reactive-di-todomvc/common/helpers/instanceMap'
 import QueryError from 'reactive-di-todomvc/common/errors/QueryError'

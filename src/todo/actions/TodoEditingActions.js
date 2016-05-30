@@ -3,7 +3,7 @@ import type {Operation} from 'reactive-di-observable'
 import type {
     TodoItem,
     TodoItemRec
-} from 'reactive-di-todomvc/todo'
+} from 'reactive-di-todomvc/todo/i'
 
 import m from 'reactive-di-todomvc/common/helpers/merge'
 

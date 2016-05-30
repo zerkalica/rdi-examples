@@ -4,7 +4,7 @@ import type {ConfigItem} from 'reactive-di'
 import type {
     TodoItemsFacet,
     IsAllCompleted
-} from 'reactive-di-todomvc/todo'
+} from 'reactive-di-todomvc/todo/i'
 
 import _ from 'babel-plugin-transform-metadata/_'
 

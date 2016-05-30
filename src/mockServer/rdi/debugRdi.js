@@ -2,7 +2,7 @@
 
 import type {
     Fetch
-} from 'reactive-di-todomvc/common'
+} from 'reactive-di-todomvc/common/i'
 
 import type {ConfigItem} from 'reactive-di'
 
@@ -10,7 +10,7 @@ import type {IErrorRate} from 'reactive-di-todomvc/mockServer/components/ErrorRa
 import type {
     ChangeEditing,
     ErrorRateValue
-} from 'reactive-di-todomvc/mockServer'
+} from 'reactive-di-todomvc/mockServer/i'
 
 import _ from 'babel-plugin-transform-metadata/_'
 import {

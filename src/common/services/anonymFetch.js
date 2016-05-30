@@ -3,7 +3,7 @@ import FetcherConfig from 'reactive-di-todomvc/common/models/FetcherConfig'
 import type {
     FetchParams,
     Fetch
-} from 'reactive-di-todomvc/common'
+} from 'reactive-di-todomvc/common/i'
 
 export default function anonymFetch<V>(
     {apiPrefix}: FetcherConfig,

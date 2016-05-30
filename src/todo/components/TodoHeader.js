@@ -4,13 +4,13 @@ import type {Tr} from 'any-translate'
 import type {
     Element,
     EventHelper
-} from 'reactive-di-todomvc/common'
+} from 'reactive-di-todomvc/common/i'
 import type {
     CancelAdding,
     CommitAdding,
     ChangeAdding
-} from 'reactive-di-todomvc/todo'
-import type {IErrorableElement} from 'reactive-di-todomvc/common'
+} from 'reactive-di-todomvc/todo/i'
+import type {IErrorableElement} from 'reactive-di-todomvc/common/i'
 
 import TodoItemAdding from 'reactive-di-todomvc/todo/models/TodoItemAdding'
 import {

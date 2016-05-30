@@ -2,11 +2,11 @@
 import type {
     AnonymFetch,
     FetchParams
-} from 'reactive-di-todomvc/common'
+} from 'reactive-di-todomvc/common/i'
 
 import type {
     ResetSession
-} from 'reactive-di-todomvc/auth'
+} from 'reactive-di-todomvc/auth/i'
 
 import {compose} from 'reactive-di/annotations'
 

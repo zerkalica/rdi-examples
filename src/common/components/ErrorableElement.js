@@ -2,13 +2,10 @@
 
 import type {
     ErrorableElementProps,
-    Element,
-    DummyComponent
-} from 'reactive-di-todomvc/common'
+    Element
+} from 'reactive-di-todomvc/common/i'
 
 type ErrorableElementOpts = ErrorableElementProps & {
-    /* @args */
-    children: DummyComponent;
 }
 
 export default function ErrorableElement({children, error}: ErrorableElementOpts): Element {

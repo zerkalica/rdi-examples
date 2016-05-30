@@ -6,7 +6,7 @@ import type {Container} from 'reactive-di'
 import type {RouterManager} from 'modern-router'
 import type {
     IsDebug
-} from 'reactive-di-todomvc/common'
+} from 'reactive-di-todomvc/common/i'
 
 import 'reactive-di-todomvc/assets/main.css'
 

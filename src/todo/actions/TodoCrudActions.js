@@ -2,7 +2,7 @@
 
 import type {
     AuthFetch
-} from 'reactive-di-todomvc/auth'
+} from 'reactive-di-todomvc/auth/i'
 
 import m from 'reactive-di-todomvc/common/helpers/merge'
 import createId from 'reactive-di-todomvc/common/helpers/createId'
@@ -13,7 +13,7 @@ import TodoItemCollection, {
 import TodoItemEditing from 'reactive-di-todomvc/todo/models/TodoItemEditing'
 import TodoItemAdding from 'reactive-di-todomvc/todo/models/TodoItemAdding'
 
-import type {TodoItem} from 'reactive-di-todomvc/todo'
+import type {TodoItem} from 'reactive-di-todomvc/todo/i'
 import type {Operation} from 'reactive-di-observable'
 
 function empty(): Array<Operation> {

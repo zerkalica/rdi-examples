@@ -3,7 +3,7 @@
 import type {
     TodoItem,
     TodoItemsFacet
-} from 'reactive-di-todomvc/todo'
+} from 'reactive-di-todomvc/todo/i'
 import TodoQueryArgs from 'reactive-di-todomvc/todo/facets/TodoQueryArgs'
 import TodoItemCollection from 'reactive-di-todomvc/todo/models/TodoItemCollection'
 

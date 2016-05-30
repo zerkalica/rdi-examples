@@ -1,9 +1,9 @@
 /* @flow */
 
 import localServerActions from 'reactive-di-todomvc/mockServer/services/localServerActions'
-import type {Fetch, FetchParams} from 'reactive-di-todomvc/common'
+import type {Fetch, FetchParams} from 'reactive-di-todomvc/common/i'
 import AbstractStorage from 'reactive-di-todomvc/common/services/AbstractStorage'
-import type {ErrorRateValue} from 'reactive-di-todomvc/mockServer'
+import type {ErrorRateValue} from 'reactive-di-todomvc/mockServer/i'
 
 function delayedResult(getData: () => any, errorRate: ErrorRateValue): Promise<any> {
     return new Promise((resolve, reject) => {

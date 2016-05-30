@@ -4,12 +4,12 @@ import type {Tr} from 'any-translate'
 import type {
     Element,
     EventHelper
-} from 'reactive-di-todomvc/common'
+} from 'reactive-di-todomvc/common/i'
 import type {
     ITodoElementList,
     ToggleAll,
     IsAllCompleted
-} from 'reactive-di-todomvc/todo'
+} from 'reactive-di-todomvc/todo/i'
 
 type TodoMainProps = {
     tr: Tr;

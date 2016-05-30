@@ -1,5 +1,5 @@
 /* @flow */
-import type {SelectedGroup} from 'reactive-di-todomvc/todo'
+import type {SelectedGroup} from 'reactive-di-todomvc/todo/i'
 
 import {Route} from 'modern-router'
 import QueryError from 'reactive-di-todomvc/common/errors/QueryError'

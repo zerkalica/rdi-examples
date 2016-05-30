@@ -6,7 +6,7 @@ import type {
 
     AnonymFetch,
     EventHelper
-} from 'reactive-di-todomvc/common'
+} from 'reactive-di-todomvc/common/i'
 
 import type {
     Tr

@@ -1,21 +1,21 @@
 /* @flow */
 
-import type {TodoItemsFacet} from 'reactive-di-todomvc/todo'
+import type {TodoItemsFacet} from 'reactive-di-todomvc/todo/i'
 import type {
     IsDebug,
     Element
-} from 'reactive-di-todomvc/common'
+} from 'reactive-di-todomvc/common/i'
 
 import type {
     IAuthArea
-} from 'reactive-di-todomvc/auth'
+} from 'reactive-di-todomvc/auth/i'
 
 import type {
     ITodoHeader,
     ITodoMain,
     ITodoFooter,
     ITodoPageLoadingState
-} from 'reactive-di-todomvc/todo'
+} from 'reactive-di-todomvc/todo/i'
 
 import type {IErrorRate} from 'reactive-di-todomvc/mockServer/components/ErrorRate'
 

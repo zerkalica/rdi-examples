@@ -4,7 +4,7 @@ import type {
     IErrorableElement,
     Element,
     EventHelper
-} from 'reactive-di-todomvc/common'
+} from 'reactive-di-todomvc/common/i'
 
 import type {
     TodoElementProps,
@@ -16,7 +16,7 @@ import type {
     CommitEditing,
     CancelEditing,
     ChangeEditing
-} from 'reactive-di-todomvc/todo'
+} from 'reactive-di-todomvc/todo/i'
 
 import cn from 'classnames'
 import {
@@ -77,7 +77,7 @@ export default function TodoElement({
                 ></button>
             </div>
             {isEditing ?
-                <ErrorableElement error={editingItem.errors.title}>
+            <ErrorableElement error={editingItem.errors.title}>
                     <input
                         autoFocus
                         className="edit"

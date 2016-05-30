@@ -1,11 +1,11 @@
 /* @flow */
 import type {
     Element
-} from 'reactive-di-todomvc/common'
+} from 'reactive-di-todomvc/common/i'
 import type {
     ITodoElement,
     TodoItemsFacet
-} from 'reactive-di-todomvc/todo'
+} from 'reactive-di-todomvc/todo/i'
 
 type TodoElementListProps = {
     TodoElement: ITodoElement;

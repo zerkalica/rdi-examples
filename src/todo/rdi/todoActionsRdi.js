@@ -21,7 +21,7 @@ import type {
     ShowAll,
     ShowCompleted,
     ShowActive
-} from 'reactive-di-todomvc/todo'
+} from 'reactive-di-todomvc/todo/i'
 
 import _ from 'babel-plugin-transform-metadata/_'
 

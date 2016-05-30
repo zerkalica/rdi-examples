@@ -8,7 +8,7 @@ import type {
     ChangeLoginData,
     ResetSession,
     AuthFetch
-} from 'reactive-di-todomvc/auth'
+} from 'reactive-di-todomvc/auth/i'
 
 import type {ConfigItem} from 'reactive-di'
 

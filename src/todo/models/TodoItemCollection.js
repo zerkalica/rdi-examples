@@ -1,6 +1,6 @@
 /* @flow */
 
-import type {TodoItem} from 'reactive-di-todomvc/todo'
+import type {TodoItem} from 'reactive-di-todomvc/todo/i'
 
 import BaseCollection from 'reactive-di-todomvc/common/helpers/BaseCollection'
 

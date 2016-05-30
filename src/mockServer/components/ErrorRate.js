@@ -4,12 +4,12 @@ import type {
     FlowFix,
     Element,
     EventHelper
-} from 'reactive-di-todomvc/common'
+} from 'reactive-di-todomvc/common/i'
 
 import type {
     ErrorRateValue,
     ChangeEditing
-} from 'reactive-di-todomvc/mockServer'
+} from 'reactive-di-todomvc/mockServer/i'
 
 import type {Tr} from 'any-translate'
 
@@ -20,7 +20,7 @@ type ErrorRateProps = {
     changeEditing: ChangeEditing;
 }
 
-export type IErrorRate = FlowFix<void>;
+export type IErrorRate = FlowFix;
 
 export default function ErrorRate({
     helper,

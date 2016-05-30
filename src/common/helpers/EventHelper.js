@@ -1,5 +1,5 @@
 /* @flow */
-import type {EventHandler} from 'reactive-di-todomvc/common'
+import type {EventHandler} from 'reactive-di-todomvc/common/i'
 
 type EventFn = (e: Event) => void
 type SynthEventFn = (e: SyntheticKeyboardEvent) => void

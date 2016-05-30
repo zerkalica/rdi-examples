@@ -2,7 +2,7 @@
 
 import type {
     Element
-} from 'reactive-di-todomvc/common'
+} from 'reactive-di-todomvc/common/i'
 import type {Tr} from 'any-translate'
 import TodoPageLoadingStateMeta from 'reactive-di-todomvc/todo/models/TodoPageLoadingStateMeta'
 

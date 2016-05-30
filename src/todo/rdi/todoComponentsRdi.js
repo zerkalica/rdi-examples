@@ -17,7 +17,7 @@ import type {
     CommitEditing,
     ToggleAll,
     ClearCompleted
-} from 'reactive-di-todomvc/todo'
+} from 'reactive-di-todomvc/todo/i'
 
 import _ from 'babel-plugin-transform-metadata/_'
 

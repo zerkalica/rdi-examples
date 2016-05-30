@@ -1,7 +1,7 @@
 /* @flow */
 import type {
     Element
-} from 'reactive-di-todomvc/common'
+} from 'reactive-di-todomvc/common/i'
 
 export default function LoadingPage(): Element {
     return (

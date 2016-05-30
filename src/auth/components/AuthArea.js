@@ -4,14 +4,14 @@ import type {
     Element,
     IErrorPage,
     ILoadingPage
-} from 'reactive-di-todomvc/common'
+} from 'reactive-di-todomvc/common/i'
 
 import type {
     AuthAreaProps,
     ILoginPage,
     Login,
     Logout
-} from 'reactive-di-todomvc/auth'
+} from 'reactive-di-todomvc/auth/i'
 
 import Session, {LoadableSession} from 'reactive-di-todomvc/auth/models/Session'
 import {component} from 'reactive-di-react/annotations'
@@ -50,11 +50,15 @@ export default function AuthArea({
     children
 }: AuthAreaDeps): Element {
     if (sessionMeta.pending) {
-        return <LoadingPage/>
+        return <LoadingPage />
     }
     if (sessionMeta.error) {
         return <ErrorPage error={sessionMeta.error}/>
     }
+    if (!children) {
+        throw new Error('Children is not passed to AuthArea')
+    }
+
     return session.isAuthorized ? children : <LoginPage/>
 }
 component()(AuthArea)

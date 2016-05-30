@@ -1,6 +1,6 @@
 /* @flow */
-import type {FetchParams} from 'reactive-di-todomvc/common'
-import type {TodoItem} from 'reactive-di-todomvc/todo'
+import type {FetchParams} from 'reactive-di-todomvc/common/i'
+import type {TodoItem} from 'reactive-di-todomvc/todo/i'
 
 import AbstractStorage from 'reactive-di-todomvc/common/services/AbstractStorage'
 
@@ -50,7 +50,7 @@ const serverActions: Array<ServerAction> = [
         method: 'PUT',
         url: new RegExp('/session'),
         execute(storage: AbstractStorage, params: FetchParams, match: Array<string>): () => any { // eslint-disable-line
-            const data: Object = params.json
+            const data: Object = params.json || {}
             return () => {
                 if (data.password !== 'admin') {
                     throw new HttpError(400, 'invalid login or password')

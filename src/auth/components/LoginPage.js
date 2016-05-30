@@ -4,12 +4,12 @@ import type {
     EventHelper,
     Element,
     IErrorableElement
-} from 'reactive-di-todomvc/common'
+} from 'reactive-di-todomvc/common/i'
 
 import type {
     ChangeLoginData,
     Login
-} from 'reactive-di-todomvc/auth'
+} from 'reactive-di-todomvc/auth/i'
 
 import type {Tr} from 'any-translate'
 

@@ -7,7 +7,7 @@ import {
 import type {Operation} from 'reactive-di-observable'
 import type {
     AuthFetch
-} from 'reactive-di-todomvc/auth'
+} from 'reactive-di-todomvc/auth/i'
 
 class Session {
     isAuthorized: boolean;
