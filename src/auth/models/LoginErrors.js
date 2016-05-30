@@ -1,5 +1,5 @@
 /* @flow */
-import type LoginData from 'reactive-di-todomvc/auth/models/LoginData'
+import LoginData from 'reactive-di-todomvc/auth/models/LoginData'
 
 import {observable} from 'reactive-di-observable/annotations'
 

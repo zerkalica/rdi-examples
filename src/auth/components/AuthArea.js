@@ -35,7 +35,7 @@ class AuthMeta {
 type AuthAreaDeps = AuthAreaProps & {
     session: Session;
     LoginPage: ILoginPage;
-    LoadingPage: ILoadingPage,
+    LoadingPage: ILoadingPage;
     sessionMeta: AuthMeta;
     ErrorPage: IErrorPage;
 }

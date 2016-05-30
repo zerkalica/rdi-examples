@@ -24,6 +24,11 @@ type ItemsMap<Item> = {
     [id: Id]: Item;
 }
 
+type RawItems = {
+    items: Array<Item>,
+    deleted: DeletedItems<Item>
+}
+
 // implements Collection
 export default class BaseCollection<Item: CollectionItem> {
     // @@iterator(): Iterator<Item>;
@@ -50,10 +55,7 @@ export default class BaseCollection<Item: CollectionItem> {
         return ((merge(this, rec): any): Collection<Item>)
     }
 
-    _getDeleted(id: Id): {
-        items: Array<Item>,
-        deleted: DeletedItems<Item>
-    } {
+    _getDeleted(id: Id): RawItems {
         const oldItems = this.items
         const items: Array<Item> = [];
         const deleted: DeletedItems<Item> = {};
@@ -143,7 +145,7 @@ export default class BaseCollection<Item: CollectionItem> {
         for (let i = 0, l = oldItems.length; i < l; i++) {
             const item = oldItems[i]
 
-            let isMatch: boolean;
+            let isMatch: ?boolean;
             if (id === null) {
                 isMatch = true
             } else if (typeof id === 'function') {

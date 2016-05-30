@@ -41,10 +41,10 @@ import {
 import createContainer from 'reactive-di-todomvc/app/createContainer'
 
 const config = merge(staticConfig, window.todoMvcConfig || {})
-const routerManager: RouterManager = createBrowserRouterManager(window, config.RouterConfig);
+const routerManager = createBrowserRouterManager(window, config.RouterConfig);
 const route: Route = routerManager.resolve();
 
-const container: Container = createContainer([
+const container = createContainer([
     value((_: IsDebug), true),
     value(AbstractStorage, new BrowserLocalStorage(window.localStorage)),
     value((_: RouterManager), routerManager),
@@ -60,7 +60,7 @@ const container: Container = createContainer([
     })
 ]);
 
-const observer: Observer = new RouterObserver(
+const observer = new RouterObserver(
     createReactBrowserRenderer(
         container,
         document.getElementById('app')

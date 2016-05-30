@@ -1,11 +1,14 @@
 /* @flow */
 import type {EventHandler} from 'reactive-di-todomvc/common'
 
+type EventFn = (e: Event) => void
+type SynthEventFn = (e: SyntheticKeyboardEvent) => void
+
 export default class EventHelper {
     click<V>(
         func: EventHandler<V>,
         value: V
-    ): (e: Event) => void {
+    ): EventFn {
         return function handleClick(e: Event): void {
             e.preventDefault()
             func(value)
@@ -15,7 +18,7 @@ export default class EventHelper {
     change(
         func: (value: string) => void,
         preventDefault: boolean = false
-    ): (e: Event) => void {
+    ): EventFn {
         return function handleChange(e: Event): void {
             const target: EventTarget = e.target;
             if (preventDefault) {
@@ -30,7 +33,7 @@ export default class EventHelper {
 
     keyMap(
         km: Array<[number, EventHandler, any]>
-    ): (e: SyntheticKeyboardEvent) => void { // eslint-disable-line
+    ): SynthEventFn { // eslint-disable-line
         return function handleKeyPress(e: SyntheticKeyboardEvent): void { // eslint-disable-line
             for (let i = 0, l = km.length; i < l; i++) {
                 const [code, cb, value] = km[i]

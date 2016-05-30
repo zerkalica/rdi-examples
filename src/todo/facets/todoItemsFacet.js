@@ -11,7 +11,7 @@ export default function todoItemsFacet(
     allItems: TodoItemCollection,
     groupState: TodoQueryArgs
 ): TodoItemsFacet {
-    let items: Array<TodoItem>;
+    let items: ?Array<TodoItem>;
     switch (groupState.selectedGroup) {
         case 'all':
             items = allItems.items

@@ -5,7 +5,7 @@ import type {IErrorPage} from 'reactive-di-todomvc/common'
 import type {PageMap} from 'modern-router'
 import _ from 'babel-plugin-transform-metadata/_'
 
-const ErrorPage: IErrorPage = (_: IErrorPage);
+const ErrorPage: mixed = (_: IErrorPage);
 
 export {ErrorPage}
 

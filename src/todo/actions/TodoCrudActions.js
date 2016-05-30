@@ -94,11 +94,13 @@ export function toggleTodoItem(
     ]
 }
 
-function getTodoItemAddingErrors(newItem: TodoItem): {
+type Errors = {
     isError: boolean,
     errors: {[id: string]: string}
-} {
-    const errors = {}
+}
+
+function getTodoItemAddingErrors(newItem: TodoItem): Errors {
+    const errors: {[id: string]: string} = {}
     if (!newItem.title) {
         errors.title = 'Need todo title'
     }
