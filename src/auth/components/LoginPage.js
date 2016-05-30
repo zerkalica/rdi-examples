@@ -13,6 +13,8 @@ import type {
 
 import type {Tr} from 'any-translate'
 
+import {component} from 'reactive-di-react/annotations'
+
 import LoginErrors from 'reactive-di-todomvc/auth/models/LoginErrors'
 import LoginData from 'reactive-di-todomvc/auth/models/LoginData'
 
@@ -66,3 +68,4 @@ export default function LoginPage({
         </div>
     )
 }
+component()(LoginPage)

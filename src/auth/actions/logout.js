@@ -5,6 +5,7 @@ import type {
 import type {
     AnonymFetch
 } from 'reactive-di-todomvc/common'
+import {setter} from 'reactive-di-observable/annotations'
 
 import Session from 'reactive-di-todomvc/auth/models/Session'
 
@@ -20,3 +21,4 @@ export default function logout(
         }
     ]
 }
+setter()(logout)

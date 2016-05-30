@@ -8,6 +8,8 @@ import type {
     ResetSession
 } from 'reactive-di-todomvc/auth'
 
+import {compose} from 'reactive-di/annotations'
+
 import AuthError from 'reactive-di-todomvc/common/errors/AuthError'
 
 export default function authFetch<V>(
@@ -25,3 +27,4 @@ export default function authFetch<V>(
             throw err
         })
 }
+compose()(authFetch)

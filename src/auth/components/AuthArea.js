@@ -14,6 +14,7 @@ import type {
 } from 'reactive-di-todomvc/auth'
 
 import Session, {LoadableSession} from 'reactive-di-todomvc/auth/models/Session'
+import {component} from 'reactive-di-react/annotations'
 
 import {
     meta
@@ -56,3 +57,4 @@ export default function AuthArea({
     }
     return session.isAuthorized ? children : <LoginPage/>
 }
+component()(AuthArea)
