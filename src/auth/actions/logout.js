@@ -15,6 +15,9 @@ export default function logout(
 ): Operation[] {
     return [
         {
+            object: new Session()
+        },
+        {
             promise: () => fetch('session', {
                 method: 'DELETE'
             }).then(loader)

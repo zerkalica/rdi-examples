@@ -22,5 +22,6 @@ export type AuthAreaProps = {
 }
 export type IAuthArea = FlowFix<AuthAreaProps>;
 export type ILoginPage = FlowFix;
+export type ILogoutPage = FlowFix;
 
 export type AuthMeta = Meta

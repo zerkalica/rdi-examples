@@ -7,9 +7,10 @@ import type {ErrorRateValue} from 'reactive-di-todomvc/mockServer/i'
 
 function delayedResult(getData: () => any, errorRate: ErrorRateValue): Promise<any> {
     return new Promise((resolve, reject) => {
-        if (Math.ceil(Math.random() * 100) <= errorRate) {
-            setTimeout(() => reject(new Error('Fake server error')), 700)
-        } else {
+        // if (Math.ceil(Math.random() * 100) <= errorRate) {
+        //     setTimeout(() => reject(new Error('Fake server error')), 700)
+        // } else
+        {
             setTimeout(() => {
                 try {
                     const data = getData()
@@ -40,7 +41,16 @@ export default function storageFetch(
             }
             const match = url.match(serverAction.url)
             if (match) {
+                console.log('fetch: ', url, params)
                 return delayedResult(serverAction.execute(storage, params, match), errorRate)
+                    .then((data: mixed) => {
+                        console.log('fetch result:', url, data)
+                        return data
+                    })
+                    .catch((err: Error) => {
+                        console.error('fetch:', url, err)
+                        throw err
+                    })
             }
         }
 

@@ -13,7 +13,7 @@ import LoginData from 'reactive-di-todomvc/auth/models/LoginData'
 
 export default function login(
     fetch: AnonymFetch,
-    loader: Session,
+    session: Session,
     /* @args */
     props: LoginData
 ): Operation[] {
@@ -31,7 +31,13 @@ export default function login(
             promise: () => fetch('session', {
                 method: 'PUT',
                 json: props
-            }).then(loader)
+            }).then(() => {
+                return [
+                    {
+                        object: new Session({isAuthorized: true})
+                    }
+                ]
+            })
         }
     ]
 }

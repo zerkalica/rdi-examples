@@ -9,12 +9,18 @@ import type {
 import type {
     AuthAreaProps,
     ILoginPage,
+    ILogoutPage,
     Login,
     Logout
 } from 'reactive-di-todomvc/auth/i'
 
 import Session, {LoadableSession} from 'reactive-di-todomvc/auth/models/Session'
 import {component} from 'reactive-di-react/annotations'
+import LoginPageImpl from 'reactive-di-todomvc/auth/components/LoginPage'
+import LogoutPageImpl from 'reactive-di-todomvc/auth/components/LogoutPage'
+
+import login from 'reactive-di-todomvc/auth/actions/login'
+import logout from 'reactive-di-todomvc/auth/actions/logout'
 
 import {
     meta
@@ -36,29 +42,41 @@ class AuthMeta {
 type AuthAreaDeps = AuthAreaProps & {
     session: Session;
     LoginPage: ILoginPage;
+    LogoutPage: ILogoutPage;
     LoadingPage: ILoadingPage;
-    sessionMeta: AuthMeta;
+    authMeta: AuthMeta;
     ErrorPage: IErrorPage;
 }
 
 export default function AuthArea({
     session,
-    sessionMeta,
+    authMeta,
     ErrorPage,
     LoginPage,
+    LogoutPage,
     LoadingPage,
     children
 }: AuthAreaDeps): Element {
-    if (sessionMeta.pending) {
-        return <LoadingPage />
-    }
-    if (sessionMeta.error) {
-        return <ErrorPage error={sessionMeta.error}/>
+    if (authMeta.error) {
+        return <ErrorPage error={authMeta.error}/>
     }
     if (!children) {
-        throw new Error('Children is not passed to AuthArea')
+        return <ErrorPage error={new Error('Children is not passed to AuthArea')}/>
+    }
+    if (authMeta.pending) {
+        return <LoadingPage />
     }
 
-    return session.isAuthorized ? children : <LoginPage/>
+    if (!session.isAuthorized) {
+        return <LoginPage/>
+    }
+
+    return <div>{children} <LogoutPage/></div>
 }
-component()(AuthArea)
+component([
+    AuthMeta,
+    [(_: ILogoutPage), LogoutPageImpl],
+    [(_: Login), login],
+    [(_: Logout), logout],
+    [(_: ILoginPage), LoginPageImpl]
+])(AuthArea)

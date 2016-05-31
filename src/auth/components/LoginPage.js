@@ -17,6 +17,12 @@ import {component} from 'reactive-di-react/annotations'
 
 import LoginErrors from 'reactive-di-todomvc/auth/models/LoginErrors'
 import LoginData from 'reactive-di-todomvc/auth/models/LoginData'
+import {
+    KEY_ENTER
+} from 'reactive-di-todomvc/common/helpers/keyCodes'
+import changeLoginData from 'reactive-di-todomvc/auth/actions/changeLoginData'
+
+import _ from 'babel-plugin-transform-metadata/_'
 
 type TodoMainPageWrapperProps = {
     t: Tr;
@@ -46,6 +52,9 @@ export default function LoginPage({
                         id="LoginPage-input-name"
                         name="LoginPage-input-name"
                         value={props.name}
+                        onKeyPress={helper.keyMap([
+                            [KEY_ENTER, login, props]
+                        ])}
                         onChange={helper.change((name: string) => changeLoginData({name}))}
                     />
                 </ErrorableElement>
@@ -57,6 +66,9 @@ export default function LoginPage({
                         id="LoginPage-input-password"
                         password="LoginPage-input-password"
                         value={props.password}
+                        onKeyPress={helper.keyMap([
+                            [KEY_ENTER, login, props]
+                        ])}
                         onChange={helper.change((password: string) => changeLoginData({password}))}
                     />
                 </ErrorableElement>
@@ -68,4 +80,6 @@ export default function LoginPage({
         </div>
     )
 }
-component()(LoginPage)
+component([
+    [(_: ChangeLoginData), changeLoginData]
+])(LoginPage)

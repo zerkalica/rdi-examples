@@ -77,7 +77,7 @@ export default function TodoElement({
                 ></button>
             </div>
             {isEditing ?
-            <ErrorableElement error={editingItem.errors.title}>
+                <ErrorableElement error={editingItem.errors.title}>
                     <input
                         autoFocus
                         className="edit"
