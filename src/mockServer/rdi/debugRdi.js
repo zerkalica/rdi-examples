@@ -14,10 +14,10 @@ import type {
 
 import _ from 'babel-plugin-transform-metadata/_'
 import {
+    component,
     observable,
     setter
 } from 'reactive-di-observable/configurations'
-import {component} from 'reactive-di-react/configurations'
 import {factory} from 'reactive-di/configurations'
 
 import ErrorRate from 'reactive-di-todomvc/mockServer/components/ErrorRate'

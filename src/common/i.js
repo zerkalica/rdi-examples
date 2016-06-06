@@ -6,7 +6,7 @@ import type {
 } from 'react'
 
 export type DummyComponent = Class<Component<void, void, void>>;
-export type FlowFix<Props = mixed> = Class<Component<void, Props, void>>;
+export type FlowFix<Props> = Class<Component<void, Props, void>>;
 
 export type Element = ReactElement;
 export interface FetchParams<V: Object> {

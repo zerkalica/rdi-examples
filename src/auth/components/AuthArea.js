@@ -15,7 +15,6 @@ import type {
 } from 'reactive-di-todomvc/auth/i'
 
 import Session, {LoadableSession} from 'reactive-di-todomvc/auth/models/Session'
-import {component} from 'reactive-di-react/annotations'
 import LoginPageImpl from 'reactive-di-todomvc/auth/components/LoginPage'
 import LogoutPageImpl from 'reactive-di-todomvc/auth/components/LogoutPage'
 
@@ -23,6 +22,7 @@ import login from 'reactive-di-todomvc/auth/actions/login'
 import logout from 'reactive-di-todomvc/auth/actions/logout'
 
 import {
+    component,
     meta
 } from 'reactive-di-observable/annotations'
 

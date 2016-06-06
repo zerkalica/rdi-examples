@@ -42,11 +42,12 @@ export function LoadableSession(
         }
     ]
 }
-
 setter({
     pending: true
 })(LoadableSession)
 
-export default observable({
+observable({
     loader: LoadableSession
 })(Session)
+
+export default Session

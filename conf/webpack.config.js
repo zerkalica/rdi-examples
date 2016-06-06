@@ -40,7 +40,7 @@ export default {
                 test: /\.js$/,
                 exclude: /(?:src)/,
                 include: /(?:node_modules|bower_components)/,
-                loader: 'source-map-loader'
+                loader: 'adjust-sourcemap?format=absolute'
             }
         ],
         loaders: [

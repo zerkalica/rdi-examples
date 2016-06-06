@@ -21,8 +21,10 @@ import type {
 
 import _ from 'babel-plugin-transform-metadata/_'
 
-import {component} from 'reactive-di-react/configurations'
-import {meta} from 'reactive-di-observable/configurations'
+import {
+    component,
+    meta
+} from 'reactive-di-observable/configurations'
 
 import TodoElementList from 'reactive-di-todomvc/todo/components/TodoElementList'
 import TodoElement from 'reactive-di-todomvc/todo/components/TodoElement'

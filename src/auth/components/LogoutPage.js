@@ -11,7 +11,7 @@ import type {
 
 import type {Tr} from 'any-translate'
 
-import {component} from 'reactive-di-react/annotations'
+import {component} from 'reactive-di-observable/annotations'
 
 type TodoMainPageWrapperProps = {
     t: Tr;

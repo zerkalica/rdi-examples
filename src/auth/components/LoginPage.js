@@ -13,14 +13,14 @@ import type {
 
 import type {Tr} from 'any-translate'
 
-import {component} from 'reactive-di-react/annotations'
+import {component} from 'reactive-di-observable/annotations'
 
 import LoginErrors from 'reactive-di-todomvc/auth/models/LoginErrors'
 import LoginData from 'reactive-di-todomvc/auth/models/LoginData'
 import {
     KEY_ENTER
 } from 'reactive-di-todomvc/common/helpers/keyCodes'
-import changeLoginData from 'reactive-di-todomvc/auth/actions/changeLoginData'
+import changeLoginDataImpl from 'reactive-di-todomvc/auth/actions/changeLoginData'
 
 import _ from 'babel-plugin-transform-metadata/_'
 
@@ -81,5 +81,7 @@ export default function LoginPage({
     )
 }
 component([
-    [(_: ChangeLoginData), changeLoginData]
+    LoginData,
+    LoginErrors,
+    [(_: ChangeLoginData), changeLoginDataImpl]
 ])(LoginPage)

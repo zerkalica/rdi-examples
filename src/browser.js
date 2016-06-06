@@ -1,50 +1,70 @@
 /* @flow */
 
-import _ from 'babel-plugin-transform-metadata/_'
-
-import type {Container} from 'reactive-di'
-import type {RouterManager} from 'modern-router'
-import type {
-    IsDebug
-} from 'reactive-di-todomvc/common/i'
-
 import 'reactive-di-todomvc/assets/main.css'
 
-import merge from 'node-config-loader/utils/merge'
+import _ from 'babel-plugin-transform-metadata/_'
+
+import type {
+    CreateContainerManager,
+    Container,
+    ContainerManager
+} from 'reactive-di'
+import {
+    createManagerFactory,
+    defaultPlugins,
+    createHotRelationUpdater
+} from 'reactive-di'
 import {value} from 'reactive-di/configurations'
+
+import {
+    observablePlugins,
+    createComponentPlugin
+} from 'reactive-di-observable'
 import {observable} from 'reactive-di-observable/configurations'
-import {createReactBrowserRenderer} from 'reactive-di-react'
+
+import {
+    createReactWidget,
+    createReactBrowserRenderer
+} from 'reactive-di-react'
 
 import {
     Route,
     RouterObserver
 } from 'modern-router'
-
 import {
     createBrowserRouterManager
 } from 'modern-router/browser'
+import type {RouterManager} from 'modern-router'
 
 import {createBrowserResolution} from 'observable-helpers/browser'
 import Resolution from 'observable-helpers/Resolution'
 
-import staticConfig from 'reactive-di-todomvc/../conf/.configloaderrc'
+import merge from 'node-config-loader/utils/merge'
 
+import staticConfig from 'reactive-di-todomvc/../conf/.configloaderrc'
+import type {
+    IsDebug
+} from 'reactive-di-todomvc/common/i'
 import BaseEnv from 'reactive-di-todomvc/common/models/BaseEnv'
 import AbstractStorage from 'reactive-di-todomvc/common/services/AbstractStorage'
 import BrowserLocalStorage from 'reactive-di-todomvc/common/helpers/browser/BrowserLocalStorage'
 
 import {
+    appDeps,
     pages,
     ErrorPage
-} from 'reactive-di-todomvc/app/pageMap'
-
-import createContainer from 'reactive-di-todomvc/app/createContainer'
+} from 'reactive-di-todomvc/common'
 
 const config = merge(staticConfig, window.todoMvcConfig || {})
-const routerManager = createBrowserRouterManager(window, config.RouterConfig);
-const route: Route = routerManager.resolve();
+const routerManager = createBrowserRouterManager(window, config.RouterConfig)
+const route: Route = routerManager.resolve()
 
-const container = createContainer([
+const createCm: CreateContainerManager = createManagerFactory(
+    defaultPlugins.concat([createComponentPlugin(createReactWidget)], observablePlugins),
+    createHotRelationUpdater
+)
+
+const cm: ContainerManager = createCm(appDeps.concat([
     value((_: IsDebug), true),
     value(AbstractStorage, new BrowserLocalStorage(window.localStorage)),
     value((_: RouterManager), routerManager),
@@ -58,7 +78,17 @@ const container = createContainer([
         value: route,
         observable: routerManager.changes
     })
-]);
+]))
+
+// 1. create loaders
+// 2. expose promise state in loaders
+// 3. In server rendering run getState in ReactPlugin before creating React.Component wrapper, not in componentWillMount
+// 4. expose loaders in ReactProvider
+// 5. combine loaders into one promise
+
+const container: Container = cm.createContainer(null, [
+    // set values: [Session, new Session()]
+])
 
 const observer = new RouterObserver(
     createReactBrowserRenderer(
@@ -67,7 +97,7 @@ const observer = new RouterObserver(
     ),
     pages,
     ErrorPage
-);
+)
 
 routerManager.changes.subscribe(observer)
 

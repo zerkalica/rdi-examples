@@ -20,10 +20,9 @@ import {
     klass
 } from 'reactive-di/configurations'
 import {
+    component,
     observable
 } from 'reactive-di-observable/configurations'
-
-import {component} from 'reactive-di-react/configurations'
 
 import type {ConfigItem} from 'reactive-di'
 
