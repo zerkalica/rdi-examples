@@ -8,23 +8,10 @@ import type {
     ITodoFooter,
     ITodoPageLoadingState,
     ITodoPage,
-    ITodoElementList,
-
-    CommitAdding,
-    RemoveTodoItem,
-    ToggleTodoItem,
-
-    CommitEditing,
-    ToggleAll,
-    ClearCompleted
+    ITodoElementList
 } from 'reactive-di-todomvc/todo/i'
 
 import _ from 'babel-plugin-transform-metadata/_'
-
-import {
-    component,
-    meta
-} from 'reactive-di-observable/configurations'
 
 import TodoElementList from 'reactive-di-todomvc/todo/components/TodoElementList'
 import TodoElement from 'reactive-di-todomvc/todo/components/TodoElement'
@@ -35,27 +22,16 @@ import TodoPageLoadingState from 'reactive-di-todomvc/todo/components/TodoPageLo
 import TodoPage from 'reactive-di-todomvc/todo/components/TodoPage'
 
 import TodoPageLoadingStateMeta from 'reactive-di-todomvc/todo/models/TodoPageLoadingStateMeta'
-import TodoItemCollectionLoader from 'reactive-di-todomvc/todo/loaders/TodoItemCollectionLoader'
 
 const deps: Array<ConfigItem> = [
-    [(_: ITodoHeader), component(TodoHeader)],
-    [(_: ITodoFooter), component(TodoFooter)],
-    [(_: ITodoElement), component(TodoElement)],
-    [(_: ITodoElementList), component(TodoElementList)],
-    [(_: ITodoMain), component(TodoMain)],
-    [(_: ITodoPageLoadingState), component(TodoPageLoadingState)],
-    [(_: ITodoPage), component(TodoPage)],
-
-    meta(TodoPageLoadingStateMeta,
-        TodoItemCollectionLoader,
-
-        (_: ToggleAll),
-        (_: ClearCompleted),
-        (_: RemoveTodoItem),
-        (_: ToggleTodoItem),
-        (_: CommitEditing),
-        (_: CommitAdding)
-    )
+    [(_: ITodoHeader), TodoHeader],
+    [(_: ITodoFooter), TodoFooter],
+    [(_: ITodoElement), TodoElement],
+    [(_: ITodoElementList), TodoElementList],
+    [(_: ITodoMain), TodoMain],
+    [(_: ITodoPageLoadingState), TodoPageLoadingState],
+    [(_: ITodoPage), TodoPage],
+    TodoPageLoadingStateMeta
 ];
 
 export default deps

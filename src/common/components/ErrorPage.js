@@ -24,7 +24,7 @@ export default function ErrorPage({
     error
 }: ErrorPageOpts): Element {
     if (isDebug && error) {
-        console.error(error)
+        console.error(error) // eslint-disable-line
     }
     return (
         <div className="unhandlered-error-page">

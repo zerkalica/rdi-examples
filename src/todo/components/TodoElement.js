@@ -1,4 +1,5 @@
 /* @flow */
+import {component} from 'reactive-di-observable/annotations'
 
 import type {
     IErrorableElement,
@@ -94,3 +95,4 @@ export default function TodoElement({
         </li>
     )
 }
+component()(TodoElement)

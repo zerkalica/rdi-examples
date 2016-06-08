@@ -1,4 +1,5 @@
 /* @flow */
+import {factory} from 'reactive-di/annotations'
 
 import type {
     IsAllCompleted
@@ -11,3 +12,4 @@ export default function isAllCompletedFacet(
 ): IsAllCompleted {
     return allItems.filter((item) => !item.isCompleted).length === 0
 }
+factory()(isAllCompletedFacet)

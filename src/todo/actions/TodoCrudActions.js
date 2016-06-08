@@ -16,6 +16,8 @@ import TodoItemAdding from 'reactive-di-todomvc/todo/models/TodoItemAdding'
 import type {TodoItem} from 'reactive-di-todomvc/todo/i'
 import type {Operation} from 'reactive-di-observable'
 
+import {setter} from 'reactive-di-observable/annotations'
+
 function empty(): Array<Operation> {
     return []
 }
@@ -39,6 +41,7 @@ export function toggleAll(
         }
     ]
 }
+setter()(toggleAll)
 
 export function clearCompleted(
     items: TodoItemCollection,
@@ -56,6 +59,7 @@ export function clearCompleted(
         }
     ]
 }
+setter()(clearCompleted)
 
 export function removeTodoItem(
     items: TodoItemCollection,
@@ -71,6 +75,7 @@ export function removeTodoItem(
         }
     ]
 }
+setter()(removeTodoItem)
 
 export function toggleTodoItem(
     items: TodoItemCollection,
@@ -93,6 +98,7 @@ export function toggleTodoItem(
         }
     ]
 }
+setter()(toggleTodoItem)
 
 type Errors = {
     isError: boolean,
@@ -143,6 +149,7 @@ export function commitEditing(
         }
     ]
 }
+setter()(commitEditing)
 
 export function commitAdding(
     todos: TodoItemCollection,
@@ -187,3 +194,4 @@ export function commitAdding(
 
     return transaction
 }
+setter()(commitAdding)

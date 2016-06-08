@@ -1,9 +1,11 @@
 /* @flow */
+import {observable} from 'reactive-di-observable/annotations'
 
 import type {TodoItem} from 'reactive-di-todomvc/todo/i'
 
 import {TodoItemImpl} from 'reactive-di-todomvc/todo/models/TodoItemCollection'
 
+@observable({key: 'TodoItemEditing'})
 export default class TodoItemEditing {
     isEditing: boolean;
     item: TodoItem;

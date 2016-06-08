@@ -1,5 +1,5 @@
 /* @flow */
-
+import {component} from 'reactive-di-observable/annotations'
 import type {TodoItemsFacet} from 'reactive-di-todomvc/todo/i'
 import type {
     IsDebug,
@@ -59,3 +59,4 @@ export default function TodoPage({
         </AuthArea>
     )
 }
+component()(TodoPage)

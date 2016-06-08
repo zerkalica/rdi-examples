@@ -1,4 +1,5 @@
 /* @flow */
+import {factory} from 'reactive-di/annotations'
 
 import type {
     TodoItem,
@@ -35,3 +36,4 @@ export default function todoItemsFacet(
         selectedGroup: groupState.selectedGroup
     }
 }
+factory()(todoItemsFacet)

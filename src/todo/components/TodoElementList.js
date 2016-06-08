@@ -1,4 +1,6 @@
 /* @flow */
+import {component} from 'reactive-di-observable/annotations'
+
 import type {
     Element
 } from 'reactive-di-todomvc/common/i'
@@ -10,7 +12,7 @@ import type {
 type TodoElementListProps = {
     TodoElement: ITodoElement;
     data: TodoItemsFacet
-};
+}
 
 export default function TodoElementList({
     data,
@@ -22,3 +24,4 @@ export default function TodoElementList({
         </ul>
     )
 }
+component()(TodoElementList)

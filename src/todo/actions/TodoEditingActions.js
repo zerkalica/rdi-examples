@@ -11,6 +11,8 @@ import {TodoItemImpl} from 'reactive-di-todomvc/todo/models/TodoItemCollection'
 import TodoItemAdding from 'reactive-di-todomvc/todo/models/TodoItemAdding'
 import TodoItemEditing from 'reactive-di-todomvc/todo/models/TodoItemEditing'
 
+import {setter} from 'reactive-di-observable/annotations'
+
 export function changeAdding(
     adding: TodoItemAdding,
     /* @args */ rec: TodoItemRec
@@ -24,6 +26,7 @@ export function changeAdding(
         }
     ]
 }
+setter()(changeAdding)
 
 export function beginAdding(adding: TodoItemAdding): Array<Operation> {
     return [
@@ -35,6 +38,7 @@ export function beginAdding(adding: TodoItemAdding): Array<Operation> {
         }
     ]
 }
+setter()(beginAdding)
 
 export function cancelAdding(adding: TodoItemAdding): Array<Operation> {
     return [
@@ -45,6 +49,7 @@ export function cancelAdding(adding: TodoItemAdding): Array<Operation> {
         }
     ]
 }
+setter()(cancelAdding)
 
 export function changeEditing(
     editing: TodoItemEditing,
@@ -59,6 +64,7 @@ export function changeEditing(
         }
     ]
 }
+setter()(changeEditing)
 
 export function beginEditing(
     editing: TodoItemEditing,
@@ -73,6 +79,7 @@ export function beginEditing(
         }
     ]
 }
+setter()(beginEditing)
 
 export function cancelEditing(editing: TodoItemEditing): Array<Operation> {
     return [
@@ -83,3 +90,4 @@ export function cancelEditing(editing: TodoItemEditing): Array<Operation> {
         }
     ]
 }
+setter()(cancelEditing)

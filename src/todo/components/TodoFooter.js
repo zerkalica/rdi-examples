@@ -1,4 +1,5 @@
 /* @flow */
+import {component} from 'reactive-di-observable/annotations'
 
 import type {
     Element,
@@ -79,3 +80,4 @@ export default function TodoFooter({
         </footer>
     )
 }
+component()(TodoFooter)

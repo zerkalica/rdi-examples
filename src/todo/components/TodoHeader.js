@@ -1,5 +1,7 @@
 /* @flow */
 
+import {component} from 'reactive-di-observable/annotations'
+
 import type {Tr} from 'any-translate'
 import type {
     Element,
@@ -58,3 +60,4 @@ export default function TodoHeader({
         </header>
     )
 }
+component()(TodoHeader)

@@ -25,9 +25,6 @@ import type {
 
 import _ from 'babel-plugin-transform-metadata/_'
 
-import {compose} from 'reactive-di/configurations'
-import {setter} from 'reactive-di-observable/configurations'
-
 import {
     cancelAdding,
     changeAdding,
@@ -54,24 +51,24 @@ import {
 } from 'reactive-di-todomvc/todo/actions/TodoFilterActions'
 
 const deps: Array<ConfigItem> = [
-    [(_: ShowAll), compose(showAll)],
-    [(_: ShowActive), compose(showActive)],
-    [(_: ShowCompleted), compose(showCompleted)],
+    [(_: ShowAll), showAll],
+    [(_: ShowActive), showActive],
+    [(_: ShowCompleted), showCompleted],
 
-    [(_: CancelAdding), setter(cancelAdding)],
-    [(_: CommitAdding), setter(commitAdding)],
-    [(_: ChangeAdding), setter(changeAdding)],
+    [(_: CancelAdding), cancelAdding],
+    [(_: CommitAdding), commitAdding],
+    [(_: ChangeAdding), changeAdding],
 
-    [(_: RemoveTodoItem), setter(removeTodoItem)],
-    [(_: ToggleTodoItem), setter(toggleTodoItem)],
+    [(_: RemoveTodoItem), removeTodoItem],
+    [(_: ToggleTodoItem), toggleTodoItem],
 
-    [(_: BeginEditing), setter(beginEditing)],
-    [(_: CancelEditing), setter(cancelEditing)],
-    [(_: ChangeEditing), setter(changeEditing)],
-    [(_: CommitEditing), setter(commitEditing)],
+    [(_: BeginEditing), beginEditing],
+    [(_: CancelEditing), cancelEditing],
+    [(_: ChangeEditing), changeEditing],
+    [(_: CommitEditing), commitEditing],
 
-    [(_: ToggleAll), setter(toggleAll)],
-    [(_: ClearCompleted), setter(clearCompleted)]
+    [(_: ToggleAll), toggleAll],
+    [(_: ClearCompleted), clearCompleted]
 ];
 
 export default deps
