@@ -1,12 +1,19 @@
 /* @flow */
-import todoComponentsRdi from 'reactive-di-todomvc/todo/rdi/todoComponentsRdi'
+
+import _ from 'babel-plugin-transform-metadata/_'
+
 import todoActionsRdi from 'reactive-di-todomvc/todo/rdi/todoActionsRdi'
 import todoModelsRdi from 'reactive-di-todomvc/todo/rdi/todoModelsRdi'
-import todoFacetsRdi from 'reactive-di-todomvc/todo/rdi/todoFacetsRdi'
 
-export default [].concat(
-    todoComponentsRdi,
+import type {
+    ITodoPage
+} from 'reactive-di-todomvc/todo/i'
+
+import TodoPage from 'reactive-di-todomvc/todo/components/TodoPage'
+
+export default [
+    [(_: ITodoPage), TodoPage]
+].concat(
     todoActionsRdi,
-    todoModelsRdi,
-    todoFacetsRdi
+    todoModelsRdi
 )

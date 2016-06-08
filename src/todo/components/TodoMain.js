@@ -1,5 +1,7 @@
 /* @flow */
 
+import _ from 'babel-plugin-transform-metadata/_'
+
 import {component} from 'reactive-di-observable/annotations'
 
 import type {Tr} from 'any-translate'
@@ -12,6 +14,8 @@ import type {
     ToggleAll,
     IsAllCompleted
 } from 'reactive-di-todomvc/todo/i'
+
+import TodoElementListImpl from 'reactive-di-todomvc/todo/components/TodoElementList'
 
 type TodoMainProps = {
     tr: Tr;
@@ -42,4 +46,6 @@ export default function TodoMain({
         </section>
     )
 }
-component()(TodoMain)
+component([
+    [(_: ITodoElementList), TodoElementListImpl]
+])(TodoMain)

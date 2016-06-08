@@ -1,6 +1,7 @@
 /* @flow */
+import _ from 'babel-plugin-transform-metadata/_'
+
 import {component} from 'reactive-di-observable/annotations'
-import type {TodoItemsFacet} from 'reactive-di-todomvc/todo/i'
 import type {
     IsDebug,
     Element
@@ -11,11 +12,23 @@ import type {
 } from 'reactive-di-todomvc/auth/i'
 
 import type {
+    TodoItemsFacet,
+    IsAllCompleted,
     ITodoHeader,
     ITodoMain,
     ITodoFooter,
     ITodoPageLoadingState
 } from 'reactive-di-todomvc/todo/i'
+
+import TodoPageLoadingStateMeta from 'reactive-di-todomvc/todo/models/TodoPageLoadingStateMeta'
+import TodoPageLoadingStateImpl from 'reactive-di-todomvc/todo/components/TodoPageLoadingState'
+import TodoHeaderImpl from 'reactive-di-todomvc/todo/components/TodoHeader'
+import TodoFooterImpl from 'reactive-di-todomvc/todo/components/TodoFooter'
+import TodoMainImpl from 'reactive-di-todomvc/todo/components/TodoMain'
+
+import isAllCompletedFacet from 'reactive-di-todomvc/todo/facets/isAllCompletedFacet'
+import todoItemsFacet from 'reactive-di-todomvc/todo/facets/todoItemsFacet'
+import TodoQueryArgs from 'reactive-di-todomvc/todo/facets/TodoQueryArgs'
 
 import type {IErrorRate} from 'reactive-di-todomvc/mockServer/components/ErrorRate'
 
@@ -59,4 +72,13 @@ export default function TodoPage({
         </AuthArea>
     )
 }
-component()(TodoPage)
+component([
+    [(_: TodoItemsFacet), todoItemsFacet],
+    [(_: IsAllCompleted), isAllCompletedFacet],
+    TodoQueryArgs,
+    TodoPageLoadingStateMeta,
+    [(_: ITodoMain), TodoMainImpl],
+    [(_: ITodoPageLoadingState), TodoPageLoadingStateImpl],
+    [(_: ITodoHeader), TodoHeaderImpl],
+    [(_: ITodoFooter), TodoFooterImpl]
+])(TodoPage)
