@@ -1,4 +1,5 @@
 /* @flow */
+import {setter} from 'reactive-di-observable/annotations'
 
 import type {
     Operation
@@ -15,3 +16,4 @@ export default function changeEditing(/* @args */ value: string): Array<Operatio
         {key: (_: ErrorRateValue), value: Number(value)}
     ]
 }
+setter()(changeEditing)

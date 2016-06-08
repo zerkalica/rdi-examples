@@ -1,5 +1,7 @@
 /* @flow */
 
+import {factory} from 'reactive-di/annotations'
+
 import localServerActions from 'reactive-di-todomvc/mockServer/services/localServerActions'
 import type {Fetch, FetchParams} from 'reactive-di-todomvc/common/i'
 import AbstractStorage from 'reactive-di-todomvc/common/services/AbstractStorage'
@@ -57,3 +59,4 @@ export default function storageFetch(
         return Promise.reject(new TypeError('Not found path'))
     }
 }
+factory()(storageFetch)

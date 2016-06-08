@@ -1,5 +1,7 @@
 /* @flow */
 
+import {component} from 'reactive-di-observable/annotations'
+
 import type {
     FlowFix,
     Element,
@@ -45,3 +47,4 @@ export default function ErrorRate({
         </div>
     )
 }
+component()(ErrorRate)
