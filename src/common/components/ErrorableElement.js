@@ -5,6 +5,8 @@ import type {
     Element
 } from 'reactive-di-todomvc/common/i'
 
+import {component} from 'reactive-di-observable/annotations'
+
 type ErrorableElementOpts = ErrorableElementProps & {
 }
 
@@ -22,3 +24,4 @@ export default function ErrorableElement({children, error}: ErrorableElementOpts
         </div>
     )
 }
+component()(ErrorableElement)

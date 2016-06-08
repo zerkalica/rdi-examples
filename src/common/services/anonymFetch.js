@@ -4,6 +4,7 @@ import type {
     FetchParams,
     Fetch
 } from 'reactive-di-todomvc/common/i'
+import {compose} from 'reactive-di/annotations'
 
 export default function anonymFetch<V>(
     {apiPrefix}: FetcherConfig,
@@ -14,3 +15,4 @@ export default function anonymFetch<V>(
 ): Promise<V> {
     return fetch(`${apiPrefix}/${url}`, params)
 }
+compose()(anonymFetch)

@@ -1,7 +1,6 @@
 /* @flow */
-import type {
-    Element
-} from 'reactive-di-todomvc/common/i'
+import type {Element} from 'reactive-di-todomvc/common/i'
+import {component} from 'reactive-di-observable/annotations'
 
 export default function LoadingPage(): Element {
     return (
@@ -10,3 +9,4 @@ export default function LoadingPage(): Element {
         </div>
     )
 }
+component()(LoadingPage)

@@ -1,5 +1,7 @@
 /* @flow */
+import {observable} from 'reactive-di-observable/annotations'
 
+@observable({key: 'BaseEnv'})
 export default class BaseEnv {
     referrer: string;
     userAgent: string;

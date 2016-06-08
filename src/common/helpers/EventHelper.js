@@ -1,9 +1,12 @@
 /* @flow */
+import {klass} from 'reactive-di/annotations'
+
 import type {EventHandler} from 'reactive-di-todomvc/common/i'
 
 type EventFn = (e: Event) => void
 type SynthEventFn = (e: SyntheticKeyboardEvent) => void
 
+@klass()
 export default class EventHelper {
     click<V>(
         func: EventHandler<V>,

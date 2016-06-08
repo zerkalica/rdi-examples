@@ -8,13 +8,9 @@ import type {
 import BaseEnv from 'reactive-di-todomvc/common/models/BaseEnv'
 import Translations from 'reactive-di-todomvc/common/models/Translations'
 
-import {
-    createTranslate
-} from 'any-translate'
-
-import {
-    createBabelfishTranslator
-} from 'any-translate-adapter-babelfish'
+import {factory} from 'reactive-di/annotations'
+import {createTranslate} from 'any-translate'
+import {createBabelfishTranslator} from 'any-translate-adapter-babelfish'
 
 export default function tr(
     baseEnv: BaseEnv,
@@ -27,3 +23,4 @@ export default function tr(
 
     return createTranslate(translator)
 }
+factory()(tr)

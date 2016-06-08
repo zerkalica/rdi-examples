@@ -8,21 +8,9 @@ import type {
     EventHelper
 } from 'reactive-di-todomvc/common/i'
 
-import type {
-    Tr
-} from 'any-translate'
+import type {Tr} from 'any-translate'
 
 import _ from 'babel-plugin-transform-metadata/_'
-
-import {
-    compose,
-    factory,
-    klass
-} from 'reactive-di/configurations'
-import {
-    component,
-    observable
-} from 'reactive-di-observable/configurations'
 
 import type {ConfigItem} from 'reactive-di'
 
@@ -40,17 +28,14 @@ import tr from 'reactive-di-todomvc/common/services/tr'
 import anonymFetch from 'reactive-di-todomvc/common/services/anonymFetch'
 
 const deps: Array<ConfigItem> = [
-    [(_: Tr), factory(tr)],
-    [(_: AnonymFetch), compose(anonymFetch)],
-
-    observable(Translations),
-    observable(FetcherConfig),
-
-    [(_: EventHelper), klass(EventHelperImpl)],
-
-    [(_: IErrorableElement), component(ErrorableElement)],
-    [(_: ILoadingPage), component(LoadingPage)],
-    [(_: IErrorPage), component(ErrorPage)]
+    [(_: Tr), tr],
+    [(_: AnonymFetch), anonymFetch],
+    Translations,
+    FetcherConfig,
+    [(_: EventHelper), EventHelperImpl],
+    [(_: IErrorableElement), ErrorableElement],
+    [(_: ILoadingPage), LoadingPage],
+    [(_: IErrorPage), ErrorPage]
 ];
 
 export default deps

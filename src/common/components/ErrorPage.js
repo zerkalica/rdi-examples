@@ -11,6 +11,8 @@ import instanceMap from 'reactive-di-todomvc/common/helpers/instanceMap'
 import QueryError from 'reactive-di-todomvc/common/errors/QueryError'
 import {PageNotFoundError} from 'modern-router'
 
+import {component} from 'reactive-di-observable/annotations'
+
 type ErrorPageOpts = ErrorPageProps & {
     isDebug: IsDebug;
     t: Tr;
@@ -43,3 +45,4 @@ export default function ErrorPage({
         </div>
     )
 }
+component()(ErrorPage)
