@@ -82,6 +82,5 @@ export default function LoginPage({
 }
 component([
     LoginData,
-    LoginErrors,
     [(_: ChangeLoginData), changeLoginDataImpl]
 ])(LoginPage)

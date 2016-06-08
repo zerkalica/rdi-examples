@@ -47,6 +47,7 @@ setter({
 })(LoadableSession)
 
 observable({
+    key: 'Session',
     loader: LoadableSession
 })(Session)
 

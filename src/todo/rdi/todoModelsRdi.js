@@ -16,7 +16,7 @@ const deps: Array<ConfigItem> = [
     observable(TodoItemAdding),
     observable(TodoItemEditing),
 
-    setter(TodoItemCollectionLoader),
+    setter(TodoItemCollectionLoader, {pending: true}),
     observable(TodoItemCollection, {
         pending: true,
         loader: TodoItemCollectionLoader

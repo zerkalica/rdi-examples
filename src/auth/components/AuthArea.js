@@ -14,9 +14,10 @@ import type {
     Logout
 } from 'reactive-di-todomvc/auth/i'
 
-import Session, {LoadableSession} from 'reactive-di-todomvc/auth/models/Session'
+import Session from 'reactive-di-todomvc/auth/models/Session'
 import LoginPageImpl from 'reactive-di-todomvc/auth/components/LoginPage'
 import LogoutPageImpl from 'reactive-di-todomvc/auth/components/LogoutPage'
+import LoginErrors from 'reactive-di-todomvc/auth/models/LoginErrors'
 
 import login from 'reactive-di-todomvc/auth/actions/login'
 import logout from 'reactive-di-todomvc/auth/actions/logout'
@@ -29,7 +30,7 @@ import {
 import _ from 'babel-plugin-transform-metadata/_'
 
 @meta(
-    LoadableSession,
+    Session,
     (_: Login),
     (_: Logout)
 )
@@ -75,6 +76,7 @@ export default function AuthArea({
 }
 component([
     AuthMeta,
+    LoginErrors,
     [(_: ILogoutPage), LogoutPageImpl],
     [(_: Login), login],
     [(_: Logout), logout],

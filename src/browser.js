@@ -80,15 +80,11 @@ const cm: ContainerManager = createCm(appDeps.concat([
     })
 ]))
 
-// 1. create loaders
-// 2. expose promise state in loaders
-// 3. In server rendering run getState in ReactPlugin before creating React.Component wrapper, not in componentWillMount
-// 4. expose loaders in ReactProvider
-// 5. combine loaders into one promise
-
-const container: Container = cm.createContainer(null, [
-    // set values: [Session, new Session()]
-])
+const data: [string, mixed][] = config.stores
+//  || [
+//     ['Session', {isAuthorized: false}]
+// ]
+const container: Container = cm.createContainer(null, data)
 
 const observer = new RouterObserver(
     createReactBrowserRenderer(
