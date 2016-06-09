@@ -1,4 +1,5 @@
 /* @flow */
+import 'babel-polyfill'
 
 import _ from 'babel-plugin-transform-metadata/_'
 
@@ -16,7 +17,6 @@ import debugRdi from 'reactive-di-todomvc/mockServer/rdi/debugRdi'
 import authRdi from 'reactive-di-todomvc/auth/rdi/authRdi'
 
 const ErrorPage: mixed = (_: IErrorPage);
-
 export {ErrorPage}
 
 export const pages: PageMap = {

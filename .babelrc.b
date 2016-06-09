@@ -1,5 +1,5 @@
 {
-    "presets": ["es2015-loose", "stage-0", "react"],
+    "presets": ["es2015-loose", "stage-0", "react", "react-optimize"],
     "plugins": [
         "syntax-flow",
         ["babel-plugin-module-alias", [
@@ -18,6 +18,7 @@
             "reflectImport": "reactive-di/inject"
         }],
         "transform-runtime",
+        "transform-react-inline-elements",
         "transform-decorators-legacy",
         "espower",
         "flow-comments",

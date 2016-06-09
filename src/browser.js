@@ -4,6 +4,12 @@ import 'reactive-di-todomvc/assets/main.css'
 
 import _ from 'babel-plugin-transform-metadata/_'
 
+import {
+    appDeps,
+    pages,
+    ErrorPage
+} from 'reactive-di-todomvc/common'
+
 import type {
     CreateContainerManager,
     Container,
@@ -37,7 +43,7 @@ import {
 import type {RouterManager} from 'modern-router'
 
 import {createBrowserResolution} from 'observable-helpers/browser'
-import Resolution from 'observable-helpers/Resolution'
+import {Resolution} from 'observable-helpers'
 
 import merge from 'node-config-loader/utils/merge'
 
@@ -49,15 +55,8 @@ import BaseEnv from 'reactive-di-todomvc/common/models/BaseEnv'
 import AbstractStorage from 'reactive-di-todomvc/common/services/AbstractStorage'
 import BrowserLocalStorage from 'reactive-di-todomvc/common/helpers/browser/BrowserLocalStorage'
 
-import {
-    appDeps,
-    pages,
-    ErrorPage
-} from 'reactive-di-todomvc/common'
-
 const config = merge(staticConfig, window.todoMvcConfig || {})
 const routerManager = createBrowserRouterManager(window, config.RouterConfig)
-const route: Route = routerManager.resolve()
 
 const createCm: CreateContainerManager = createManagerFactory(
     defaultPlugins.concat([createComponentPlugin(createReactWidget)], observablePlugins),
@@ -68,16 +67,13 @@ const cm: ContainerManager = createCm(appDeps.concat([
     value((_: IsDebug), true),
     value(AbstractStorage, new BrowserLocalStorage(window.localStorage)),
     value((_: RouterManager), routerManager),
-    value(BaseEnv, new BaseEnv({
-        referrer: document.referrer,
-        userAgent: navigator.userAgent,
-        language: navigator.language
-    })),
-    observable(Resolution, createBrowserResolution(window)),
-    observable(Route, {
-        value: route,
-        observable: routerManager.changes
-    })
+    value(BaseEnv, new BaseEnv(
+        document.referrer,
+        navigator.userAgent,
+        navigator.language
+    )),
+    observable(Resolution, {value: createBrowserResolution(window)}),
+    observable(Route, {value: routerManager.route})
 ]))
 
 const data: [string, mixed][] = config.stores
@@ -95,6 +91,6 @@ const observer = new RouterObserver(
     ErrorPage
 )
 
-routerManager.changes.subscribe(observer)
-
+const route: Route = routerManager.route
+Observable.from(route).subscribe(observer)
 observer.next(route)

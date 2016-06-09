@@ -25,7 +25,11 @@ export default {
         path: path.resolve(__dirname, '..', 'build'),
         filename: 'app.js'
     },
-    entry: path.resolve(__dirname, '..', 'src', 'browser.js'),
+    entry: {
+        'browser': [
+            path.resolve(__dirname, '..', 'src', 'browser.js')
+        ]
+    },
     configLoader: {
         env: !process.env.NODE_ENV || process.env.NODE_ENV === 'development' ? 'dev' : 'prod',
         instance: process.env.APP_INSTANCE || 'client'
@@ -38,9 +42,8 @@ export default {
             },
             {
                 test: /\.js$/,
-                exclude: /(?:src)/,
-                include: /(?:node_modules|bower_components)/,
-                loader: 'adjust-sourcemap?format=absolute'
+                exclude: ['src', 'lib'],
+                loaders: ['source-map']
             }
         ],
         loaders: [

@@ -20,7 +20,7 @@
     "clean": "rm -rf build coverage",
     "build.babel": "npm run clean && babel src --source-maps --out-dir $npm_package_config_builddir/dist",
     "build": "npm run clean && webpack --config conf/webpack.config.es5.js",
-    "build.dev": "node conf/resources/rundeps.js reactive-di-observable reactive-di reactive-di-react",
+    "build.dev": "node conf/resources/rundeps.js reactive-di-observable reactive-di reactive-di-react modern-router observable-helpers",
     "lint": "eslint src",
     "check": "flow check",
     "testonly": "mocha",
@@ -75,6 +75,7 @@
     "babel-plugin-transform-metadata": "^0.x.x",
     "babel-plugin-transform-runtime": "^6.9.0",
     "babel-plugin-typecheck": "^3.9.0",
+    "babel-polyfill": "^6.9.1",
     "babel-preset-es2015": "^6.9.0",
     "babel-preset-es2015-loose": "^7.0.0",
     "babel-preset-react": "^6.5.0",
@@ -104,14 +105,13 @@
     "any-translate-adapter-babelfish": "^0.x.x",
     "classnames": "^2.2.5",
     "es6-error": "^3.0.0",
-    "modern-router": "0.1.5",
+    "modern-router": "0.1.8",
     "node-config-loader": "^2.1.0",
-    "observable-helpers": "^0.x.x",
+    "observable-helpers": "0.0.9",
     "react": "^15.1.0",
     "react-dom": "^15.1.0",
-    "reactive-di": "^1.1.8",
+    "reactive-di": "^1.1.10",
     "reactive-di-observable": "^1.x.x",
-    "reactive-di-react": "^1.x.x",
-    "zen-observable": "^0.x.x"
+    "reactive-di-react": "^1.x.x"
   }
 }
