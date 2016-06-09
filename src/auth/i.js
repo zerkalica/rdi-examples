@@ -17,11 +17,11 @@ export type ResetSession = () => void;
 export type ChangeLoginData = (props: $Shape<LoginData>) => void;
 export type Login = (props: LoginData) => void;
 export type Logout = () => void;
-export type AuthAreaProps = {
+export type AuthLayoutProps = {
     children?: Element;
 }
-export type IAuthArea = FlowFix<AuthAreaProps>;
+export type IAuthLayout = FlowFix<AuthLayoutProps>;
 export type ILoginPage = FlowFix;
-export type ILogoutPage = FlowFix;
+export type ILogoutButton = FlowFix;
 
 export type AuthMeta = Meta

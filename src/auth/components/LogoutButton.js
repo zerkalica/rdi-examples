@@ -19,17 +19,18 @@ type TodoMainPageWrapperProps = {
     logout: Logout;
 }
 
-export default function LogoutPage({
+export default function LogoutButton({
     logout,
     t,
     helper
 }: TodoMainPageWrapperProps): Element {
     return (
-        <div>
-            <div>
-                <button onClick={helper.click(logout)}>{t('Logout')}</button>
-            </div>
+        <div className="logoutbutton-wrapper">
+            <button
+                className="logoutbutton-button"
+                onClick={helper.click(logout)}
+            >{t('Logout')}</button>
         </div>
     )
 }
-component()(LogoutPage)
+component()(LogoutButton)

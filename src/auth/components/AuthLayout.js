@@ -3,20 +3,21 @@
 import type {
     Element,
     IErrorPage,
-    ILoadingPage
+    ILoadingPage,
+    ICommonLayout
 } from 'reactive-di-todomvc/common/i'
 
 import type {
-    AuthAreaProps,
+    AuthLayoutProps,
     ILoginPage,
-    ILogoutPage,
+    ILogoutButton,
     Login,
     Logout
 } from 'reactive-di-todomvc/auth/i'
 
 import Session from 'reactive-di-todomvc/auth/models/Session'
 import LoginPageImpl from 'reactive-di-todomvc/auth/components/LoginPage'
-import LogoutPageImpl from 'reactive-di-todomvc/auth/components/LogoutPage'
+import LogoutButtonImpl from 'reactive-di-todomvc/auth/components/LogoutButton'
 import LoginErrors from 'reactive-di-todomvc/auth/models/LoginErrors'
 
 import login from 'reactive-di-todomvc/auth/actions/login'
@@ -40,29 +41,31 @@ class AuthMeta {
     error: ?Error;
 }
 
-type AuthAreaDeps = AuthAreaProps & {
+type AuthLayoutDeps = AuthLayoutProps & {
     session: Session;
     LoginPage: ILoginPage;
-    LogoutPage: ILogoutPage;
+    LogoutButton: ILogoutButton;
     LoadingPage: ILoadingPage;
+    CommonLayout: ICommonLayout;
     authMeta: AuthMeta;
     ErrorPage: IErrorPage;
 }
 
-export default function AuthArea({
+export default function AuthLayout({
     session,
     authMeta,
     ErrorPage,
     LoginPage,
-    LogoutPage,
+    LogoutButton,
     LoadingPage,
+    CommonLayout,
     children
-}: AuthAreaDeps): Element {
+}: AuthLayoutDeps): Element {
     if (authMeta.error) {
         return <ErrorPage error={authMeta.error}/>
     }
     if (!children) {
-        return <ErrorPage error={new Error('Children is not passed to AuthArea')}/>
+        return <ErrorPage error={new Error('Children is not passed to AuthLayout')}/>
     }
     if (authMeta.pending) {
         return <LoadingPage />
@@ -72,13 +75,20 @@ export default function AuthArea({
         return <LoginPage/>
     }
 
-    return <div>{children} <LogoutPage/></div>
+    return (
+        <CommonLayout>
+            <section className="authlayout-header">
+                <LogoutButton/>
+            </section>
+            {children}
+        </CommonLayout>
+    )
 }
 component([
     AuthMeta,
     LoginErrors,
-    [(_: ILogoutPage), LogoutPageImpl],
+    [(_: ILogoutButton), LogoutButtonImpl],
     [(_: Login), login],
     [(_: Logout), logout],
     [(_: ILoginPage), LoginPageImpl]
-])(AuthArea)
+])(AuthLayout)

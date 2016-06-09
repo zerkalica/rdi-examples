@@ -1,6 +1,6 @@
 /* @flow */
 
-import 'reactive-di-todomvc/assets/main.css'
+// import 'reactive-di-todomvc/common/styles/core.css'
 
 import _ from 'babel-plugin-transform-metadata/_'
 

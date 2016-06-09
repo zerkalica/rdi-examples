@@ -1,4 +1,5 @@
 import path from 'path'
+import cssnano from 'cssnano'
 import HtmlWebpackPlugin from 'html-webpack-plugin'
 import webpack from 'webpack'
 import autoprefixer from 'autoprefixer'
@@ -70,12 +71,37 @@ export default {
                 loader: 'file?name=assets/[name].[ext]'
             },
             {
-                loader: 'style-loader?singleton!css-loader',
-                test: /\.css$/
+                test: /\.css$/,
+                loaders: [
+                    'style',
+                    [
+                        'css?sourceMap&-minimize',
+                        // 'modules',
+                        // 'importLoaders=1',
+                        // 'localIdentName=[name]__[local]___[hash:base64:5]'
+                    ].join('&'),
+                    'postcss'
+                ]
             }
         ]
     },
-    postcss: () => [autoprefixer],
+    postcss: [
+        cssnano({
+          autoprefixer: {
+            add: true,
+            remove: true,
+            browsers: ['last 2 versions']
+          },
+          discardComments: {
+            removeAll: true
+          },
+          discardUnused: false,
+          mergeIdents: false,
+          reduceIdents: false,
+          safe: true,
+          sourcemap: true
+        })
+    ],
     plugins: [
         new HtmlWebpackPlugin({
             title: 'todomvc demo',

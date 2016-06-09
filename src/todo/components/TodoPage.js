@@ -8,7 +8,7 @@ import type {
 } from 'reactive-di-todomvc/common/i'
 
 import type {
-    IAuthArea
+    IAuthLayout
 } from 'reactive-di-todomvc/auth/i'
 
 import type {
@@ -34,7 +34,7 @@ import type {IErrorRate} from 'reactive-di-todomvc/mockServer/components/ErrorRa
 
 type TodoMainPageProps = {
     isDebug: IsDebug,
-    AuthArea: IAuthArea,
+    AuthLayout: IAuthLayout,
     ErrorRate: IErrorRate,
     TodoPageLoadingState: ITodoPageLoadingState;
     TodoHeader: ITodoHeader;
@@ -46,7 +46,7 @@ type TodoMainPageProps = {
 export default function TodoPage({
     data,
     isDebug,
-    AuthArea,
+    AuthLayout,
     ErrorRate,
     TodoPageLoadingState,
     TodoMain,
@@ -54,7 +54,7 @@ export default function TodoPage({
     TodoHeader
 }: TodoMainPageProps): Element {
     return (
-        <AuthArea>
+        <AuthLayout>
             <section className="todowrap">
                 <div>
                     <TodoPageLoadingState/>
@@ -69,7 +69,7 @@ export default function TodoPage({
                     : null
                 }
             </section>
-        </AuthArea>
+        </AuthLayout>
     )
 }
 component([

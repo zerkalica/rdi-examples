@@ -32,6 +32,11 @@ export type ErrorableElementProps = {
     children?: Element;
 }
 
+export type CommonLayoutProps = {
+    children?: Element;
+}
+export type ICommonLayout = FlowFix<CommonLayoutProps>;
+
 export type IErrorableElement = FlowFix<ErrorableElementProps>;
 
 export type ErrorPageProps = {

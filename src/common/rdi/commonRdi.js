@@ -3,7 +3,7 @@ import type {
     ILoadingPage,
     IErrorPage,
     IErrorableElement,
-
+    ICommonLayout,
     AnonymFetch,
     EventHelper
 } from 'reactive-di-todomvc/common/i'
@@ -21,6 +21,7 @@ import EventHelperImpl from 'reactive-di-todomvc/common/helpers/EventHelper'
 import LoadingPage from 'reactive-di-todomvc/common/components/LoadingPage'
 import ErrorPage from 'reactive-di-todomvc/common/components/ErrorPage'
 import ErrorableElement from 'reactive-di-todomvc/common/components/ErrorableElement'
+import CommonLayout from 'reactive-di-todomvc/common/components/CommonLayout'
 
 import Translations from 'reactive-di-todomvc/common/models/Translations'
 import tr from 'reactive-di-todomvc/common/services/tr'
@@ -33,6 +34,7 @@ const deps: Array<ConfigItem> = [
     Translations,
     FetcherConfig,
     [(_: EventHelper), EventHelperImpl],
+    [(_: ICommonLayout), CommonLayout],
     [(_: IErrorableElement), ErrorableElement],
     [(_: ILoadingPage), LoadingPage],
     [(_: IErrorPage), ErrorPage]
