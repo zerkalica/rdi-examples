@@ -1,8 +1,7 @@
 /* @flow */
 
-// import 'reactive-di-todomvc/common/styles/core.css'
-
 import _ from 'babel-plugin-transform-metadata/_'
+import 'reactive-di-todomvc/../assets/core.css'
 
 import {
     appDeps,
@@ -64,16 +63,18 @@ const createCm: CreateContainerManager = createManagerFactory(
 )
 
 const cm: ContainerManager = createCm(appDeps.concat([
-    value((_: IsDebug), true),
-    value(AbstractStorage, new BrowserLocalStorage(window.localStorage)),
-    value((_: RouterManager), routerManager),
-    value(BaseEnv, new BaseEnv(
-        document.referrer,
-        navigator.userAgent,
-        navigator.language
-    )),
-    observable(Resolution, {value: createBrowserResolution(window)}),
-    observable(Route, {value: routerManager.route})
+    [(_: IsDebug), value(true)],
+    [AbstractStorage, value(new BrowserLocalStorage(window.localStorage))],
+    [(_: RouterManager), value(routerManager)],
+    [BaseEnv, value(
+        new BaseEnv(
+            document.referrer,
+            navigator.userAgent,
+            navigator.language
+        )
+    )],
+    [Resolution, observable({value: createBrowserResolution(window)})],
+    [Route, observable({value: routerManager.route})]
 ]))
 
 const data: [string, mixed][] = config.stores

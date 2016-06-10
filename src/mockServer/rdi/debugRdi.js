@@ -21,9 +21,9 @@ import storageFetch from 'reactive-di-todomvc/mockServer/services/storageFetch'
 
 const config: ConfigItem[] = [
     [(_: IErrorRate), ErrorRate],
-    observable((_: ErrorRateValue), {
+    [(_: ErrorRateValue), observable({
         value: 20
-    }),
+    })],
     [(_: Fetch), storageFetch],
     [(_: ChangeEditing), changeEditing]
 ]
