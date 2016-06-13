@@ -1,5 +1,7 @@
 /* @flow */
 
+import _ from 'babel-plugin-transform-metadata/_'
+
 import type {
     Fetch
 } from 'reactive-di-todomvc/common/i'
@@ -12,12 +14,13 @@ import type {
     ErrorRateValue
 } from 'reactive-di-todomvc/mockServer/i'
 
-import _ from 'babel-plugin-transform-metadata/_'
 import {observable} from 'reactive-di-observable/configurations'
 
 import ErrorRate from 'reactive-di-todomvc/mockServer/components/ErrorRate'
 import changeEditing from 'reactive-di-todomvc/mockServer/actions/changeEditing'
 import storageFetch from 'reactive-di-todomvc/mockServer/services/storageFetch'
+
+import {CommonLayoutThemeVars} from 'reactive-di-todomvc/common/components/CommonLayoutTheme'
 
 const config: ConfigItem[] = [
     [(_: IErrorRate), ErrorRate],
@@ -25,7 +28,8 @@ const config: ConfigItem[] = [
         value: 20
     })],
     [(_: Fetch), storageFetch],
-    [(_: ChangeEditing), changeEditing]
+    [(_: ChangeEditing), changeEditing],
+    CommonLayoutThemeVars
 ]
 
 export default config

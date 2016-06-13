@@ -1,21 +1,14 @@
 /* @flow */
 
-
-import _ from 'babel-plugin-transform-metadata/_'
 import type {
     CommonLayoutProps,
     Element
 } from 'reactive-di-todomvc/common/i'
 import {component} from 'reactive-di-observable/annotations'
-import {value} from 'reactive-di/configurations'
-import CommonLayoutTheme from './CommonLayoutTheme.css'
-
-export type ICommonLayoutTheme = {
-    container: string;
-}
+import CommonLayoutTheme, {CommonLayoutThemeVars} from './CommonLayoutTheme'
 
 type CommonLayoutDeps = CommonLayoutProps & {
-    theme: ICommonLayoutTheme;
+    theme: CommonLayoutTheme;
 }
 
 export default function CommonLayout({
@@ -29,5 +22,6 @@ export default function CommonLayout({
     )
 }
 component([
-    [(_: ICommonLayoutTheme), value(CommonLayoutTheme)]
+    CommonLayoutThemeVars,
+    CommonLayoutTheme
 ])(CommonLayout)
