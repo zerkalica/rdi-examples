@@ -22,8 +22,11 @@ import type {Tr} from 'any-translate'
 import {changeLayoutColor} from 'reactive-di-todomvc/mockServer/actions/themeActions'
 import type {IChangeLayoutColor} from 'reactive-di-todomvc/mockServer/actions/themeActions'
 
+import {Resolution} from 'observable-helpers'
+
 type ErrorRateProps = {
     t: Tr;
+    resolution: Resolution;
     helper: EventHelper;
     rate: ErrorRateValue;
     theme: CommonLayoutThemeVars;
@@ -32,10 +35,10 @@ type ErrorRateProps = {
 }
 
 export type IErrorRate = FlowFix;
-
 export default function ErrorRate({
     helper,
     t,
+    resolution,
     rate,
     theme,
     changeEditing,
@@ -46,7 +49,7 @@ export default function ErrorRate({
             <div>
                 <label forHtml="error-rate-input">{t('Error rate:')}</label>
                 <input
-                    type="number"
+                    type="range"
                     max="100"
                     min="0"
                     maxLength="3"
@@ -58,7 +61,7 @@ export default function ErrorRate({
                 /><span>%</span>
             </div>
             <div>
-                <label forHtml="theme-color-change-input">{t('Border color:')}</label>
+                <label forHtml="theme-color-change-input">{t('Border color via JSS:')}</label>
                 <input
                     type="range"
                     max="255"
@@ -70,6 +73,9 @@ export default function ErrorRate({
                     value={theme.color}
                     onChange={helper.change((val: string) => changeColor(val))}
                 /><span>%</span>
+            </div>
+            <div>
+                Screen resolution: {resolution.width}x{resolution.height}
             </div>
         </div>
     )

@@ -5,9 +5,7 @@ import {
     theme
 } from 'reactive-di-observable/annotations'
 
-import type {
-    ParseStyle
-} from 'reactive-di-observable'
+import css from 'jss-css/lib/css'
 
 @observable('CommonLayoutThemeVars')
 export class CommonLayoutThemeVars {
@@ -25,8 +23,8 @@ export default class CommonLayoutTheme {
     container: string;
     __css: mixed;
 
-    constructor(csjs: ParseStyle, {color}: CommonLayoutThemeVars) {
-        this.__css = csjs`
+    constructor({color}: CommonLayoutThemeVars) {
+        this.__css = css`
             .container {
                 border: 5px solid rgb(${color}, 0, 0);
             }

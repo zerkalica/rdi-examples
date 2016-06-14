@@ -30,10 +30,6 @@ import {
     ComponentPlugin
 } from 'reactive-di-observable'
 
-import type {
-    ParseStyle
-} from 'reactive-di-observable'
-
 import {observable} from 'reactive-di-observable/configurations'
 
 import {
@@ -63,10 +59,7 @@ import BaseEnv from 'reactive-di-todomvc/common/models/BaseEnv'
 import AbstractStorage from 'reactive-di-todomvc/common/services/AbstractStorage'
 import BrowserLocalStorage from 'reactive-di-todomvc/common/helpers/browser/BrowserLocalStorage'
 
-import {createCssReplace} from 'css-replace'
-
-import getCss from 'csjs/get-css'
-import csjs from 'csjs'
+import jss from 'jss'
 
 const config = merge(staticConfig, window.todoMvcConfig || {})
 const routerManager = createBrowserRouterManager(window, config.RouterConfig)
@@ -77,14 +70,13 @@ const createCm: CreateContainerManager = createManagerFactory(
         new ComputedPlugin(),
         new MetaPlugin(),
         new ObservablePlugin(),
-        new ThemePlugin(createCssReplace(document, getCss)),
+        new ThemePlugin((styles) => jss.createStyleSheet(styles)),
         new ComponentPlugin(createReactWidget)
     ]),
     createHotRelationUpdater
 )
 
 const cm: ContainerManager = createCm(appDeps.concat([
-    [(_: ParseStyle), value(csjs)],
     [(_: IsDebug), value(true)],
     [AbstractStorage, value(new BrowserLocalStorage(window.localStorage))],
     [(_: RouterManager), value(routerManager)],
