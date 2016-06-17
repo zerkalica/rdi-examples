@@ -73,6 +73,7 @@ Stack:
   - [ ] Backend REST API
   - [x] Define frontend variables from backend / bundler
   - [x] Page rendering
+  - [ ] Css rendering from jss
   - [ ] Hydrate data
   - [ ] CORS support
   - [ ] GZIP support

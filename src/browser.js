@@ -41,9 +41,8 @@ import {
     Route,
     RouterObserver
 } from 'modern-router'
-import {
-    createBrowserRouterManager
-} from 'modern-router/browser'
+import {RouterManagerFactory, PageNotFoundError} from 'modern-router'
+import {BrowserLocation} from 'modern-router/browser'
 import type {RouterManager} from 'modern-router'
 
 import {createBrowserResolution} from 'observable-helpers/browser'
@@ -62,7 +61,8 @@ import BrowserLocalStorage from 'reactive-di-todomvc/common/helpers/browser/Brow
 import jss from 'jss'
 
 const config = merge(staticConfig, window.todoMvcConfig || {})
-const routerManager = createBrowserRouterManager(window, config.RouterConfig)
+const routerManager = (new RouterManagerFactory(config.RouterConfig))
+    .create(new BrowserLocation(window))
 
 const createCm: CreateContainerManager = createManagerFactory(
     defaultPlugins.concat([
@@ -107,5 +107,9 @@ const observer = new RouterObserver(
 )
 
 const route: Route = routerManager.route
-Observable.from(route).subscribe(observer)
-observer.next(route)
+if (!route) {
+    observer.error(new PageNotFoundError())
+} else {
+    Observable.from(route).subscribe(observer)
+    observer.next(route)
+}
