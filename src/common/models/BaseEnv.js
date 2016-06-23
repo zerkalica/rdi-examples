@@ -1,4 +1,8 @@
 /* @flow */
+
+import {value} from 'reactive-di/annotations'
+
+@value()
 export default class BaseEnv {
     referrer: string;
     userAgent: string;

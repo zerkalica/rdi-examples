@@ -25,8 +25,6 @@ export interface EventHelper {
     keyMap(map: Array<[number, EventHandler, any]>): (e: SyntheticKeyboardEvent) => void;
 }
 
-export type IsDebug = boolean;
-
 export type ErrorableElementProps = {
     error?: DummyComponent|string;
     children?: Element;

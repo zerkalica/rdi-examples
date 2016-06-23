@@ -13,7 +13,6 @@ examples/.*
 .*/node_modules/object.*
 .*/node_modules/acorn.*
 .*/node_modules/fb.*
-.*/node_modules/js.*
 .*/node_modules/spdx.*
 
 [libs]

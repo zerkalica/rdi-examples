@@ -7,7 +7,7 @@ import {
 
 import css from 'jss-css/lib/css'
 
-@observable('CommonLayoutThemeVars')
+@observable({key: 'CommonLayoutThemeVars'})
 export class CommonLayoutThemeVars {
     color: number;
 

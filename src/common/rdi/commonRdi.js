@@ -14,7 +14,9 @@ import _ from 'babel-plugin-transform-metadata/_'
 
 import type {ConfigItem} from 'reactive-di'
 
+import BaseEnv from 'reactive-di-todomvc/common/models/BaseEnv'
 import FetcherConfig from 'reactive-di-todomvc/common/models/FetcherConfig'
+import DebugConfig from 'reactive-di-todomvc/common/models/DebugConfig'
 
 import EventHelperImpl from 'reactive-di-todomvc/common/helpers/EventHelper'
 
@@ -33,6 +35,8 @@ const deps: Array<ConfigItem> = [
     [(_: AnonymFetch), anonymFetch],
     Translations,
     FetcherConfig,
+    DebugConfig,
+    BaseEnv,
     [(_: EventHelper), EventHelperImpl],
     [(_: ICommonLayout), CommonLayout],
     [(_: IErrorableElement), ErrorableElement],

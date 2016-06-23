@@ -3,7 +3,6 @@ import _ from 'babel-plugin-transform-metadata/_'
 
 import {component} from 'reactive-di-observable/annotations'
 import type {
-    IsDebug,
     Element
 } from 'reactive-di-todomvc/common/i'
 
@@ -20,11 +19,13 @@ import type {
     ITodoPageLoadingState
 } from 'reactive-di-todomvc/todo/i'
 
-import TodoPageLoadingStateMeta from 'reactive-di-todomvc/todo/models/TodoPageLoadingStateMeta'
-import TodoPageLoadingStateImpl from 'reactive-di-todomvc/todo/components/TodoPageLoadingState'
-import TodoHeaderImpl from 'reactive-di-todomvc/todo/components/TodoHeader'
+import DebugConfig from 'reactive-di-todomvc/common/models/DebugConfig'
+
 import TodoFooterImpl from 'reactive-di-todomvc/todo/components/TodoFooter'
+import TodoHeaderImpl from 'reactive-di-todomvc/todo/components/TodoHeader'
 import TodoMainImpl from 'reactive-di-todomvc/todo/components/TodoMain'
+import TodoPageLoadingStateImpl from 'reactive-di-todomvc/todo/components/TodoPageLoadingState'
+import TodoPageLoadingStateMeta from 'reactive-di-todomvc/todo/models/TodoPageLoadingStateMeta'
 
 import isAllCompletedFacet from 'reactive-di-todomvc/todo/facets/isAllCompletedFacet'
 import todoItemsFacet from 'reactive-di-todomvc/todo/facets/todoItemsFacet'
@@ -33,7 +34,7 @@ import TodoQueryArgs from 'reactive-di-todomvc/todo/facets/TodoQueryArgs'
 import type {IErrorRate} from 'reactive-di-todomvc/mockServer/components/ErrorRate'
 
 type TodoMainPageProps = {
-    isDebug: IsDebug,
+    debug: DebugConfig,
     AuthLayout: IAuthLayout,
     ErrorRate: IErrorRate,
     TodoPageLoadingState: ITodoPageLoadingState;
@@ -45,7 +46,7 @@ type TodoMainPageProps = {
 
 export default function TodoPage({
     data,
-    isDebug,
+    debug,
     AuthLayout,
     ErrorRate,
     TodoPageLoadingState,
@@ -64,7 +65,7 @@ export default function TodoPage({
                         {data.totalCount > 0 ? <TodoFooter/> : null}
                     </section>
                 </div>
-                {isDebug
+                {debug.isEnabled
                     ? <ErrorRate />
                     : null
                 }

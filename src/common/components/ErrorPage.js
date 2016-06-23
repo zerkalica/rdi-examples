@@ -2,11 +2,11 @@
 
 import type {Tr} from 'any-translate'
 import type {
-    IsDebug,
     ErrorPageProps,
     Element
 } from 'reactive-di-todomvc/common/i'
 
+import DebugConfig from 'reactive-di-todomvc/common/models/DebugConfig'
 import instanceMap from 'reactive-di-todomvc/common/helpers/instanceMap'
 import QueryError from 'reactive-di-todomvc/common/errors/QueryError'
 import {PageNotFoundError} from 'modern-router'
@@ -14,16 +14,16 @@ import {PageNotFoundError} from 'modern-router'
 import {component} from 'reactive-di-observable/annotations'
 
 type ErrorPageOpts = ErrorPageProps & {
-    isDebug: IsDebug;
+    debug: DebugConfig;
     t: Tr;
 }
 
 export default function ErrorPage({
     t,
-    isDebug,
+    debug,
     error
 }: ErrorPageOpts): Element {
-    if (isDebug && error) {
+    if (debug.isEnabled && error) {
         console.error(error) // eslint-disable-line
     }
     return (
@@ -36,7 +36,7 @@ export default function ErrorPage({
                 })],
                 [null, t('Unknown error')]
             ])}
-            {isDebug
+            {debug.isEnabled
                 ? <div className="debug-message-error">
                     <pre className="error-trace">{error.stack}</pre>
                 </div>

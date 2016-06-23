@@ -1,3 +1,2 @@
 DebugConfig:
-    debug: todomvc:*
-    sitePrefix: ''
+    isEnabled: true
