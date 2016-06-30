@@ -2,39 +2,44 @@
 
 import 'babel-polyfill'
 
-import _ from 'babel-plugin-transform-metadata/_'
-import authRdi from 'reactive-di-todomvc/auth/rdi/authRdi'
-import commonRdi from 'reactive-di-todomvc/common/rdi/commonRdi'
-import debugRdi from 'reactive-di-todomvc/mockServer/rdi/debugRdi'
 import jss from 'jss'
-import todoRdi from 'reactive-di-todomvc/todo/rdi/todoRdi'
-import AbstractStorage from 'reactive-di-todomvc/common/services/AbstractStorage'
-import BaseEnv from 'reactive-di-todomvc/common/models/BaseEnv'
-import DebugConfig from 'reactive-di-todomvc/common/models/DebugConfig'
-import FetcherConfig from 'reactive-di-todomvc/common/models/FetcherConfig'
-import Translations from 'reactive-di-todomvc/common/models/Translations'
-import type {RouterConfig, RouterManager, PageMap} from 'modern-router'
-import {
+
+import _ from 'babel-plugin-transform-metadata/_'
+
+import type {
     AbstractLocation,
-    PageNotFoundError,
-    RouterManagerFactory,
-    Route,
-    RouterObserver
+    RouterManager,
+    PageRec,
+    LocationData
 } from 'modern-router'
-import {Resolution} from 'observable-helpers'
-import {observableFromEvent} from 'observable-helpers/browser'
+import {
+    RouterConfig,
+    RouterManagerFactory,
+    SusaninRouter,
+    Route
+} from 'modern-router'
+
+import {
+    Resolution,
+    mapObservable
+} from 'observable-helpers'
+
 import type {
     ConfigItem,
-    CreateContainerManager,
     Container,
+    CreateContainerManager,
     ContainerManager
 } from 'reactive-di'
 import {
     createManagerFactory,
-    defaultPlugins,
-    createHotRelationUpdater
+    defaultPlugins
 } from 'reactive-di'
-import type {Renderer} from 'reactive-di-observable'
+import {value} from 'reactive-di/configurations'
+import {factory} from 'reactive-di/annotations'
+
+import type {
+    Operation
+} from 'reactive-di-observable'
 import {
     SetterPlugin,
     ComputedPlugin,
@@ -44,16 +49,57 @@ import {
     ComponentPlugin
 } from 'reactive-di-observable'
 import {observable} from 'reactive-di-observable/configurations'
+import {setter} from 'reactive-di-observable/annotations'
+
 import {createReactWidget} from 'reactive-di-react'
+
 import type {IErrorPage} from 'reactive-di-todomvc/common/i'
+import commonRdi from 'reactive-di-todomvc/common/rdi/commonRdi'
+
+import authRdi from 'reactive-di-todomvc/auth/rdi/authRdi'
+
+import debugRdi from 'reactive-di-todomvc/mockServer/rdi/debugRdi'
+
 import type {ITodoPage} from 'reactive-di-todomvc/todo/i'
-import {value} from 'reactive-di/configurations'
+import todoRdi from 'reactive-di-todomvc/todo/rdi/todoRdi'
 
-const ErrorPage: mixed = (_: IErrorPage)
+import FallbackPage from 'reactive-di-todomvc/common/components/FallbackPage'
 
-const pages: PageMap = {
-    TodoPage: (_: ITodoPage)
-};
+export const pages: PageRec = {
+    ErrorPage: (_: IErrorPage),
+    FallbackPage,
+    pages: {
+        TodoPage: (_: ITodoPage)
+    }
+}
+
+export function createRouterManager(
+    rmf: RouterManagerFactory,
+    loc: AbstractLocation
+): RouterManager {
+    return rmf.create(loc)
+}
+factory()(createRouterManager)
+
+function routeToTransaction(route: Route): Operation[] {
+    return [
+        {object: route}
+    ]
+}
+export function routeLoader(manager: RouterManager): Operation[] {
+    return [
+        {object: manager.route},
+        {
+            observable: () => mapObservable(Observable.from(manager.route), routeToTransaction)
+        }
+    ]
+}
+setter()(routeLoader)
+
+export function createRouterManagerFactory(config: RouterConfig): RouterManagerFactory {
+    return new RouterManagerFactory((params: LocationData) => new SusaninRouter(config, params))
+}
+factory()(createRouterManagerFactory)
 
 const appDeps: ConfigItem[] = [].concat(
     todoRdi,
@@ -61,67 +107,36 @@ const appDeps: ConfigItem[] = [].concat(
     debugRdi,
     authRdi,
     [
-        [(_: RouterManager), value()],
+        [RouterConfig, observable({key: 'RouterConfig'})],
+        [(_: AbstractLocation), value()],
+        [RouterManagerFactory, createRouterManagerFactory],
+        [(_: RouterManager), createRouterManager],
         [Resolution, observable()],
-        [Route, observable()]
+        routeLoader,
+        [Route, observable({loader: routeLoader})]
     ]
 )
 
-export interface Config {
-    DebugConfig: DebugConfig;
-    Translations: Translations;
-    FetcherConfig: FetcherConfig;
-    RouterConfig: RouterConfig;
-    state: [string, mixed][];
-}
+const createCm: CreateContainerManager = createManagerFactory(
+    defaultPlugins.concat([
+        new SetterPlugin(),
+        new ComputedPlugin(),
+        new MetaPlugin(),
+        new ObservablePlugin(),
+        new ThemePlugin((styles) => jss.createStyleSheet(styles)),
+        new ComponentPlugin(createReactWidget)
+    ])
+)
 
-export default class Bootstrap<Widget> {
-    _createRenderer: (container: Container) => Renderer;
-    _routerFactory: RouterManagerFactory;
-    _cm: ContainerManager;
-    _config: [string, mixed][];
-
-    constructor(config: Config) {
-        this._routerFactory = new RouterManagerFactory(config.RouterConfig, pages, ErrorPage)
-
-        const normalizedConfig: [string, mixed][] = []
-        const keys: string[] = Object.keys(config)
-        for (let i = 0, l = keys.length; i < l; i++) {
-            const key: string = keys[i]
-            normalizedConfig.push([key, (config: any)[key]])
-        }
-        this._config = normalizedConfig
-
-        const createCm = createManagerFactory(
-            defaultPlugins.concat([
-                new SetterPlugin(),
-                new ComputedPlugin(),
-                new MetaPlugin(),
-                new ObservablePlugin(),
-                new ThemePlugin((styles) => jss.createStyleSheet(styles)),
-                new ComponentPlugin(createReactWidget)
-            ]),
-            createHotRelationUpdater
-        )
-
-        this._cm = createCm(appDeps)
+export function bootstrap(
+    rawConf: {[id: string]: mixed}
+): (values: [string, mixed][]) => Container {
+    const config: [string, mixed][] = []
+    const keys: string[] = Object.keys(rawConf)
+    for (let i = 0, l = keys.length; i < l; i++) {
+        const key: string = keys[i]
+        config.push([key, (rawConf)[key]])
     }
-
-    start(
-        location: AbstractLocation,
-        createRenderer: (container: Container) => Renderer,
-        values: [mixed, mixed][]
-    ): () => void {
-        const {_config: config} = this
-        const factory = this._routerFactory
-        const rm = factory.create(location)
-        const container: Container = this._cm.createContainer(null, config.concat(values, [
-            [(_: RouterManager), rm],
-            [Route, rm.route],
-        ]))
-        return factory.start(
-            rm.route,
-            createRenderer(container)
-        )
-    }
+    const cm: ContainerManager = createCm(appDeps)
+    return (values: [string, mixed][]) => cm.createContainer(null, config.concat(values))
 }
