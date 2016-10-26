@@ -1,46 +1,79 @@
-import path from 'path'
-import cssnano from 'cssnano'
-import HtmlWebpackPlugin from 'html-webpack-plugin'
-import webpack from 'webpack'
-import autoprefixer from 'autoprefixer'
+// @flow
 
-const fallback = []
-if (process.env.NVM_PATH) {
-    fallback.push(path.resolve(process.env.NVM_PATH, '..', 'node_modules'))
+import path from 'path'
+import HtmlWebpackPlugin from 'html-webpack-plugin'
+import {
+    DefinePlugin,
+    NormalModuleReplacementPlugin,
+    optimize
+} from 'webpack'
+
+function getFallbackPaths(root: string): string[] {
+    const fallback: string[] = []
+    if (process.env.NVM_PATH) {
+        fallback.push(path.resolve(process.env.NVM_PATH, '..', 'node_modules'))
+    }
+    fallback.push(path.resolve(root, 'node_modules'))
+
+    return fallback
 }
-fallback.push(path.resolve(__dirname, '..', 'node_modules'))
+
+function createCreateStyleLoaders(isProduction: boolean): (...args: any[]) => string[] {
+    const styleOptions: string [] = [
+        'singleton'
+    ]
+
+    const cssOptions: string[] = [
+        // 'autoprefixer',
+        (isProduction ? '-' : '') + 'sourceMap',
+        (isProduction ? '' : '-') + 'minimize'
+    ]
+
+    return function createStyleLoaders(...styleArgs: any[]): string[] {
+        const styleLoader = 'style?' + styleOptions.join('&')
+        const cssLoader = 'css?' + cssOptions.join('&')
+        return [styleLoader, cssLoader].concat(styleArgs)
+    }
+}
+
+const root: string = path.resolve(__dirname, '..')
+
+const debugStubPath: string = require.resolve('empty/functionThatReturns')
+const isProduction = process.env.NODE_ENV === 'production'
+const fallback = getFallbackPaths(root)
+const createStyleLoaders = createCreateStyleLoaders(isProduction)
 
 export default {
-    cwd: path.resolve(__dirname, '..'),
+    cwd: root,
     cache: true,
     debug: true,
     devtool: 'source-map',
     resolve: {
-        fallback
+        fallback,
+        alias: {
+            buffer: 'empty/object',
+            querystring: 'querystring-browser'
+        }
     },
     resolveLoader: {
         fallback
     },
     output: {
         publicPath: '/',
-        path: path.resolve(__dirname, '..', 'build'),
+        path: path.resolve(root, 'dist'),
         filename: 'app.js'
     },
     entry: {
         'browser': [
-            path.resolve(__dirname, '..', 'src', 'browser.js')
+            path.resolve(root, 'src', 'browser.js')
         ]
     },
     configLoader: {
-        env: !process.env.NODE_ENV || process.env.NODE_ENV === 'development' ? 'dev' : 'prod',
+        env: isProduction ? 'prod' : 'dev',
         instance: process.env.APP_INSTANCE || 'client'
     },
     module: {
         preLoaders: [
-            {
-                test: /\.styl$/,
-                loader: 'import-glob-loader'
-            },
             {
                 test: /\.js$/,
                 exclude: ['src', 'lib'],
@@ -58,7 +91,7 @@ export default {
             },
             {
                 test: /\.(?:jsx?|es6)$/,
-                include: /(?:src)/,
+                include: /(?:src|modules)/,
                 exclude: /(?:node_modules|bower_components)/,
                 loaders: ['babel-loader'] // 'react-hot-loader'
             },
@@ -72,50 +105,29 @@ export default {
             },
             {
                 test: /\.css$/,
-                include: /(?:src)/,
-                loaders: [
-                    'style',
-                    [
-                        'css?sourceMap&-minimize',
-                        'modules',
-                        'importLoaders=1',
-                        'localIdentName=[name]__[local]___[hash:base64:5]'
-                    ].join('&'),
-                    'postcss'
-                ]
-            },
-            {
-                test: /\.css$/,
-                include: /(?:assets)/,
-                loaders: [
-                    'style',
-                    'css?sourceMap&-minimize',
-                    'postcss'
-                ]
+                loaders: createStyleLoaders()
             }
         ]
     },
-    postcss: [
-        cssnano({
-          autoprefixer: {
-            add: true,
-            remove: true,
-            browsers: ['last 2 versions']
-          },
-          discardComments: {
-            removeAll: true
-          },
-          discardUnused: false,
-          mergeIdents: false,
-          reduceIdents: false,
-          safe: true,
-          sourcemap: true
-        })
-    ],
     plugins: [
+        new NormalModuleReplacementPlugin(/^co$/, debugStubPath),
+        new DefinePlugin({
+            'process.env': {
+                NODE_ENV: JSON.stringify(process.env.NODE_ENV)
+            }
+        }),
         new HtmlWebpackPlugin({
             title: 'todomvc demo',
-            template: path.resolve(__dirname, 'assets', 'index.ejs')
+            template: path.resolve(__dirname, 'index.ejs')
         })
-    ]
+    ].concat(isProduction ? [
+        new NormalModuleReplacementPlugin(/^debug$/, debugStubPath),
+        new optimize.DedupePlugin(),
+        new optimize.OccurenceOrderPlugin(),
+        new optimize.UglifyJsPlugin({
+            compress: {
+                warnings: false
+            }
+        })
+    ] : [])
 }

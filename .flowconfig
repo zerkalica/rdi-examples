@@ -25,5 +25,5 @@ esproposal.class_static_fields=enable
 esproposal.class_instance_fields=enable
 module.name_mapper='.*\(\.css\)' -> 'empty/object'
 module.name_mapper='.*\(\.configloaderrc\)' -> 'empty/object'
-module.name_mapper='^reactive-di-todomvc/\(.*\)' -> '<PROJECT_ROOT>/src/\1'
-suppress_comment=\\(.\\|\n\\)*\\$FlowIssue
+module.name_mapper='^rdi-todo\(.*\)?' -> '<PROJECT_ROOT>/src\1'
+module.name_mapper='\(^rdi-.*\)' -> '<PROJECT_ROOT>/modules/\1'

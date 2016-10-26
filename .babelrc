@@ -2,27 +2,28 @@
     "presets": ["es2015-loose", "stage-0", "react"],
     "plugins": [
         "syntax-flow",
-        "jss-css",
-        ["babel-plugin-module-alias", [
-            {
-                "src": "./assets",
-                "expose": "reactive-di-todomvc/assets"
-            },
-            {
-                "src": "./src",
-                "expose": "reactive-di-todomvc"
+        ["module-resolver", {
+            "root": ["", "./modules"],
+            "alias": {
+                "rdi-todo": "./src"
             }
-        ]],
-        ["transform-metadata", {
-            "typeNameStrategy": "fullPath",
-            "argComment": "@args",
-            "reflectImport": "reactive-di/inject"
         }],
-        "transform-runtime",
+        ["transform-metadata", {
+            "jsxPragma": "__h",
+            "typeNameStrategy": "typeName",
+            "reflectImport": "reactive-di/CustomReflect"
+        }],
+        ["transform-react-jsx", {
+            "pragma": "__h"
+        }],
         "transform-decorators-legacy",
-        "espower",
-        "flow-comments",
-        "react-require",
         "transform-flow-strip-types"
-    ]
+    ],
+    "env": {
+        "development": {
+            "plugins": [
+                "espower"
+            ]
+        }
+    }
 }

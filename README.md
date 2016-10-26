@@ -4,10 +4,8 @@ Basic solutions for typical web app tasks.
 
 Stack:
  - reactive-di
- - reactive-di-observable
  - modern-router
  - jss
- - any-translate
  - react
 
 ## Run
@@ -20,10 +18,10 @@ Stack:
 
 - [x] Common
   - [x] Isomorphic app
-  - [x] React free: any hyperscript + jsx transpiler friendly
+  - [x] React-bindings on runtime, not on compile-time
   - [x] Folder structure
   - [x] Absolute imports
-  - [x] Interface based hierarcical dependency injection
+  - [x] Hierarcical dependency injection
   - [x] Component approach
   - [x] I18n, L10n
   - [x] Validation
@@ -81,8 +79,8 @@ Stack:
 
 - [ ] Bundling
   - [x] Webpack
-  - [ ] Bundle minification (prod)
-  - [ ] Bundle uglification (prod)
+  - [x] Bundle minification (prod)
+  - [x] Bundle uglification (prod)
   - [ ] Bundle vendor splitting (dev)
   - [x] Source Maps (dev)
   - [ ] Auto inline assets (prod)
