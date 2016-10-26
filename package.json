@@ -1,6 +1,6 @@
 {
   "name": "reactive-di-todomvc",
-  "version": "0.0.1",
+  "version": "1.0.0",
   "description": "Reactive di - todomvc",
   "publishConfig": {
     "registry": "https://registry.npmjs.org"
