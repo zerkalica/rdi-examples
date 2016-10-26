@@ -1,6 +1,6 @@
 // @flow
 
-import Todo from 'rdi-todo/core/models/Todo'
+import type {TodoRec} from 'rdi-todo/core/models/Todo'
 import TodoErrors from './TodoErrors'
 import TodoValidatorLang from './TodoValidatorLang'
 
@@ -11,7 +11,7 @@ export default class TodoValidator {
         this._lang = lang
     }
 
-    validate(todo: Todo): TodoErrors {
+    validate(todo: TodoRec): TodoErrors {
         const {_lang: l} = this
         const errors = new TodoErrors()
         if (!todo.title) {

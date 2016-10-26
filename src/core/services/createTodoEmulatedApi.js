@@ -50,7 +50,7 @@ export default function createTodoEmulatedApi(
         {
             method: 'GET',
             url: new RegExp('/session'),
-            execute<V>(params: FetchOptions, match: string[]): Promise<V> { // eslint-disable-line
+            execute(params: FetchOptions, match: string[]): Promise<*> { // eslint-disable-line
                 const data = storage.get('session')
                 return Promise.resolve(data || defaultLogin)
             }
@@ -59,7 +59,7 @@ export default function createTodoEmulatedApi(
         {
             method: 'PUT',
             url: new RegExp('/session'),
-            execute<V>(params: FetchOptions, match: string[]): Promise<V> { // eslint-disable-line
+            execute(params: FetchOptions, match: string[]): Promise<*> { // eslint-disable-line
                 return new Promise((resolve: Function, reject: Function) => {
                     const data = getBody(params.body)
                     if (data.password !== 'admin') {
@@ -78,7 +78,7 @@ export default function createTodoEmulatedApi(
         {
             method: 'GET',
             url: new RegExp('/todos'),
-            execute<V>(params: FetchOptions, match: string[]): Promise<V> { // eslint-disable-line
+            execute(params: FetchOptions, match: string[]): Promise<*> { // eslint-disable-line
                 return new Promise((resolve: Function) => {
                     assertAuth()
                     resolve(storage.get('todos'))
@@ -88,7 +88,7 @@ export default function createTodoEmulatedApi(
         {
             method: 'POST',
             url: new RegExp('/todos'),
-            execute<V>(params: FetchOptions, match: string[]): Promise<V> { // eslint-disable-line
+            execute(params: FetchOptions, match: string[]): Promise<*> { // eslint-disable-line
                 return new Promise((resolve: Function) => {
                     assertAuth()
                     const data: ?Todo[] = storage.get('todos')
@@ -105,7 +105,7 @@ export default function createTodoEmulatedApi(
         {
             method: 'DELETE',
             url: new RegExp('/todos'),
-            execute<V>(params: FetchOptions, match: string[]): Promise<V> { // eslint-disable-line
+            execute(params: FetchOptions, match: string[]): Promise<*> { // eslint-disable-line
                 return new Promise((resolve: Function) => {
                     assertAuth()
                     const data: ?Todo[] = storage.get('todos')
@@ -121,7 +121,7 @@ export default function createTodoEmulatedApi(
         {
             method: 'DELETE',
             url: new RegExp('/todo/(.*)'),
-            execute<V>(params: FetchOptions<V>, match: string[]): Promise<V> { // eslint-disable-line
+            execute(params: FetchOptions, match: string[]): Promise<*> { // eslint-disable-line
                 return new Promise((resolve: Function) => {
                     assertAuth()
                     const data: ?Todo[] = storage.get('todos')
@@ -136,7 +136,7 @@ export default function createTodoEmulatedApi(
         {
             method: 'POST',
             url: new RegExp('/todo/(.*)'),
-            execute<V>(params: FetchOptions, match: string[]): Promise<V> { // eslint-disable-line
+            execute(params: FetchOptions, match: string[]): Promise<*> { // eslint-disable-line
                 return new Promise((resolve: Function) => {
                     assertAuth()
                     const data: ?Todo[] = storage.get('todos')
@@ -153,7 +153,7 @@ export default function createTodoEmulatedApi(
         {
             method: 'PUT',
             url: new RegExp('/todo'),
-            execute<V>(params: FetchOptions, match: string[]): Promise<V> { // eslint-disable-line
+            execute(params: FetchOptions, match: string[]): Promise<*> { // eslint-disable-line
                 return new Promise((resolve: Function) => {
                     assertAuth()
                     const data: ?Todo[] = storage.get('todos')

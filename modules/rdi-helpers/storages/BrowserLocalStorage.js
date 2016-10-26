@@ -11,12 +11,12 @@ export default class BrowserLocalStorage extends AbstractStorage {
         this._storage = storage
     }
 
-    get<V: Object>(key: string): ?V {
+    get<V>(key: string): ?V {
         const value: ?string = this._storage.getItem(key)
         return !value ? null : JSON.parse(value || '')
     }
 
-    set<V: Object>(key: string, value: V, _opts?: SetStorageOpts): void {
+    set<V>(key: string, value: V, _opts?: SetStorageOpts): void {
         this._storage.setItem(key, JSON.stringify(value))
     }
 

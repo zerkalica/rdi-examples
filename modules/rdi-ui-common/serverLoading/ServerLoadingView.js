@@ -29,7 +29,9 @@ export default function ServerLoadingView(
     if (status.error) {
         return <AlertView type="error">
             {lang.getMessage(status.error)}
-            <AlertLinkView onClick={status.retry}>{lang.retry}</AlertLinkView>
+            <AlertLinkView
+                onClick={status.retry}
+            >{lang.retry}</AlertLinkView>
         </AlertView>
     }
 

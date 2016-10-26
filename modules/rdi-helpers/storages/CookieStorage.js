@@ -12,11 +12,11 @@ export default class CookieStorage extends AbstractStorage {
         this._cookies = Cookies
     }
 
-    get<V: Object>(key: string): ?V {
+    get<V>(key: string): ?V {
         return JSON.parse(this._cookies.get(key) || 'null')
     }
 
-    set<V: Object>(key: string, v: V, opts?: SetStorageOpts): void {
+    set<V>(key: string, v: V, opts?: SetStorageOpts): void {
         this._cookies.set(key, JSON.stringify(v), opts)
     }
 

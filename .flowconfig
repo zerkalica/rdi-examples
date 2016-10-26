@@ -4,7 +4,6 @@ build/.*
 examples/.*
 .*/node_modules/object.*
 .*/node_modules/eslint.*
-.*/node_modules/glob.*
 .*/node_modules/es5.*
 .*/node_modules/esl.*
 .*/node_modules/lodash.*
@@ -14,8 +13,10 @@ examples/.*
 .*/node_modules/acorn.*
 .*/node_modules/fb.*
 .*/node_modules/spdx.*
+.*/node_modules/reactive-di/src/__tests__/*
 
 [libs]
+flow-typed
 node_modules/observable-helpers/flow-typed
 
 [options]
@@ -27,3 +28,4 @@ module.name_mapper='.*\(\.css\)' -> 'empty/object'
 module.name_mapper='.*\(\.configloaderrc\)' -> 'empty/object'
 module.name_mapper='^rdi-todo\(.*\)?' -> '<PROJECT_ROOT>/src\1'
 module.name_mapper='\(^rdi-.*\)' -> '<PROJECT_ROOT>/modules/\1'
+module.name_mapper='^\(reactive-di\|modern-router\|fetch-builder\)/\(.*\)' -> '<PROJECT_ROOT>/node_modules/\1/src/\2'

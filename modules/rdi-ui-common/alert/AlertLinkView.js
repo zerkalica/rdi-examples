@@ -4,7 +4,7 @@ import AlertLinkTheme from './AlertLinkTheme'
 
 interface AlertLinkProps {
     children?: ?mixed;
-    onClick: () => void;
+    onClick: ?() => void;
 }
 
 interface AlertState {
@@ -20,14 +20,15 @@ export default function AlertLinkView(
         theme
     }: AlertState
 ) {
-    return <a
-        href="./"
+    return <button
         onClick={(e: Event) => {
             e.stopPropagation()
-            onClick()
+            if (onClick) {
+                onClick()
+            }
         }}
         className={theme.link}
     >
         {children}
-    </a>
+    </button>
 }
