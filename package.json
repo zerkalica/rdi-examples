@@ -14,6 +14,7 @@
     "clean": "rm -rf dist",
     "build.babel": "npm run clean && babel src --source-maps --out-dir $npm_package_config_builddir/dist",
     "build": "npm run clean && webpack --config conf/webpack.config.es5.js",
+    "build.dep": "npm-helpers/build-deps.sh",
     "lint": "eslint src",
     "check": "flow check",
     "testonly": "mocha",
@@ -107,7 +108,7 @@
     "querystring-browser": "^1.0.4",
     "react": "^15.3.2",
     "react-dom": "^15.3.2",
-    "reactive-di": "^2.3.9",
+    "reactive-di": "^2.4.0",
     "shortid": "^2.2.6"
   }
 }

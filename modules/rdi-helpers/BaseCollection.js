@@ -37,7 +37,9 @@ export default class BaseCollection<Item: CollectionItem> {
     deleted: DeletedItems<Item>
     length: number
 
-    createItem: (rec: ItemRec) => Item
+    createItem(_rec: ItemRec): Item {
+        throw new Error('implement')
+    }
 
     constructor(rec?: CollectionRec<Item> | Array<ItemRec> = []) {
         if (Array.isArray(rec)) {
