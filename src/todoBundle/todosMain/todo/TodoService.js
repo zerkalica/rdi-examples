@@ -71,7 +71,7 @@ export default class TodoService {
             throw new Error('todo not initialized')
         }
         this._updater.set([
-            new EditableTodo(this._todo),
+            this._editableTodo.copy(this._todo),
             this._validator.validate(this._todo),
             this._options.copy({isEditing: true})
         ])
