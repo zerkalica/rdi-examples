@@ -6,9 +6,19 @@ export default class LoaderTheme {
     container: string
     spinner: string
 
+    smallSpinner: string
+    smallContainer: string
+
     __css: mixed
     constructor() {
         this.__css = {
+            smallContainer: {
+            },
+            smallSpinner: {
+                color: 'black',
+                composes: ['fa', 'fa-spinner'],
+                animation: '2s spinner-animation infinite linear'
+            },
             container: {
                 position: 'relative',
                 display: 'block',
@@ -18,9 +28,7 @@ export default class LoaderTheme {
                 lineHeight: '8rem'
             },
             spinner: {
-                color: '#d9edf7',
-                composes: ['fa', 'fa-spinner'],
-                animation: '2s spinner-animation infinite linear',
+                composes: ['$smallSpinner'],
                 fontSize: '7rem'
             },
             '@keyframes spinner-animation': {

@@ -1,6 +1,6 @@
 // @flow
 
-import type {TodoRec} from 'rdi-todo/core/models/Todo'
+import type {TodoRec} from 'rdi-todo/todoBundle/common/Todo'
 import TodoErrors from './TodoErrors'
 import TodoValidatorLang from './TodoValidatorLang'
 

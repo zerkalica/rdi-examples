@@ -11,7 +11,7 @@ export default class AlertLinkTheme {
     constructor() {
         this.__css = {
             link: {
-                composes: ['alert-link']
+                composes: ['btn', 'btn-link']
             }
         }
     }

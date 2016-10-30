@@ -11,6 +11,7 @@ interface ServerLoadingProps {
     status: UpdaterStatus;
     // FlowFixMe jsx error with boolean shortland prop
     noIndicator?: any;
+    smallIndicator?: boolean;
 }
 
 interface ServerLoadingState {
@@ -20,7 +21,8 @@ interface ServerLoadingState {
 export default function ServerLoadingView(
     {
         status,
-        noIndicator
+        noIndicator,
+        smallIndicator
     }: ServerLoadingProps,
     {
         lang
@@ -36,7 +38,7 @@ export default function ServerLoadingView(
     }
 
     if (!noIndicator && status.pending) {
-        return <LoaderView/>
+        return <LoaderView small={smallIndicator} />
     }
 
     return null

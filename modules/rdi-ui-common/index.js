@@ -8,8 +8,13 @@ import ErrorPage from './error/ErrorPage'
 import FallbackPage from './fallback/FallbackPage'
 import ServerLoadingView from './serverLoading/ServerLoadingView'
 import ErrorableElement from './form/ErrorableElement'
+import ServerStatusView from './serverStatus/ServerStatusView'
 
 const rdi: RegisterDepItem[] = []
+
+export type {
+    AlertType
+} from './alert/AlertTheme'
 
 export {
     rdi,
@@ -18,5 +23,6 @@ export {
     ErrorPage,
     FallbackPage,
     RdiLayoutView,
+    ServerStatusView,
     ErrorableElement
 }

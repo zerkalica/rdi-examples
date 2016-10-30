@@ -7,10 +7,12 @@ interface LoaderState {
 }
 
 export default function LoaderView(
-    props: {},
+    props: {
+        small?: boolean
+    },
     {theme}: LoaderState
 ) {
-    return <div className={theme.container}>
-        <i className={theme.spinner} />
+    return <div className={props.small ? theme.smallContainer : theme.container}>
+        <i className={props.small ? theme.smallSpinner : theme.spinner} />
     </div>
 }

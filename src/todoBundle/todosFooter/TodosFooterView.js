@@ -2,7 +2,7 @@
 
 import {EventHelper} from 'rdi-helpers'
 
-import TodoFilteredCollection from 'rdi-todo/core/models/TodoFilteredCollection'
+import TodoFilteredCollection from 'rdi-todo/todoBundle/common/TodoFilteredCollection'
 
 import TodosFooterLang from './TodosFooterLang'
 import TodosFooterTheme from './TodosFooterTheme'

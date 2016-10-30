@@ -2,7 +2,7 @@
 
 import {theme} from 'reactive-di/annotations'
 
-export type AlertType = 'success' | 'error' | 'warning'
+export type AlertType = 'success' | 'error' | 'warning' | 'info'
 
 @theme
 export default class AlertTheme {
@@ -17,7 +17,10 @@ export default class AlertTheme {
                 composes: ['alert', 'alert-error']
             },
             success: {
-                composes: ['alert', 'alert-sucess']
+                composes: ['alert', 'alert-success']
+            },
+            info: {
+                composes: ['alert', 'alert-info']
             },
             warning: {
                 composes: ['alert', 'alert-warning']

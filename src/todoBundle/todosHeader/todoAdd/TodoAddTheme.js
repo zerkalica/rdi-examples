@@ -9,6 +9,8 @@ export default class TodoAddTheme {
     submit: string
     group: string
     addIcon: string
+    toggleAll: string
+    togleAllIcon: string
 
     __css: mixed
     constructor() {
@@ -18,6 +20,13 @@ export default class TodoAddTheme {
             },
             ctl: {
                 composes: ['form-control']
+            },
+            toggleAll: {
+                composes: ['input-group-addon', 'btn', 'btn-link'],
+                fontWeight: 'bold'
+            },
+            togleAllIcon: {
+                composes: ['fa', 'fa-angle-down']
             },
             submit: {
                 composes: ['btn', 'btn-success']

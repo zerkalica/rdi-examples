@@ -8,11 +8,15 @@ export default class NavTheme {
     block: string
     active: string
     link: string
+    statusWrapper: string
 
     __css: mixed
 
     constructor() {
         this.__css = {
+            statusWrapper: {
+                composes: ['float-xs-right']
+            },
             wrapper: {
                 composes: ['navbar', 'navbar-light', 'bg-faded']
             },

@@ -2,8 +2,8 @@
 import {component} from 'reactive-di/annotations'
 import {ErrorableElement} from 'rdi-ui-common'
 import {EventHelper, KEYCODE} from 'rdi-helpers'
-import Todo from 'rdi-todo/core/models/Todo'
-import TodoErrors from 'rdi-todo/core/models/TodoErrors'
+import Todo from 'rdi-todo/todoBundle/common/Todo'
+import TodoErrors from 'rdi-todo/todoBundle/common/TodoErrors'
 
 import TodoTheme from './TodoTheme'
 import TodoService from './TodoService'
@@ -30,6 +30,7 @@ function TodoView(
         editableTodo
     }: TodoViewState
 ) {
+    // @todo think about service initializer
     service.setTodo(todo)
 
     return <div className={theme.wrapper}>
@@ -42,6 +43,7 @@ function TodoView(
                 onChange={helper.change(service.toggleCompleted)}
             />
         </span>
+        <span className={theme.id}>{todo.id}</span>
         {options.isEditing ? [
             <ErrorableElement
                 key="editingTitle"

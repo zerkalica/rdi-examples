@@ -1,6 +1,6 @@
 // @flow
-import Todo from 'rdi-todo/core/models/Todo'
-import TodoFilteredCollection from 'rdi-todo/core/models/TodoFilteredCollection'
+import Todo from 'rdi-todo/todoBundle/common/Todo'
+import TodoFilteredCollection from 'rdi-todo/todoBundle/common/TodoFilteredCollection'
 
 import TodoView from './todo/TodoView'
 import TodosTheme from './TodosTheme'

@@ -15,6 +15,7 @@ export default class TodoTheme {
     deleteIcon: string
     okIcon: string
     cancelIcon: string
+    id: string
 
     __css: mixed
 
@@ -51,6 +52,13 @@ export default class TodoTheme {
             },
             cancelIcon: {
                 composes: ['fa', 'fa-ban']
+            },
+            id: {
+                composes: ['input-group-addon'],
+                width: '50px',
+                overflow: 'hidden',
+                paddingLeft: '3px',
+                fontSize: '80%'
             }
         }
     }

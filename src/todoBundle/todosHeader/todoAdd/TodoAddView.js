@@ -3,7 +3,7 @@
 import {EventHelper, KEYCODE} from 'rdi-helpers'
 import {ErrorableElement} from 'rdi-ui-common'
 
-import TodoErrors from 'rdi-todo/core/models/TodoErrors'
+import TodoErrors from 'rdi-todo/todoBundle/common/TodoErrors'
 
 import TodoAddTheme from './TodoAddTheme'
 import TodoAddLang from './TodoAddLang'
@@ -31,6 +31,10 @@ export default function TodoAddView(
     }: TodoAddState
 ) {
     return <div className={theme.group}>
+        <button
+            onClick={service.toggleAll}
+            className={theme.toggleAll}
+        ><span className={theme.togleAllIcon}/></button>
         <ErrorableElement
             errorSide="bottom"
             error={errors.title}

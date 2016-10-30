@@ -1,10 +1,11 @@
 // @flow
 
+import shortId from 'shortid'
 import {EmulatedApi} from 'rdi-api-emulator'
 import {HttpError} from 'rdi-fetcher'
 import type {FetchOptions} from 'rdi-fetcher'
 import {AbstractStorage} from 'rdi-helpers'
-import Todo from 'rdi-todo/core/models/Todo'
+import Todo from 'rdi-todo/todoBundle/common/Todo'
 
 const defaultTodos: Todo[] = [
     new Todo({
@@ -36,12 +37,22 @@ function getBody(body?: ?(string | Object)): Object {
         : ((body || {}): any)
 }
 
+function sortByDate(el1: Todo, el2: Todo): number {
+    if (String(el1.created) > String(el2.created)) {
+        return 1
+    }
+    if (String(el1.created) < String(el2.created)) {
+        return -1
+    }
+    return 0
+}
+
 export default function createTodoEmulatedApi(
     storage: AbstractStorage
 ) {
     function assertAuth() {
         const session = storage.get('session')
-        if (!session || !session.isAuthorized) {
+        if (session && !session.isAuthorized) {
             throw new HttpError(403, 'Not authorized')
         }
     }
@@ -81,7 +92,12 @@ export default function createTodoEmulatedApi(
             execute(params: FetchOptions, match: string[]): Promise<*> { // eslint-disable-line
                 return new Promise((resolve: Function) => {
                     assertAuth()
-                    resolve(storage.get('todos'))
+                    let newTodos = storage.get('todos')
+                    if (!newTodos) {
+                        newTodos = defaultTodos
+                        storage.set('todos', newTodos)
+                    }
+                    resolve(newTodos.sort(sortByDate))
                 })
             }
         },
@@ -93,12 +109,14 @@ export default function createTodoEmulatedApi(
                     assertAuth()
                     const data: ?Todo[] = storage.get('todos')
                     const todos = data || defaultTodos
-                    const newTodos = todos.map((todo: Todo) => ({
-                        ...todo,
-                        ...getBody(params.body)
-                    }))
+                    const newTodos = todos
+                        .map((todo: Todo) => ({
+                            ...todo,
+                            ...getBody(params.body)
+                        }))
+                        .sort(sortByDate)
                     storage.set('todos', newTodos)
-                    resolve(storage.get('todos'))
+                    resolve(newTodos)
                 })
             }
         },
@@ -128,7 +146,7 @@ export default function createTodoEmulatedApi(
                     const todos = data || []
                     const id = match[1]
                     const newTodos = todos.filter((todo: Todo) => todo.id !== id)
-                    storage.set('todos', newTodos)
+                    storage.set('todos', newTodos.sort(sortByDate))
                     resolve(null)
                 })
             }
@@ -159,12 +177,13 @@ export default function createTodoEmulatedApi(
                     const data: ?Todo[] = storage.get('todos')
                     const todos = data || []
                     const body = getBody(params.body)
-                    todos.push(body)
-                    storage.set('todos', todos)
-                    resolve({
+                    const newTodo = {
                         ...body,
-                        id: `${body.id}.saved`
-                    })
+                        id: shortId.generate()
+                    }
+                    todos.push(newTodo)
+                    storage.set('todos', todos)
+                    resolve(newTodo)
                 })
             }
         }
