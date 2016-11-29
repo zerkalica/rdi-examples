@@ -9,11 +9,12 @@ import {ErrorPage, FallbackPage} from 'rdi-ui-common'
 // import staticConfig from 'rdi-config/.configloaderrc'
 import {rdi, pages, routes} from './modules'
 
+const pn = document.location.pathname
 const values = merge([
     {
         RouterConfig: {
             isFull: false,
-            prefix: document.location.pathname.substring(0, -1),
+            prefix: pn.substring(0, pn.length - 1),
             routes
         }
     },

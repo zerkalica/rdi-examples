@@ -74,10 +74,11 @@
 	// import staticConfig from 'rdi-config/.configloaderrc'
 	
 	/* eslint-env browser */
+	var pn = document.location.pathname;
 	var values = (0, _common.merge)([{
 	    RouterConfig: {
 	        isFull: false,
-	        prefix: document.location.pathname.substring(0, -1),
+	        prefix: pn.substring(0, pn.length - 1),
 	        routes: _modules.routes
 	    }
 	},
