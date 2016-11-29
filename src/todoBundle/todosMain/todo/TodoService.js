@@ -16,7 +16,7 @@ export default class TodoService {
     _options: TodoOptions
     _updater: Updater
     _editableTodo: EditableTodo
-    _todo: ?Todo
+    _todo: Todo
     _todos: TodoCollection
     _validator: TodoValidator
     _fetch: ResultOf<typeof createFetch>

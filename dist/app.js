@@ -39816,7 +39816,7 @@
 	    return EmulatedApiParams;
 	}(_reactiveDi.BaseModel), _class2.defaults = {
 	    delay: 500,
-	    errorRate: 0
+	    errorRate: 30
 	}, _temp)) || _class);
 	exports.default = EmulatedApiParams;
 
@@ -41059,7 +41059,7 @@
 	        errors = _ref2.errors,
 	        editableTodo = _ref2.editableTodo;
 	
-	    // @todo think about service initializer
+	    // @todo think about service initializer, move to hooks
 	    service.setTodo(todo);
 	
 	    return __h(

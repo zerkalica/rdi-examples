@@ -30,7 +30,7 @@ function TodoView(
         editableTodo
     }: TodoViewState
 ) {
-    // @todo think about service initializer
+    // @todo think about service initializer, move to hooks
     service.setTodo(todo)
 
     return <div className={theme.wrapper}>
