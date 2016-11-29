@@ -1,6 +1,9 @@
 # reactive-di-todomvc
 
+[Demo](http://zerkalica.github.io/reactive-di-todomvc/)
+
 Basic solutions for typical web app tasks.
+
 
 Stack:
  - reactive-di
