@@ -77,6 +77,7 @@
 	var values = (0, _common.merge)([{
 	    RouterConfig: {
 	        isFull: false,
+	        prefix: document.location.pathname,
 	        routes: _modules.routes
 	    }
 	},
@@ -35862,7 +35863,9 @@
 	
 	        var routes = config.routes;
 	        var isFull = config.isFull;
+	        var prefix = config.prefix;
 	
+	        this._prefix = prefix || '';
 	        if (!routes) {
 	            throw new Error('No routes found in config');
 	        }
@@ -35940,7 +35943,10 @@
 	
 	    SusaninRouter.prototype.find = function find(options) {
 	        var params = routerLocationToParams(options);
-	        var rec = this._susanin.findFirst(params.path, params.params);
+	        var path = this._prefix && params.path.indexOf(this._prefix) === 0 ? params.path.substring(this._prefix.length) : params.path;
+	
+	        var rec = this._susanin.findFirst(path, params.params);
+	
 	        if (rec) {
 	            var route = rec[0];
 	            var query = rec[1];

@@ -60,7 +60,7 @@ export default {
     },
     output: {
         publicPath: '',
-        path: path.resolve(root, 'dist'),
+        path: path.resolve(root, 'docs'),
         filename: 'app.js'
     },
     entry: {

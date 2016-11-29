@@ -11,7 +11,7 @@
   "scripts": {
     "prepush": "npm test",
     "update": "ncu -ua && npm install",
-    "clean": "rm -rf dist",
+    "clean": "rm -rf docs",
     "build.babel": "npm run clean && babel src --source-maps --out-dir $npm_package_config_builddir/dist",
     "build": "npm run clean && webpack --config conf/webpack.config.es5.js",
     "build.dep": "npm-helpers/build-deps.sh",
@@ -102,7 +102,7 @@
     "jss-camel-case": "^2.0.2",
     "jss-compose": "^1.1.0",
     "jss-nested": "^2.5.0",
-    "modern-router": "^1.1.4",
+    "modern-router": "^1.1.5",
     "node-config-loader": "^3.0.6",
     "observable-helpers": "^0.1.2",
     "querystring-browser": "^1.0.4",

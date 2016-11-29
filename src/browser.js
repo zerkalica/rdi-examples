@@ -13,6 +13,7 @@ const values = merge([
     {
         RouterConfig: {
             isFull: false,
+            prefix: document.location.pathname,
             routes
         }
     },
