@@ -77,7 +77,7 @@
 	var values = (0, _common.merge)([{
 	    RouterConfig: {
 	        isFull: false,
-	        prefix: document.location.pathname,
+	        prefix: document.location.pathname.substring(1),
 	        routes: _modules.routes
 	    }
 	},
@@ -35574,6 +35574,7 @@
 	
 	    this.isFull = rec.isFull || false;
 	    this.routes = rec.routes || {};
+	    this.prefix = rec.prefix || '';
 	};
 	
 	exports.default = RouterConfig;
