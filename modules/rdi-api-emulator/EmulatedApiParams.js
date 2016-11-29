@@ -9,6 +9,6 @@ export default class EmulatedApiParams extends BaseModel<*> {
 
     static defaults = {
         delay: 500,
-        errorRate: 0
+        errorRate: 30
     }
 }

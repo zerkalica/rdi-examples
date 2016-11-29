@@ -9,7 +9,6 @@ lib-cov
 node_modules
 coverage
 build
-dist
 tags
 .tags*
 *.map

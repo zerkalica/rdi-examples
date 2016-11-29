@@ -59,7 +59,7 @@ export default {
         fallback
     },
     output: {
-        publicPath: '/',
+        publicPath: '',
         path: path.resolve(root, 'dist'),
         filename: 'app.js'
     },
