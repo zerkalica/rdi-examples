@@ -7,9 +7,6 @@ export interface TodoAddValuesRec {
 }
 
 @source({key: 'TodoAddValues'})
-export default class TodoAddValues extends BaseModel<TodoAddValuesRec> {
-    title: string
-    static defaults: TodoAddValuesRec = {
-        title: ''
-    }
+export default class TodoAddValues extends BaseModel {
+    title = ''
 }

@@ -2,7 +2,7 @@
 
 import {BaseModel} from 'reactive-di'
 
-export default class UIVars extends BaseModel<*> {
+export default class UIVars extends BaseModel {
     static defaults = {
 
     }

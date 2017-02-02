@@ -13,6 +13,7 @@ export default class TodosFooterTheme {
     activeLink: string
 
     __css: mixed
+
     constructor() {
         this.__css = {
             footer: {

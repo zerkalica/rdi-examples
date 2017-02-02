@@ -45,11 +45,11 @@ export default class EventHelper {
     }
 
     keyMap<V>(
-        km: Array<[number, EventHandler<V>, any]>
+        km: Array<[number, EventHandler<V>] | [number, EventHandler<V>, any]>
     ): SynthEventFn { // eslint-disable-line
         return function handleKeyPress(e: SyntheticKeyboardEvent): void { // eslint-disable-line
             for (let i = 0, l = km.length; i < l; i++) {
-                const [code, cb, value] = km[i]
+                const [code, cb, value] = (km[i]: any)
                 if (e.keyCode === code) {
                     e.preventDefault()
                     cb(value)

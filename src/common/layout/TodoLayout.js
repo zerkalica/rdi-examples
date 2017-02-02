@@ -1,13 +1,13 @@
 // @flow
 
-import {UpdaterStatus} from 'reactive-di'
+import {SourceStatus} from 'reactive-di'
 
 import {RdiLayoutView, ServerLoadingView} from 'rdi-ui-common'
 import NavView from 'rdi-todo/common/nav/NavView'
 import TodoLayoutTheme from './TodoLayoutTheme'
 
 interface TodoLayoutProps {
-    status?: UpdaterStatus;
+    status?: SourceStatus;
     children?: mixed;
 }
 

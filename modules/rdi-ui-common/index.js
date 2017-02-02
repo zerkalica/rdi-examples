@@ -1,6 +1,6 @@
 // @flow
 
-import type {RegisterDepItem} from 'reactive-di'
+import type {IDepRegister} from 'reactive-di'
 
 import RdiLayoutView from './rdiLayout/RdiLayoutView'
 import UIVars from './models/UIVars'
@@ -10,7 +10,7 @@ import ServerLoadingView from './serverLoading/ServerLoadingView'
 import ErrorableElement from './form/ErrorableElement'
 import ServerStatusView from './serverStatus/ServerStatusView'
 
-const rdi: RegisterDepItem[] = []
+const rdi: IDepRegister[] = []
 
 export type {
     AlertType

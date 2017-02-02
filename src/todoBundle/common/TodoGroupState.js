@@ -8,9 +8,6 @@ export interface TodoGroupStateRec {
 }
 
 @source({key: 'TodoGroupState'})
-export default class TodoGroupState extends BaseModel<TodoGroupStateRec> {
-    isAllCompleted: boolean
-    static defaults: TodoGroupStateRec = {
-        isAllCompleted: false
-    }
+export default class TodoGroupState extends BaseModel {
+    isAllCompleted = false
 }

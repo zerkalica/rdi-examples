@@ -7,7 +7,7 @@ import {QueryError} from 'rdi-helpers'
 import {PageNotFoundError} from 'modern-router'
 
 @source({key: 'ErrorLang'})
-export default class ErrorLang extends BaseModel<Object> {
+export default class ErrorLang extends BaseModel {
     pageError: string
     errorInQueryParams: string
     pageNotFound: string

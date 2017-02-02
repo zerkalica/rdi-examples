@@ -9,11 +9,7 @@ export interface TodoOptionsRec {
 }
 
 @source({key: 'TodoOptions'})
-export default class TodoOptions extends BaseModel<TodoOptionsRec> {
-    isEditing: boolean
-    editingItem: Todo
-    static defaults: TodoOptionsRec = {
-        isEditing: false,
-        editingItem: new Todo()
-    }
+export default class TodoOptions extends BaseModel {
+    isEditing = false
+    editingItem = new Todo()
 }

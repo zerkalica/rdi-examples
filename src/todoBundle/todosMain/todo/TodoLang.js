@@ -6,10 +6,6 @@ export interface TodoLangRec {
 }
 
 @source({key: 'TodoLang'})
-export default class TodoLang extends BaseModel<TodoLangRec> {
-    requiredTitle: string
-
-    static defaults: TodoLangRec = {
-        requiredTitle: 'Title required'
-    }
+export default class TodoLang extends BaseModel {
+    requiredTitle = 'Title required'
 }

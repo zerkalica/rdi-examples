@@ -1,6 +1,6 @@
 // @flow
 
-import {UpdaterStatus} from 'reactive-di'
+import {SourceStatus} from 'reactive-di'
 import {abstract} from 'reactive-di/annotations'
 
 import {RouterManager} from 'modern-router'
@@ -8,17 +8,18 @@ import {EventHelper} from 'rdi-helpers'
 import {ServerStatusView} from 'rdi-ui-common'
 
 import NavTheme from './NavTheme'
+import NavLang from './NavLang'
 
 @abstract
-export class SavingStatus extends UpdaterStatus {}
+export class SavingStatus extends SourceStatus {}
 
 interface NavState {
     rm: RouterManager;
     theme: NavTheme;
     helper: EventHelper;
     status: SavingStatus;
+    lang: NavLang;
 }
-
 
 export default function NavView(
     props: {},
@@ -26,7 +27,8 @@ export default function NavView(
         status,
         theme,
         rm,
-        helper
+        helper,
+        lang
     }: NavState
 ) {
     return <nav className={theme.wrapper}>
@@ -36,7 +38,7 @@ export default function NavView(
                     className={theme.link}
                     onClick={helper.click(() => {})}
                     href={rm.build('TodosPage', {group: 'all'})}
-                >Todos</a>
+                >{lang.todos}</a>
             </li>
         </ul>
         <div className={theme.statusWrapper}><ServerStatusView status={status}/></div>

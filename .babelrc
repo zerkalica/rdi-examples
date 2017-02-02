@@ -1,5 +1,5 @@
 {
-    "presets": ["es2015-loose", "stage-0", "react"],
+    "presets": [["es2015", {"loose": true}], "stage-0", "react"],
     "plugins": [
         "syntax-flow",
         ["module-resolver", {
@@ -9,12 +9,10 @@
             }
         }],
         ["transform-metadata", {
-            "jsxPragma": "__h",
-            "typeNameStrategy": "typeName",
-            "reflectImport": "reactive-di/CustomReflect"
+            "jsxPragma": "_t"
         }],
         ["transform-react-jsx", {
-            "pragma": "__h"
+            "pragma": "_t.h"
         }],
         "transform-decorators-legacy",
         "transform-flow-strip-types"

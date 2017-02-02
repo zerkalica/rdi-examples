@@ -4,7 +4,7 @@ import {BaseModel} from 'reactive-di'
 import {source} from 'reactive-di/annotations'
 
 @source({key: 'ServerLoadingLang'})
-export default class ServerLoadingLang extends BaseModel<Object> {
+export default class ServerLoadingLang extends BaseModel {
     errorLoading: string
     retry: string
     noAuthorized: string

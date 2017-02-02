@@ -1,5 +1,5 @@
 // @flow
-import {UpdaterStatus} from 'reactive-di'
+import {SourceStatus, RecoverableError} from 'reactive-di'
 
 import LoaderView from 'rdi-ui-common/loader/LoaderView'
 import AlertView from 'rdi-ui-common/alert/AlertView'
@@ -8,7 +8,7 @@ import AlertLinkView from 'rdi-ui-common/alert/AlertLinkView'
 import ServerLoadingLang from './ServerLoadingLang'
 
 interface ServerLoadingProps {
-    status: UpdaterStatus;
+    status: SourceStatus;
     // FlowFixMe jsx error with boolean shortland prop
     noIndicator?: any;
     smallIndicator?: boolean;
@@ -31,9 +31,11 @@ export default function ServerLoadingView(
     if (status.error) {
         return <AlertView type="error">
             {lang.getMessage(status.error)}
-            <AlertLinkView
-                onClick={status.retry}
-            >{lang.retry}</AlertLinkView>
+            {status.error instanceof RecoverableError ?
+                <AlertLinkView
+                    onClick={status.error.retry}
+                >{lang.retry}</AlertLinkView>
+            : null}
         </AlertView>
     }
 

@@ -1,5 +1,5 @@
 // @flow
-import {UpdaterStatus} from 'reactive-di'
+import {SourceStatus, RecoverableError} from 'reactive-di'
 
 import type {AlertType} from 'rdi-ui-common/alert/AlertTheme'
 import AlertView from 'rdi-ui-common/alert/AlertView'
@@ -8,7 +8,7 @@ import AlertLinkView from 'rdi-ui-common/alert/AlertLinkView'
 import ServerLoadingLang from '../serverLoading/ServerLoadingLang'
 
 interface ServerLoadingProps {
-    status: UpdaterStatus;
+    status: SourceStatus;
 }
 
 interface ServerLoadingState {
@@ -32,8 +32,8 @@ export default function ServerStatusView(
             ? lang.getMessage(status.error)
             : status.pending ? 'Pending' : 'All Ok'
         }
-        {status.retry
-            ? <AlertLinkView onClick={status.retry}>{lang.retry}</AlertLinkView>
+        {status.error instanceof RecoverableError
+            ? <AlertLinkView onClick={status.error.retry}>{lang.retry}</AlertLinkView>
             : null
         }
     </AlertView>

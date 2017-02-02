@@ -8,10 +8,6 @@ export interface TodoAddLangRec {
 }
 
 @source({key: 'TodoAddLang'})
-export default class TodoAddLang extends BaseModel<TodoAddLangRec> {
-    todoPlaceholder: string
-
-    static defaults: TodoAddLangRec = {
-        todoPlaceholder: 'What need to add?'
-    }
+export default class TodoAddLang extends BaseModel {
+    todoPlaceholder = 'What need to add?'
 }

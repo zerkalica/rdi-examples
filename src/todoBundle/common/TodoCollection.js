@@ -1,43 +1,39 @@
 // @flow
 
 import {hooks, source} from 'reactive-di/annotations'
-import {Updater} from 'reactive-di'
+import {Updater, IndexCollection} from 'reactive-di'
 import type {ResultOf} from 'reactive-di'
-import {BaseCollection} from 'rdi-helpers'
 import {createFetch} from 'rdi-fetcher'
-import type {TodoRec} from './Todo'
 import Todo from './Todo'
 
-export class TodoCollectionUpdater extends Updater {
-    static pending = true
-}
-
 @source({key: 'TodoCollection'})
-export default class TodoCollection extends BaseCollection<Todo> {
-    static Updater = TodoCollectionUpdater
-
-    createItem(rec: TodoRec): Todo {
-        return new Todo(rec)
-    }
+export default class TodoCollection extends IndexCollection {
+    static Item = Todo
 }
 
 @hooks(TodoCollection)
 class TodoCollectionHooks {
-    _updater: Updater
-    _fetch: ResultOf<typeof createFetch>
+    _todoUpdater: Updater<TodoCollection>
 
     constructor(
-        updater: TodoCollectionUpdater,
+        todos: TodoCollection,
         fetch: ResultOf<typeof createFetch>
     ) {
-        this._updater = updater
-        this._fetch = fetch
+        this._todoUpdater = new Updater({
+            value: todos,
+            promise(): Promise<TodoCollection> {
+                return fetch('/todo', {
+                    method: 'GET'
+                })
+            }
+        })
     }
 
-    onMount() {
-        const load = () => this._fetch('/todos', {
-            method: 'GET'
-        }).then((data: TodoRec[]) => [new TodoCollection(data)])
-        this._updater.set([load])
+    willMount() {
+        this._todoUpdater.run()
+    }
+
+    willUnmount() {
+        this._todoUpdater.abort()
     }
 }

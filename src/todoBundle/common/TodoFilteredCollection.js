@@ -27,13 +27,13 @@ export default class TodoFilteredCollection {
         let items: ?Todo[]
         switch (todoParams.selectedGroup) {
             case 'all':
-                items = allItems.items
+                items = allItems.toJS()
                 break
             case 'completed':
-                items = allItems.items.filter(filterCompleted)
+                items = allItems.toJS().filter(filterCompleted)
                 break
             case 'active':
-                items = allItems.items.filter(filterNotCompleted)
+                items = allItems.toJS().filter(filterNotCompleted)
                 break
             default:
                 throw new Error(`Unhandlered group: ${todoParams.selectedGroup}`)

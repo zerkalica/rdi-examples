@@ -1,10 +1,8 @@
 // @flow
 
 import type {RouteConfig} from 'modern-router'
-import type {RegisterDepItem} from 'reactive-di'
 
-import {pages as todosPages, routes as todosRoutes, rdi as todosRdi} from 'rdi-todo/todoBundle'
-import {rdi as uiRdi} from 'rdi-ui-common'
+import {pages as todosPages, routes as todosRoutes} from 'rdi-todo/todoBundle'
 
 export const pages: {[id: string]: Function} = {
     ...todosPages
@@ -13,11 +11,3 @@ export const pages: {[id: string]: Function} = {
 export const routes: {[id: string]: RouteConfig} = {
     ...todosRoutes
 }
-
-const aliases = [
-]
-
-export const rdi: RegisterDepItem[] = aliases.concat(
-    todosRdi,
-    uiRdi
-)

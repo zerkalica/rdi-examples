@@ -1,13 +1,14 @@
 /* @flow */
 /* eslint-env browser */
-import 'rdi-todo/wpFixes'
+
+import rtConfig from 'rdi-todo/wpFixes'
 
 import {merge} from 'node-config-loader/common'
 import browserInit from 'rdi-bootstrap/browser'
 
-import {ErrorPage, FallbackPage} from 'rdi-ui-common'
+import {ErrorPage} from 'rdi-ui-common'
 // import staticConfig from 'rdi-config/.configloaderrc'
-import {rdi, pages, routes} from './modules'
+import {pages, routes} from './modules'
 
 const pn = document.location.pathname
 const values = merge([
@@ -19,15 +20,13 @@ const values = merge([
         }
     },
     // staticConfig,
-    window['rdi-todo'] || {}
+    rtConfig
 ])
 
 browserInit({
     window,
     ErrorPage,
-    FallbackPage,
     elementId: 'app',
     values,
-    rdi,
     pages
-})()
+})

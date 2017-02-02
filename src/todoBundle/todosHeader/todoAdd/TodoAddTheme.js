@@ -13,6 +13,7 @@ export default class TodoAddTheme {
     togleAllIcon: string
 
     __css: mixed
+
     constructor() {
         this.__css = {
             group: {
