@@ -9,6 +9,7 @@ export default class ErrorableElementTheme {
     left: string
     bottom: string
     baseError: string
+    wrapper: string
 
     __css: mixed
 
@@ -21,6 +22,11 @@ export default class ErrorableElementTheme {
         }
 
         this.__css = {
+            wrapper: {
+                display: 'flex',
+                position: 'relative',
+                width: '100%'
+            },
             right: {
                 ...baseError,
                 top: 0,

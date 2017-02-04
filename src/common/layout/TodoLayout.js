@@ -5,6 +5,7 @@ import {SourceStatus} from 'reactive-di'
 import {RdiLayoutView, ServerLoadingView} from 'rdi-ui-common'
 import NavView from 'rdi-todo/common/nav/NavView'
 import TodoLayoutTheme from './TodoLayoutTheme'
+import TodoLayoutService from './TodoLayoutService'
 
 interface TodoLayoutProps {
     status?: SourceStatus;
@@ -13,6 +14,7 @@ interface TodoLayoutProps {
 
 interface TodoLayoutState {
     theme: TodoLayoutTheme;
+    service: TodoLayoutService;
 }
 
 export default function TodoLayout(
@@ -21,13 +23,14 @@ export default function TodoLayout(
         children
     }: TodoLayoutProps,
     {
+        service,
         theme
     }: TodoLayoutState
 ) {
     return <RdiLayoutView>
         <NavView/>
         <div className={theme.content}>
-            {(status && !status.complete)
+            {status && !status.complete && (service.isFirstRun() || status.error)
                 ? <ServerLoadingView status={status} />
                 : children
             }

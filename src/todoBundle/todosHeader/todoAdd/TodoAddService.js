@@ -38,22 +38,23 @@ export default class TodoAddService {
     commitAdding() {
         const todos = this._todos
         const errors = this._validator.validate(this._values)
+        const fetch = this._fetch
         if (!errors.isError) {
-            const newTodo = new Todo(this._values)
+            const newTodo = (new Todo()).copy(this._values)
             todos.push(newTodo)
 
             const updater = new Updater({
                 value: todos,
                 promise(): Promise<void> {
-                    return this._fetch('/todo', {
+                    return fetch('/todo', {
                         method: 'PUT',
                         body: newTodo
+                    }).then(({id}: {id: string}) => {
+                        todos.set(newTodo, newTodo.copy({id}))
                     })
-                },
-                complete({id}: {id: string}) {
-                    todos.set(newTodo, newTodo.copy({id}))
                 }
             })
+            this._values.reset()
             updater.run()
         }
     }
@@ -66,11 +67,11 @@ export default class TodoAddService {
         const groupState = this._gs
         const todos = this._todos
         const isCompleted = !groupState.isAllCompleted
-
+        const fetch = this._fetch
         const updater = new Updater({
             value: todos,
             promise(): Promise<void> {
-                return this._fetch('/todos', {
+                return fetch('/todos', {
                     method: 'POST',
                     body: {
                         isCompleted
@@ -78,9 +79,8 @@ export default class TodoAddService {
                 }).then(() => {})
             }
         })
+        updater.run()
         todos.updateAll((todo: Todo) => todo.copy({isCompleted}))
         groupState.set({isAllCompleted: isCompleted})
-
-        updater.run()
     }
 }

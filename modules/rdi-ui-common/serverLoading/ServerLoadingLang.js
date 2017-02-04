@@ -5,17 +5,10 @@ import {source} from 'reactive-di/annotations'
 
 @source({key: 'ServerLoadingLang'})
 export default class ServerLoadingLang extends BaseModel {
-    errorLoading: string
-    retry: string
-    noAuthorized: string
-    accessDenied: string
-
-    static defaults = {
-        errorLoading: 'Server error: #{message}',
-        retry: 'Retry',
-        noAuthorized: 'Not authorized',
-        accessDenied: 'Access denied'
-    }
+    errorLoading = 'Server error: #{message}'
+    retry = 'Retry'
+    noAuthorized = 'Not authorized'
+    accessDenied = 'Access denied'
 
     _getErrorMessage({message, statusCode}: {message: string, statusCode?: number}): string {
         switch (statusCode) {

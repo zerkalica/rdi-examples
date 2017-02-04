@@ -4,11 +4,6 @@ import {source} from 'reactive-di/annotations'
 
 @source({key: 'EmulatedApiParams'})
 export default class EmulatedApiParams extends BaseModel {
-    delay: number
-    errorRate: number
-
-    static defaults = {
-        delay: 500,
-        errorRate: 30
-    }
+    delay = 700
+    errorRate = 10
 }

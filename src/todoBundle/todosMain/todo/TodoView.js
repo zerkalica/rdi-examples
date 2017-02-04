@@ -1,5 +1,6 @@
 // @flow
-import {component} from 'reactive-di/annotations'
+import {SourceStatus} from 'reactive-di'
+import {hooks, component} from 'reactive-di/annotations'
 import {ErrorableElement} from 'rdi-ui-common'
 import {EventHelper, KEYCODE} from 'rdi-helpers'
 import Todo from 'rdi-todo/todoBundle/common/Todo'
@@ -10,6 +11,10 @@ import TodoService from './TodoService'
 import TodoOptions from './TodoOptions'
 import EditableTodo from './EditableTodo'
 
+class EditableTodoStatus extends SourceStatus {
+    static statuses = [EditableTodo]
+}
+
 interface TodoViewState {
     theme: TodoTheme;
     service: TodoService;
@@ -17,33 +22,36 @@ interface TodoViewState {
     options: TodoOptions;
     editableTodo: EditableTodo;
     errors: TodoErrors;
+    editStatus: EditableTodoStatus;
+}
+
+interface TodoProps {
+    item: Todo;
 }
 
 function TodoView(
-    {todo}: {todo: Todo},
+    {item}: TodoProps,
     {
         theme,
         options,
         service,
         helper,
         errors,
-        editableTodo
+        editableTodo,
+        editStatus
     }: TodoViewState
 ) {
-    // @todo think about service initializer, move to hooks
-    service.setTodo(todo)
-
     return <div className={theme.wrapper}>
         <span className={theme.completed}>
             <input
                 type="checkbox"
                 id="isCompleted"
                 name="isCompleted"
-                checked={todo.isCompleted}
+                checked={item.isCompleted}
                 onChange={helper.change(service.toggleCompleted)}
             />
         </span>
-        <span className={theme.id}>{todo.id}</span>
+        <span className={theme.id}>{item.id}</span>
         {options.isEditing ? [
             <ErrorableElement
                 key="editingTitle"
@@ -82,9 +90,9 @@ function TodoView(
             ><span className={theme.cancelIcon}/></button>
         ] : <button
             id="beginEdit"
-            className={theme.beginEdit}
+            className={theme.getBeginEdit(editStatus)}
             onClick={helper.click(service.beginEdit)}
-        >{todo.title}</button>}
+        >{editStatus.error ? editStatus.error.message : item.title}</button>}
         <button
             id="deleteTodo"
             className={theme.deleteTodo}
@@ -99,3 +107,20 @@ export default component({
         TodoService
     ]
 })(TodoView)
+
+@hooks(TodoView)
+class TodoViewHooks {
+    _service: TodoService
+
+    constructor(service: TodoService) {
+        this._service = service
+    }
+
+    willMount({item}: TodoProps) {
+        this._service.setTodo(item)
+    }
+
+    willUpdate({item}: TodoProps) {
+        this._service.setTodo(item)
+    }
+}

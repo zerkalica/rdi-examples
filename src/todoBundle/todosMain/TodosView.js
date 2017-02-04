@@ -20,7 +20,7 @@ export default function TodosView(
     return <ul className={theme.wrapper}>
         {todos.items.map((todo: Todo) =>
             <li className={theme.item} key={todo.id}>
-                <TodoView todo={todo}/>
+                <TodoView item={todo}/>
             </li>
         )}
     </ul>

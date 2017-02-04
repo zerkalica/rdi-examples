@@ -24,7 +24,7 @@ export default function ErrorableElement(
         theme
     }: ErrorableElementState
 ) {
-    return <span className={className}>
+    return <span className={theme.wrapper}>
         {children}
         {error
             ? <div className={theme.message(errorSide)}>{error}</div>

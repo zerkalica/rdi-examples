@@ -23,7 +23,7 @@ export default class TodoAddTheme {
                 composes: ['form-control']
             },
             toggleAll: {
-                composes: ['input-group-addon', 'btn', 'btn-link'],
+                composes: ['input-group-addon', 'btn'],
                 fontWeight: 'bold'
             },
             togleAllIcon: {
@@ -31,9 +31,6 @@ export default class TodoAddTheme {
             },
             submit: {
                 composes: ['btn', 'btn-success']
-            },
-            error: {
-                width: '100%'
             },
             addIcon: {
                 composes: ['fa', 'fa-plus-square']

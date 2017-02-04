@@ -46,6 +46,7 @@ export default class TodoService {
 
     toggleCompleted() {
         const {_todo: todo, _todos: todos} = this
+        const fetch = this._fetch
         if (!todo) {
             throw new Error('todo not initialized')
         }
@@ -53,23 +54,16 @@ export default class TodoService {
         const newTodo = todo.copy({isCompleted: !todo.isCompleted})
 
         const updater = new Updater({
-            value: todos,
+            value: this._editableTodo,
             promise(): Promise<void> {
-                return this._fetch('/todo', {
-                    method: 'PUT',
+                return fetch(`/todo/${todo.id}`, {
+                    method: 'POST',
                     body: newTodo
-                })
-            },
-            complete({id}: {id: string}) {
-                todos
-                    .set(newTodo, newTodo.copy({id}))
-                    .commit()
+                }).then(() => {})
             }
         })
         updater.run()
-        todos
-            .set(todo, newTodo)
-            .commit()
+        todos.set(todo, newTodo)
     }
 
     beginEdit() {
@@ -77,35 +71,30 @@ export default class TodoService {
             throw new Error('todo not initialized')
         }
         this._editableTodo.set(this._todo)
-        this._validator.validate(this._todo).commit()
+        this._validator.validate(this._todo)
         this._options.set({isEditing: true})
     }
 
     commitEdit() {
         const {_todo: todo, _todos: todos, _validator: validator,
             _editableTodo: editableTodo, _options: options} = this
+        const fetch = this._fetch
         if (!todo) {
             throw new Error('todo not initialized')
         }
-        const errors = validator.validate(this._editableTodo)
-        errors.commit()
+        const errors = validator.validate(editableTodo)
         if (!errors.isError) {
-            const newTodo = new Todo(editableTodo)
-            todos.set(todo.id, newTodo).commit()
-            options.set({isEditing: false})
+            const newTodo = new Todo().copy(editableTodo)
+            todos.set(todo, newTodo)
+            options.reset()
 
             const updater = new Updater({
-                value: todos,
+                value: editableTodo,
                 promise(): Promise<void> {
-                    return this._fetch(`/todo/${todo.id}`, {
+                    return fetch(`/todo/${todo.id}`, {
                         method: 'POST',
                         body: newTodo
                     }).then(() => {})
-                },
-                complete({id}: {id: string}) {
-                    todos
-                        .set(newTodo, newTodo.copy({id}))
-                        .commit()
                 }
             })
             updater.run()
@@ -118,6 +107,7 @@ export default class TodoService {
 
     deleteTodo() {
         const {_todo: todo, _todos: todos} = this
+        const fetch = this._fetch
         if (!todo) {
             throw new Error('todo not initialized')
         }
@@ -125,14 +115,12 @@ export default class TodoService {
         const updater = new Updater({
             value: todos,
             promise(): Promise<void> {
-                return this._fetch(`/todo/${todo.id}`, {
+                return fetch(`/todo/${todo.id}`, {
                     method: 'DELETE'
-                })
+                }).then(() => {})
             }
         })
         updater.run()
-        todos
-            .remove(todo)
-            .commit()
+        todos.remove(todo)
     }
 }

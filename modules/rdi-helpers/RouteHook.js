@@ -23,7 +23,7 @@ export default class RouteHook<T: Object> {
         throw new Error('implement')
     }
 
-    willMount(params: T) {
+    _willMount(params: T) {
         this._unsubscribe = this._rm.onChange((nr: Route) => {
             const newParams = this.fromRoute(nr)
             if (newParams) {
@@ -38,7 +38,7 @@ export default class RouteHook<T: Object> {
         }
     }
 
-    willUpdate(next: T) {
+    _willUpdate(next: T) {
         const {page, params} = this.toRoute(next)
         this._rm.update(page || null, params)
     }

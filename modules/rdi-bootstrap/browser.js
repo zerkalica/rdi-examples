@@ -18,6 +18,7 @@ import jssCompose from 'jss-compose'
 import bowser from 'bowser'
 
 import {DiFactory, ReactComponentFactory} from 'reactive-di'
+import type {ILogger} from 'reactive-di'
 
 import {PageNotFoundError, Route, RouterManager} from 'modern-router'
 import {BrowserLocation} from 'modern-router/browser'
@@ -35,13 +36,17 @@ export default function browserInit(
         elementId,
         values,
         pages,
-        ErrorPage
+        ErrorPage,
+        rdi,
+        logger
     }: {
         window: Object,
         elementId: string,
         values: {[id: string]: Object},
         pages: {[id: string]: Function},
-        ErrorPage: Function
+        ErrorPage: Function,
+        rdi: mixed[],
+        logger: Class<ILogger>
 }) {
     const di = (new DiFactory({
         values: {
@@ -56,6 +61,7 @@ export default function browserInit(
             ),
             BrowserInfo: new BrowserInfo(bowser)
         },
+        logger,
         defaultErrorComponent: ErrorPage,
         themeFactory: createJss({
             plugins: [
@@ -70,6 +76,10 @@ export default function browserInit(
         })
     }))
         .create()
+        .register([
+            ...rdi,
+            [RouterManager, createRouterManager]
+        ])
 
     render(
         createElement(di.wrapComponent(AppView)),

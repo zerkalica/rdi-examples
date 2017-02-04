@@ -10,6 +10,8 @@ export type SelectedGroup = 'all' | 'active' | 'completed'
 @source({key: 'TodoFilterParams'})
 export default class TodoFilterParams extends BaseModel {
     selectedGroup: SelectedGroup = 'all'
+
+    set: (rec: $Shape<this>) => any;
 }
 
 @hooks(TodoFilterParams)

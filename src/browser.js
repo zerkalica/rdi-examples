@@ -8,7 +8,8 @@ import browserInit from 'rdi-bootstrap/browser'
 
 import {ErrorPage} from 'rdi-ui-common'
 // import staticConfig from 'rdi-config/.configloaderrc'
-import {pages, routes} from './modules'
+import {rdi, pages, routes} from './modules'
+import Logger from './common/logger/Logger'
 
 const pn = document.location.pathname
 const values = merge([
@@ -28,5 +29,7 @@ browserInit({
     ErrorPage,
     elementId: 'app',
     values,
-    pages
+    pages,
+    rdi,
+    logger: Logger
 })

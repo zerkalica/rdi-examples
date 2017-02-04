@@ -12,7 +12,7 @@
     "prepush": "npm test",
     "update": "ncu -ua && npm install",
     "clean": "rm -rf docs",
-    "build.babel": "npm run clean && babel src --source-maps --out-dir $npm_package_config_builddir/dist",
+    "build.babel": "npm run clean && babel modules --source-maps --out-dir $npm_package_config_builddir/dist",
     "build": "npm run clean && webpack --config conf/webpack.config.es5.js",
     "build.dep": "npm-helpers/build-deps.sh",
     "lint": "eslint src",

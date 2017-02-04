@@ -1,5 +1,7 @@
 // @flow
 
+import {SourceStatus} from 'reactive-di'
+
 import {theme} from 'reactive-di/annotations'
 
 @theme
@@ -7,6 +9,8 @@ export default class TodoTheme {
     wrapper: string
     completed: string
     beginEdit: string
+    beginEditPending: string
+    beginEditError: string
     editingTitle: string
     commitEdit: string
     cancelEdit: string
@@ -20,6 +24,11 @@ export default class TodoTheme {
     __css: mixed
 
     constructor() {
+        const beginEdit = {
+            composes: ['form-control', 'btn', 'btn-secondary'],
+            textAlign: 'left',
+            overflow: 'hidden'
+        }
         this.__css = {
             wrapper: {
                 composes: ['input-group']
@@ -31,9 +40,15 @@ export default class TodoTheme {
                 composes: ['form-control']
             },
             beginEdit: {
-                composes: ['form-control', 'btn', 'btn-secondary'],
-                textAlign: 'left',
-                overflow: 'hidden'
+                ...beginEdit
+            },
+            beginEditPending: {
+                ...beginEdit,
+                composes: ['alert-warning']
+            },
+            beginEditError: {
+                ...beginEdit,
+                composes: ['alert-danger']
             },
             commitEdit: {
                 composes: ['btn', 'btn-primary']
@@ -61,5 +76,13 @@ export default class TodoTheme {
                 fontSize: '80%'
             }
         }
+    }
+
+    getBeginEdit(status: SourceStatus): string {
+        return status.complete
+            ? this.beginEdit
+            : status.error
+                ? this.beginEditError
+                : this.beginEditPending
     }
 }

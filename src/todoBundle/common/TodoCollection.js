@@ -22,7 +22,7 @@ class TodoCollectionHooks {
         this._todoUpdater = new Updater({
             value: todos,
             promise(): Promise<TodoCollection> {
-                return fetch('/todo', {
+                return fetch('/todos', {
                     method: 'GET'
                 })
             }

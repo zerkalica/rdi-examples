@@ -26,6 +26,7 @@ const routes: {[id: string]: RouteConfig} = {
         }
     },
     TodosPage: {
+        page: 'TodosPage',
         pattern: '/todos/<group>',
         defaults: {
             group: 'all'

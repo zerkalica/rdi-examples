@@ -42,7 +42,7 @@ export default class TodosFooterService {
                     body: {
                         isCompleted: true
                     }
-                })
+                }).then(() => {})
             }
         })
         this._params = params
@@ -50,19 +50,19 @@ export default class TodosFooterService {
     }
 
     showAll() {
-        this._params.set({group: 'all'})
+        this._params.set({selectedGroup: 'all'})
     }
 
     showActive() {
-        this._params.set({group: 'active'})
+        this._params.set({selectedGroup: 'active'})
     }
 
     showCompleted() {
-        this._params.set({group: 'completed'})
+        this._params.set({selectedGroup: 'completed'})
     }
 
     clearCompleted() {
         this._updater.run()
-        this._values.copy(this._values.filter(filterNotCompleted))
+        this._values.copy(this._values.filter(filterNotCompleted)).commit()
     }
 }

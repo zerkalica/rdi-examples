@@ -38,7 +38,6 @@ export default function TodoAddView(
         <ErrorableElement
             errorSide="bottom"
             error={errors.title}
-            className={theme.error}
         >
             <input
                 id="addTodoTitle"

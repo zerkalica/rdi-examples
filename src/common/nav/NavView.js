@@ -32,15 +32,17 @@ export default function NavView(
     }: NavState
 ) {
     return <nav className={theme.wrapper}>
-        <ul className={theme.block}>
-            <li className={theme.active}>
-                <a
-                    className={theme.link}
-                    onClick={helper.click(() => {})}
-                    href={rm.build('TodosPage', {group: 'all'})}
-                >{lang.todos}</a>
-            </li>
-        </ul>
-        <div className={theme.statusWrapper}><ServerStatusView status={status}/></div>
+        <div className={theme.content}>
+            <ul className={theme.block}>
+                <li className={theme.active}>
+                    <a
+                        className={theme.link}
+                        onClick={helper.click(() => {})}
+                        href={rm.build('TodosPage', {group: 'all'})}
+                    >{lang.todos}</a>
+                </li>
+            </ul>
+            <span className={theme.statusWrapper}><ServerStatusView noRetry status={status}/></span>
+        </div>
     </nav>
 }

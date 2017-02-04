@@ -2,10 +2,10 @@
 
 import {theme} from 'reactive-di/annotations'
 
-export type AlertType = 'success' | 'error' | 'warning' | 'info'
+import type {AlertType} from 'rdi-ui-common/alert/AlertTheme'
 
 @theme
-export default class AlertTheme {
+export default class ServerStatusTheme {
     error: string
     success: string
 
@@ -13,24 +13,26 @@ export default class AlertTheme {
 
     constructor() {
         const alert = {
-            marginTop: '0.5em'
+            display: 'inline-block',
+            border: '1px solid transparent',
+            padding: '0.1em 0.5em'
         }
         this.__css = {
             error: {
                 ...alert,
-                composes: ['alert', 'alert-danger']
+                composes: ['alert-danger']
             },
             success: {
                 ...alert,
-                composes: ['alert', 'alert-success']
+                composes: ['alert-success']
             },
             info: {
                 ...alert,
-                composes: ['alert', 'alert-info']
+                composes: ['alert-info']
             },
             warning: {
                 ...alert,
-                composes: ['alert', 'alert-warning']
+                composes: ['alert-warning']
             }
         }
     }

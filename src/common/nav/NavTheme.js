@@ -8,6 +8,7 @@ export default class NavTheme {
     block: string
     active: string
     link: string
+    content: string
     statusWrapper: string
 
     __css: mixed
@@ -15,13 +16,16 @@ export default class NavTheme {
     constructor() {
         this.__css = {
             statusWrapper: {
-                composes: ['float-xs-right']
+                composes: ['form-inline my-2']
+            },
+            content: {
+                composes: ['navbar-collapse']
             },
             wrapper: {
-                composes: ['navbar', 'navbar-light', 'bg-faded']
+                composes: ['navbar', 'navbar-toggleable-md', 'navbar-light', 'bg-faded']
             },
             block: {
-                composes: ['nav', 'navbar-nav']
+                composes: ['navbar-nav', 'mr-auto']
             },
             active: {
                 composes: ['nav-item', 'active']
