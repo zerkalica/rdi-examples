@@ -1,6 +1,6 @@
 // @flow
-import {setter} from 'reactive-di'
 import {RouterManager, Route} from 'modern-router'
+import {setterKey} from 'reactive-di'
 
 export type IRouteParams = {
     page?: ?string;
@@ -15,21 +15,24 @@ export default class RouteHook<T: Object> {
         this._rm = rm
     }
 
-    fromRoute(_r: Route): ?$Shape<T> {
+    _fromRoute(_r: Route): ?$Shape<T> {
         throw new Error('implement')
     }
 
-    toRoute(_next: T): IRouteParams {
+    _toRoute(_next: T): IRouteParams {
         throw new Error('implement')
     }
 
-    _willMount(params: T) {
-        this._unsubscribe = this._rm.onChange((nr: Route) => {
-            const newParams = this.fromRoute(nr)
-            if (newParams) {
-                setter(params, newParams)
-            }
-        })
+    _onRoute(params: T, nr: Route) {
+        const newParams = this._fromRoute(nr)
+        if (newParams) {
+            params.set(newParams)
+            params[setterKey].context.notifier.end()
+        }
+    }
+
+    willMount(params: T) {
+        this._unsubscribe = this._rm.onChange((nr: Route) => this._onRoute(params, nr))
     }
 
     willUnmount() {
@@ -38,8 +41,8 @@ export default class RouteHook<T: Object> {
         }
     }
 
-    _willUpdate(next: T) {
-        const {page, params} = this.toRoute(next)
+    willUpdate(next: T) {
+        const {page, params} = this._toRoute(next)
         this._rm.update(page || null, params)
     }
 }

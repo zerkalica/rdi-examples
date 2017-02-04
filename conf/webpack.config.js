@@ -3,6 +3,7 @@
 import path from 'path'
 import HtmlWebpackPlugin from 'html-webpack-plugin'
 import {
+    LoaderOptionsPlugin,
     DefinePlugin,
     NormalModuleReplacementPlugin,
     optimize
@@ -25,13 +26,14 @@ function createCreateStyleLoaders(isProduction: boolean): (...args: any[]) => st
 
     const cssOptions: string[] = [
         // 'autoprefixer',
+        'context=/',
         (isProduction ? '-' : '') + 'sourceMap',
         (isProduction ? '' : '-') + 'minimize'
     ]
 
     return function createStyleLoaders(...styleArgs: any[]): string[] {
-        const styleLoader = 'style?' + styleOptions.join('&')
-        const cssLoader = 'css?' + cssOptions.join('&')
+        const styleLoader = 'style-loader?' + styleOptions.join('&')
+        const cssLoader = 'css-loader?' + cssOptions.join('&')
         return [styleLoader, cssLoader].concat(styleArgs)
     }
 }
@@ -44,19 +46,13 @@ const fallback = getFallbackPaths(root)
 const createStyleLoaders = createCreateStyleLoaders(isProduction)
 
 export default {
-    cwd: root,
     cache: true,
-    debug: true,
     devtool: 'source-map',
     resolve: {
-        fallback,
         alias: {
             buffer: 'empty/object',
             querystring: 'querystring-browser'
         }
-    },
-    resolveLoader: {
-        fallback
     },
     output: {
         publicPath: '',
@@ -68,19 +64,14 @@ export default {
             path.resolve(root, 'src', 'browser.js')
         ]
     },
-    configLoader: {
-        env: isProduction ? 'prod' : 'dev',
-        instance: process.env.APP_INSTANCE || 'client'
-    },
     module: {
-        preLoaders: [
+        rules: [
             {
+                enforce: 'pre',
                 test: /\.js$/,
                 exclude: ['src', 'lib'],
-                loaders: ['source-map']
-            }
-        ],
-        loaders: [
+                loaders: ['source-map-loader']
+            },
             {
                 test: /.*\.configloaderrc$/,
                 loader: 'node-config-loader/webpack'
@@ -93,15 +84,15 @@ export default {
                 test: /\.(?:jsx?|es6)$/,
                 include: /(?:src|modules)/,
                 exclude: /(?:node_modules|bower_components)/,
-                loaders: ['babel-loader'] // 'react-hot-loader'
+                loaders: ['babel-loader']
             },
             {
                 test: /\.(?:png|jpg|gif|ico)$/,
-                loader: 'file?name=assets/[name].[ext]'
+                loader: 'file-loader?name=assets/[name].[ext]'
             },
             {
                 test: /\.(?:eot|woff|woff2|ttf|svg)(?:\?v\=[\d\w\.]+)?$/,
-                loader: 'file?name=assets/[name].[ext]'
+                loader: 'file-loader?name=assets/[name].[ext]'
             },
             {
                 test: /\.css$/,
@@ -110,6 +101,15 @@ export default {
         ]
     },
     plugins: [
+        new LoaderOptionsPlugin({
+            options: {
+                configLoader: {
+                    env: isProduction ? 'prod' : 'dev',
+                    instance: process.env.APP_INSTANCE || 'client'
+                }
+            }
+        }),
+
         new NormalModuleReplacementPlugin(/^co$/, debugStubPath),
         new DefinePlugin({
             'process.env': {

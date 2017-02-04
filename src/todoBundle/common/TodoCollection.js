@@ -9,6 +9,7 @@ import Todo from './Todo'
 @source({key: 'TodoCollection'})
 export default class TodoCollection extends IndexCollection {
     static Item = Todo
+    static autoNotify = true
 }
 
 @hooks(TodoCollection)

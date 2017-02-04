@@ -12,6 +12,7 @@ import TodoValidator from 'rdi-todo/todoBundle/common/TodoValidator'
 
 import TodoOptions from './TodoOptions'
 import EditableTodo from './EditableTodo'
+import TodoRefs from './TodoRefs'
 
 @actions
 export default class TodoService {
@@ -21,27 +22,26 @@ export default class TodoService {
     _todos: TodoCollection
     _validator: TodoValidator
     _fetch: ResultOf<typeof createFetch>
+    _refs: TodoRefs
 
     constructor(
         options: TodoOptions,
         editableTodo: EditableTodo,
         todos: TodoCollection,
         validator: TodoValidator,
-        fetch: ResultOf<typeof createFetch>
+        fetch: ResultOf<typeof createFetch>,
+        refs: TodoRefs
     ) {
         this._options = options
         this._editableTodo = editableTodo
         this._todos = todos
         this._validator = validator
         this._fetch = fetch
+        this._refs = refs
     }
 
     setTodo(todo: Todo): void {
         this._todo = todo
-    }
-
-    setTitle(title: string) {
-        this._editableTodo.set({title})
     }
 
     toggleCompleted() {
@@ -63,7 +63,7 @@ export default class TodoService {
             }
         })
         updater.run()
-        todos.set(todo, newTodo)
+        todos.set(newTodo)
     }
 
     beginEdit() {
@@ -71,8 +71,8 @@ export default class TodoService {
             throw new Error('todo not initialized')
         }
         this._editableTodo.set(this._todo)
-        this._validator.validate(this._todo)
         this._options.set({isEditing: true})
+        this._refs.editingTitle.then((et: HTMLElement) => et.focus())
     }
 
     commitEdit() {

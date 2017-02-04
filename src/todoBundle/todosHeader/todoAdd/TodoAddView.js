@@ -1,5 +1,5 @@
 // @flow
-
+import {eventSetter} from 'reactive-di'
 import {EventHelper, KEYCODE} from 'rdi-helpers'
 import {ErrorableElement} from 'rdi-ui-common'
 
@@ -46,7 +46,7 @@ export default function TodoAddView(
                 placeholder={lang.todoPlaceholder}
                 autoFocus
                 value={values.title}
-                onChange={helper.change(service.setTitle)}
+                onInput={eventSetter(values).title}
                 onKeyDown={helper.keyMap([
                     [KEYCODE.ENTER, service.commitAdding],
                     [KEYCODE.ESC, service.cancelAdding]

@@ -1,5 +1,5 @@
 // @flow
-import {SourceStatus} from 'reactive-di'
+import {eventSetter, SourceStatus} from 'reactive-di'
 import {hooks, component} from 'reactive-di/annotations'
 import {ErrorableElement} from 'rdi-ui-common'
 import {EventHelper, KEYCODE} from 'rdi-helpers'
@@ -10,6 +10,7 @@ import TodoTheme from './TodoTheme'
 import TodoService from './TodoService'
 import TodoOptions from './TodoOptions'
 import EditableTodo from './EditableTodo'
+import TodoRefs from './TodoRefs'
 
 class EditableTodoStatus extends SourceStatus {
     static statuses = [EditableTodo]
@@ -23,6 +24,7 @@ interface TodoViewState {
     editableTodo: EditableTodo;
     errors: TodoErrors;
     editStatus: EditableTodoStatus;
+    refs: TodoRefs;
 }
 
 interface TodoProps {
@@ -33,6 +35,7 @@ function TodoView(
     {item}: TodoProps,
     {
         theme,
+        refs,
         options,
         service,
         helper,
@@ -62,12 +65,12 @@ function TodoView(
                     id="editingTitle"
                     name="editingTitle"
                     value={editableTodo.title}
-                    onChange={helper.change(service.setTitle)}
+                    onInput={eventSetter(editableTodo).title}
                     onKeyDown={helper.keyMap([
                         [KEYCODE.ESC, service.cancelEdit],
                         [KEYCODE.ENTER, service.commitEdit]
                     ])}
-                    autoFocus
+                    ref={refs.editingTitle.set}
                     size={240}
                     maxLength={240}
                     className={theme.editingTitle}

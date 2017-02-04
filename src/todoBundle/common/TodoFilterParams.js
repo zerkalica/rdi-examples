@@ -16,7 +16,7 @@ export default class TodoFilterParams extends BaseModel {
 
 @hooks(TodoFilterParams)
 class TodoFilterParamsHooks extends RouteHook<TodoFilterParams> {
-    fromRoute({query}: Route): ?$Shape<TodoFilterParams> {
+    _fromRoute({query}: Route): ?$Shape<TodoFilterParams> {
         const result: $Shape<TodoFilterParams> = {}
         switch (query.group) {
             case 'all':
@@ -31,7 +31,7 @@ class TodoFilterParamsHooks extends RouteHook<TodoFilterParams> {
         return result
     }
 
-    toRoute(next: TodoFilterParams): IRouteParams {
+    _toRoute(next: TodoFilterParams): IRouteParams {
         return {
             params: {
                 group: next.selectedGroup

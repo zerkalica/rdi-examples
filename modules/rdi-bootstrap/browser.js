@@ -3,12 +3,12 @@
 
 import './polyfills'
 
-import {createElement, Component} from 'react'
-import {render} from 'react-dom'
+// import {createElement, Component} from 'react'
+// import {render} from 'react-dom'
 
-// import {render} from 'inferno-dom'
-// import Component from 'inferno-component'
-// import createElement from 'inferno-create-element'
+import {render} from 'inferno'
+import Component from 'inferno-component'
+import createElement from 'inferno-create-element'
 
 import {create as createJss} from 'jss'
 import nested from 'jss-nested'
@@ -53,7 +53,7 @@ export default function browserInit(
             ...values,
             Pages: new Pages(pages),
             AbstractStorage: new BrowserLocalStorage(window.localStorage),
-            AbstractLocation: new BrowserLocation(window),
+            AbstractLocation: new BrowserLocation(window, true),
             BaseEnv: new BaseEnv(
                 window.document.referrer,
                 window.navigator.userAgent,

@@ -12,7 +12,7 @@ export default function AppView(
         pages: Pages;
     }
 ) {
-    const Page: ?Function = pages.pages[params.page || 'TodosPage']
+    const Page: ?Function = pages.pages[params.page]
     if (!Page) {
         throw new PageNotFoundError(params.page)
     }

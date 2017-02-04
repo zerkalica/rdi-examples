@@ -50,7 +50,7 @@ export default class TodoAddService {
                         method: 'PUT',
                         body: newTodo
                     }).then(({id}: {id: string}) => {
-                        todos.set(newTodo, newTodo.copy({id}))
+                        todos.set(newTodo.copy({id}))
                     })
                 }
             })

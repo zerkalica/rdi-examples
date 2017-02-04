@@ -63,6 +63,6 @@ export default class TodosFooterService {
 
     clearCompleted() {
         this._updater.run()
-        this._values.copy(this._values.filter(filterNotCompleted)).commit()
+        this._values.filter(filterNotCompleted)
     }
 }
