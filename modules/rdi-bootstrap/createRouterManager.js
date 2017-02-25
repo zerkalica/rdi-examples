@@ -6,8 +6,8 @@ import {
     Route,
     RouterConfig
 } from 'modern-router'
-// import type {ISource} from 'reactive-di'
-import {setterKey} from 'reactive-di'
+import type {ISource} from 'reactive-di'
+import {getSrc} from 'reactive-di'
 import {actions, hooks, source} from 'reactive-di/annotations'
 
 source({key: 'Route'})(Route)
@@ -17,17 +17,19 @@ source({key: 'AbstractLocation', instance: true})(AbstractLocation)
 @actions
 class RouteSetAction {
     src: ?ISource<Route> = null
+    isChangedByHistory: boolean = false
 
-    setRoute(nr: Route) {
+    locationChange(nr: Route) {
         if (!this.src) {
             throw new Error('Init src')
         }
+        this.isChangedByHistory = true
         this.src.set(nr)
     }
 }
 
 @hooks(Route)
-class RouteHook {
+export class RouteHook {
     _rm: RouterManager
     _unsubscribe: ?() => void
     _setter: RouteSetAction
@@ -39,8 +41,18 @@ class RouteHook {
     }
 
     willMount(route: Route) {
-        this._setter.src = route[setterKey]
-        this._unsubscribe = this._rm.onChange(this._setter.setRoute)
+        const setter = this._setter
+        setter.src = getSrc(route)
+        this._unsubscribe = this._rm.onChange(setter.locationChange)
+        setter.isChangedByHistory = false
+    }
+
+    willUpdate(next: Route) {
+        if (this._setter.isChangedByHistory) {
+            this._setter.isChangedByHistory = false
+        } else {
+            this._rm.set(next.name, next.query)
+        }
     }
 
     willUnmount() {

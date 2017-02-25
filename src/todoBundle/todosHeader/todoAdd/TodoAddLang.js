@@ -1,6 +1,5 @@
 // @flow
 
-import {BaseModel} from 'reactive-di'
 import {source} from 'reactive-di/annotations'
 
 export interface TodoAddLangRec {
@@ -8,6 +7,6 @@ export interface TodoAddLangRec {
 }
 
 @source({key: 'TodoAddLang'})
-export default class TodoAddLang extends BaseModel {
+export default class TodoAddLang {
     todoPlaceholder = 'What need to add?'
 }

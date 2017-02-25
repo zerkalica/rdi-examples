@@ -1,9 +1,6 @@
 // @flow
+import {source} from 'reactive-di/annotations'
 
-import {BaseModel} from 'reactive-di'
-
-export default class UIVars extends BaseModel {
-    static defaults = {
-
-    }
+@source({key: 'UIVars'})
+export default class UIVars {
 }

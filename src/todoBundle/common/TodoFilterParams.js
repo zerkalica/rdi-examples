@@ -1,41 +1,50 @@
 /* @flow */
 import {Route} from 'modern-router'
-import {RouteHook, QueryError} from 'rdi-helpers'
-import type {IRouteParams} from 'rdi-helpers'
-import {BaseModel} from 'reactive-di'
+import {QueryError} from 'rdi-helpers'
+import {getSrc} from 'reactive-di'
 import {source, hooks} from 'reactive-di/annotations'
 
 export type SelectedGroup = 'all' | 'active' | 'completed'
 
 @source({key: 'TodoFilterParams'})
-export default class TodoFilterParams extends BaseModel {
+export default class TodoFilterParams {
     selectedGroup: SelectedGroup = 'all'
-
-    set: (rec: $Shape<this>) => any;
 }
 
 @hooks(TodoFilterParams)
-class TodoFilterParamsHooks extends RouteHook<TodoFilterParams> {
-    _fromRoute({query}: Route): ?$Shape<TodoFilterParams> {
-        const result: $Shape<TodoFilterParams> = {}
+class TodoFilterParamsHooks {
+    _route: Route
+
+    constructor(route: Route) {
+        this._route = route
+    }
+
+    selfUpdate(fp: TodoFilterParams) {
+        this.willMount(fp)
+    }
+
+    willMount(fp: TodoFilterParams) {
+        const query = this._route.query
         switch (query.group) {
             case 'all':
             case 'active':
             case 'completed':
-                result.selectedGroup = query.group
+                getSrc(fp).merge({
+                    selectedGroup: query.group
+                })
                 break
             default:
                 throw new QueryError('group', 'Error group')
         }
-
-        return result
     }
 
-    _toRoute(next: TodoFilterParams): IRouteParams {
-        return {
-            params: {
-                group: next.selectedGroup
+    willUpdate(fp: TodoFilterParams) {
+        const route = this._route
+        getSrc(route).merge({
+            query: {
+                ...route.query,
+                group: fp.selectedGroup
             }
-        }
+        })
     }
 }

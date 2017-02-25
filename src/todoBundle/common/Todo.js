@@ -1,7 +1,6 @@
 // @flow
 
 import shortId from 'shortid'
-import {BaseModel} from 'reactive-di'
 import {source} from 'reactive-di/annotations'
 
 export interface TodoRec {
@@ -12,7 +11,7 @@ export interface TodoRec {
 }
 
 @source({key: 'Todo'})
-export default class Todo extends BaseModel {
+export default class Todo {
     id = shortId.generate()
     title = ''
     isCompleted = false

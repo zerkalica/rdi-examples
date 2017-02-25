@@ -1,8 +1,7 @@
 // @flow
-import {BaseModel} from 'reactive-di'
 import {source} from 'reactive-di/annotations'
 
 @source({key: 'TodoOptions'})
-export default class TodoOptions extends BaseModel {
+export default class TodoOptions {
     isEditing = false
 }

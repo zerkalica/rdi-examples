@@ -1,10 +1,8 @@
 // @flow
-
-import {BaseModel} from 'reactive-di'
 import {source} from 'reactive-di/annotations'
 
 @source({key: 'ServerLoadingLang'})
-export default class ServerLoadingLang extends BaseModel {
+export default class ServerLoadingLang {
     errorLoading = 'Server error: #{message}'
     retry = 'Retry'
     noAuthorized = 'Not authorized'

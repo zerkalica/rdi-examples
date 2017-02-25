@@ -1,5 +1,5 @@
 // @flow
-import {eventSetter, SourceStatus} from 'reactive-di'
+import {getSrc, SourceStatus} from 'reactive-di'
 import {hooks, component} from 'reactive-di/annotations'
 import {ErrorableElement} from 'rdi-ui-common'
 import {EventHelper, KEYCODE} from 'rdi-helpers'
@@ -65,7 +65,7 @@ function TodoView(
                     id="editingTitle"
                     name="editingTitle"
                     value={editableTodo.title}
-                    onInput={eventSetter(editableTodo).title}
+                    onInput={getSrc(editableTodo).eventSetter().title}
                     onKeyDown={helper.keyMap([
                         [KEYCODE.ESC, service.cancelEdit],
                         [KEYCODE.ENTER, service.commitEdit]

@@ -1,6 +1,6 @@
 // @flow
 
-import {Updater} from 'reactive-di'
+import {getSrc} from 'reactive-di'
 import {actions} from 'reactive-di/annotations'
 import type {ResultOf} from 'reactive-di'
 import {RouterManager} from 'modern-router'
@@ -21,7 +21,7 @@ export default class TodosFooterService {
     activeUrl: string
     completedUrl: string
 
-    _updater: Updater<TodoCollection>
+    _fetch: ResultOf<typeof createFetch>
     _values: TodoCollection
     _params: TodoFilterParams
 
@@ -34,9 +34,29 @@ export default class TodosFooterService {
         this.indexUrl = rm.build('index')
         this.activeUrl = rm.build('TodosPage', {group: 'active'})
         this.completedUrl = rm.build('TodosPage', {group: 'completed'})
-        this._updater = new Updater({
-            value: values,
-            promise(): Promise<void> {
+        this._params = params
+        this._values = values
+        this._fetch = fetch
+    }
+
+    showAll() {
+        getSrc(this._params).merge({selectedGroup: 'all'})
+    }
+
+    showActive() {
+        getSrc(this._params).merge({selectedGroup: 'active'})
+    }
+
+    showCompleted() {
+        getSrc(this._params).merge({selectedGroup: 'completed'})
+    }
+
+    clearCompleted() {
+        const fetch = this._fetch
+        const values = this._values
+        values.filter(filterNotCompleted)
+        getSrc(values).update({
+            run(): Promise<void> {
                 return fetch('/todos', {
                     method: 'DELETE',
                     body: {
@@ -45,24 +65,5 @@ export default class TodosFooterService {
                 }).then(() => {})
             }
         })
-        this._params = params
-        this._values = values
-    }
-
-    showAll() {
-        this._params.set({selectedGroup: 'all'})
-    }
-
-    showActive() {
-        this._params.set({selectedGroup: 'active'})
-    }
-
-    showCompleted() {
-        this._params.set({selectedGroup: 'completed'})
-    }
-
-    clearCompleted() {
-        this._updater.run()
-        this._values.filter(filterNotCompleted)
     }
 }

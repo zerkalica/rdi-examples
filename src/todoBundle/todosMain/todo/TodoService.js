@@ -1,7 +1,7 @@
 // @flow
 
 import type {ResultOf} from 'reactive-di'
-import {Updater} from 'reactive-di'
+import {getSrc, copy} from 'reactive-di'
 import {actions} from 'reactive-di/annotations'
 
 import {createFetch} from 'rdi-fetcher'
@@ -13,6 +13,10 @@ import TodoValidator from 'rdi-todo/todoBundle/common/TodoValidator'
 import TodoOptions from './TodoOptions'
 import EditableTodo from './EditableTodo'
 import TodoRefs from './TodoRefs'
+
+function focusElement(et: HTMLElement): void {
+    et.focus()
+}
 
 @actions
 export default class TodoService {
@@ -51,18 +55,16 @@ export default class TodoService {
             throw new Error('todo not initialized')
         }
 
-        const newTodo = todo.copy({isCompleted: !todo.isCompleted})
+        const newTodo = copy(todo, {isCompleted: !todo.isCompleted})
 
-        const updater = new Updater({
-            value: this._editableTodo,
-            promise(): Promise<void> {
+        getSrc(this._editableTodo).update({
+            run(): Promise<TodoCollection> {
                 return fetch(`/todo/${todo.id}`, {
                     method: 'POST',
                     body: newTodo
-                }).then(() => {})
+                }).then(() => todos)
             }
         })
-        updater.run()
         todos.set(newTodo)
     }
 
@@ -70,9 +72,9 @@ export default class TodoService {
         if (!this._todo) {
             throw new Error('todo not initialized')
         }
-        this._editableTodo.set(this._todo)
-        this._options.set({isEditing: true})
-        this._refs.editingTitle.then((et: HTMLElement) => et.focus())
+        getSrc(this._editableTodo).merge(this._todo)
+        getSrc(this._options).merge({isEditing: true})
+        this._refs.editingTitle.then(focusElement)
     }
 
     commitEdit() {
@@ -84,25 +86,22 @@ export default class TodoService {
         }
         const errors = validator.validate(editableTodo)
         if (!errors.isError) {
-            const newTodo = new Todo().copy(editableTodo)
+            const newTodo = copy(new Todo(), editableTodo)
             todos.set(todo, newTodo)
-            options.reset()
-
-            const updater = new Updater({
-                value: editableTodo,
-                promise(): Promise<void> {
+            getSrc(options).reset()
+            getSrc(this._editableTodo).update({
+                run(): Promise<TodoCollection> {
                     return fetch(`/todo/${todo.id}`, {
                         method: 'POST',
                         body: newTodo
-                    }).then(() => {})
+                    }).then(() => todos)
                 }
             })
-            updater.run()
         }
     }
 
     cancelEdit() {
-        this._options.set({isEditing: false})
+        getSrc(this._options).merge({isEditing: false})
     }
 
     deleteTodo() {
@@ -112,15 +111,13 @@ export default class TodoService {
             throw new Error('todo not initialized')
         }
 
-        const updater = new Updater({
-            value: todos,
-            promise(): Promise<void> {
+        getSrc(this._editableTodo).update({
+            run(): Promise<TodoCollection> {
                 return fetch(`/todo/${todo.id}`, {
                     method: 'DELETE'
-                }).then(() => {})
+                }).then(() => todos)
             }
         })
-        updater.run()
         todos.remove(todo)
     }
 }

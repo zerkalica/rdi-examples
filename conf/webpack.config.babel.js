@@ -9,16 +9,6 @@ import {
     optimize
 } from 'webpack'
 
-function getFallbackPaths(root: string): string[] {
-    const fallback: string[] = []
-    if (process.env.NVM_PATH) {
-        fallback.push(path.resolve(process.env.NVM_PATH, '..', 'node_modules'))
-    }
-    fallback.push(path.resolve(root, 'node_modules'))
-
-    return fallback
-}
-
 function createCreateStyleLoaders(isProduction: boolean): (...args: any[]) => string[] {
     const styleOptions: string [] = [
         'singleton'
@@ -42,7 +32,6 @@ const root: string = path.resolve(__dirname, '..')
 
 const debugStubPath: string = require.resolve('empty/functionThatReturns')
 const isProduction = process.env.NODE_ENV === 'production'
-const fallback = getFallbackPaths(root)
 const createStyleLoaders = createCreateStyleLoaders(isProduction)
 
 export default {
@@ -122,8 +111,7 @@ export default {
         })
     ].concat(isProduction ? [
         new NormalModuleReplacementPlugin(/^debug$/, debugStubPath),
-        new optimize.DedupePlugin(),
-        new optimize.OccurenceOrderPlugin(),
+        new optimize.OccurrenceOrderPlugin(),
         new optimize.UglifyJsPlugin({
             compress: {
                 warnings: false

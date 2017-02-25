@@ -1,7 +1,7 @@
 /* @flow */
 /* eslint-env browser */
 
-import rtConfig from 'rdi-todo/wpFixes'
+import rtConfig from 'rdi-todo/rtConfig'
 
 import {merge} from 'node-config-loader/common'
 import browserInit from 'rdi-bootstrap/browser'

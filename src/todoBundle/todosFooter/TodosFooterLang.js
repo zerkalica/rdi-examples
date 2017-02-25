@@ -1,13 +1,12 @@
 // @flow
 
-import {BaseModel} from 'reactive-di'
 import {source} from 'reactive-di/annotations'
 
 export interface TodosFooterLangRec {
 }
 
 @source({key: 'TodosFooterLang'})
-export default class TodosFooterLang extends BaseModel {
+export default class TodosFooterLang {
     all = 'All'
     active = 'Active'
     completed = 'Completed'

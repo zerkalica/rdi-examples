@@ -7,10 +7,9 @@ import AlertLinkView from 'rdi-ui-common/alert/AlertLinkView'
 
 import ServerLoadingLang from './ServerLoadingLang'
 
-interface ServerLoadingProps {
+type ServerLoadingProps = {
     status: SourceStatus;
-    // FlowFixMe jsx error with boolean shortland prop
-    noIndicator?: any;
+    noIndicator?: boolean;
     smallIndicator?: boolean;
 }
 

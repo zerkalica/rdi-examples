@@ -8,10 +8,14 @@ export default class Logger {
         console.error(e, name)
     }
 
+    onRender() {
+        console.log('render frame')
+    }
+
     onSetValue<V>(info: ICallerInfo<V>): void {
         /* eslint-disable no-console */
         console.log(
-            `\nframe ${info.trace}#${info.callerId}/${String(info.asyncType)} set ${info.modelName}\nfrom`,
+            `\nframe ${info.trace} #${info.opId} set ${info.modelName}\nfrom`,
             info.oldValue,
             '\nto',
             info.newValue

@@ -1,7 +1,7 @@
 // @flow
 import {actions} from 'reactive-di/annotations'
 import type {ResultOf} from 'reactive-di'
-import {Updater} from 'reactive-di'
+import {copy, getSrc} from 'reactive-di'
 import TodoValidator from 'rdi-todo/todoBundle/common/TodoValidator'
 import TodoCollection from 'rdi-todo/todoBundle/common/TodoCollection'
 import Todo from 'rdi-todo/todoBundle/common/Todo'
@@ -32,7 +32,7 @@ export default class TodoAddService {
     }
 
     setTitle(title: string) {
-        this._values.set({title})
+        getSrc(this._values).merge({title})
     }
 
     commitAdding() {
@@ -40,27 +40,25 @@ export default class TodoAddService {
         const errors = this._validator.validate(this._values)
         const fetch = this._fetch
         if (!errors.isError) {
-            const newTodo = (new Todo()).copy(this._values)
-            todos.push(newTodo)
-
-            const updater = new Updater({
-                value: todos,
-                promise(): Promise<void> {
+            const newTodo = copy(new Todo(), this._values)
+            getSrc(todos).update({
+                run(): Promise<{id: string}> {
                     return fetch('/todo', {
                         method: 'PUT',
                         body: newTodo
-                    }).then(({id}: {id: string}) => {
-                        todos.set(newTodo.copy({id}))
                     })
+                },
+                complete({id}: {id: string}) {
+                    todos.set(copy(newTodo, {id}))
                 }
             })
-            this._values.reset()
-            updater.run()
+            todos.push(newTodo)
+            getSrc(this._values).reset()
         }
     }
 
     cancelAdding() {
-        this._values.reset()
+        getSrc(this._values).reset()
     }
 
     toggleAll() {
@@ -68,19 +66,17 @@ export default class TodoAddService {
         const todos = this._todos
         const isCompleted = !groupState.isAllCompleted
         const fetch = this._fetch
-        const updater = new Updater({
-            value: todos,
-            promise(): Promise<void> {
+        getSrc(todos).update({
+            run(): Promise<null> {
                 return fetch('/todos', {
                     method: 'POST',
                     body: {
                         isCompleted
                     }
-                }).then(() => {})
+                }).then(() => null)
             }
         })
-        updater.run()
-        todos.updateAll((todo: Todo) => todo.copy({isCompleted}))
-        groupState.set({isAllCompleted: isCompleted})
+        todos.updateAll((todo: Todo) => copy(todo, {isCompleted}))
+        getSrc(groupState).merge({isAllCompleted: isCompleted})
     }
 }

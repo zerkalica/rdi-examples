@@ -1,5 +1,5 @@
 // @flow
-
+import {copy} from 'reactive-di'
 import type {TodoRec} from 'rdi-todo/todoBundle/common/Todo'
 import TodoErrors from './TodoErrors'
 import TodoValidatorLang from './TodoValidatorLang'
@@ -15,7 +15,7 @@ export default class TodoValidator {
 
     validate(todo: TodoRec): TodoErrors {
         const {_lang: l} = this
-        const errors = this._errors.copy({})
+        const errors = copy(this._errors)
         if (!todo.title) {
             errors.isError = true
             errors.title = l.requiredTitle

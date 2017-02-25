@@ -1,7 +1,7 @@
 // @flow
 /* eslint-disable import/imports-first */
 
-import './polyfills'
+// import './polyfills'
 
 // import {createElement, Component} from 'react'
 // import {render} from 'react-dom'
@@ -45,7 +45,7 @@ export default function browserInit(
         values: {[id: string]: Object},
         pages: {[id: string]: Function},
         ErrorPage: Function,
-        rdi: mixed[],
+        rdi: any[],
         logger: Class<ILogger>
 }) {
     const di = (new DiFactory({

@@ -1,7 +1,7 @@
 // @flow
 
 import {hooks, source} from 'reactive-di/annotations'
-import {Updater, IndexCollection} from 'reactive-di'
+import {getSrc, IndexCollection} from 'reactive-di'
 import type {ResultOf} from 'reactive-di'
 import {createFetch} from 'rdi-fetcher'
 import Todo from './Todo'
@@ -14,15 +14,19 @@ export default class TodoCollection extends IndexCollection {
 
 @hooks(TodoCollection)
 class TodoCollectionHooks {
-    _todoUpdater: Updater<TodoCollection>
+    _abort: () => void
+    _fetch: ResultOf<typeof createFetch>
 
     constructor(
-        todos: TodoCollection,
         fetch: ResultOf<typeof createFetch>
     ) {
-        this._todoUpdater = new Updater({
-            value: todos,
-            promise(): Promise<TodoCollection> {
+        this._fetch = fetch
+    }
+
+    willMount(todos: TodoCollection) {
+        const fetch = this._fetch
+        this._abort = getSrc(todos).update({
+            run(): Promise<TodoCollection> {
                 return fetch('/todos', {
                     method: 'GET'
                 })
@@ -30,11 +34,7 @@ class TodoCollectionHooks {
         })
     }
 
-    willMount() {
-        this._todoUpdater.run()
-    }
-
     willUnmount() {
-        this._todoUpdater.abort()
+        this._abort()
     }
 }
