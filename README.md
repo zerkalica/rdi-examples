@@ -39,14 +39,14 @@ Stack:
   - [x] Frontend REST API
   - [ ] Frontend dataflow
     - [ ] Rehydrate data from json
-    - [ ] Observable sources
+    - [x] Observable sources
     - [x] Emit loading data on access
     - [x] Local state per component
   - [x] Data fetching
     - [x] Optimistic updates
     - [x] Request queue
     - [x] Bad connection handling
-    - [ ] Retries
+    - [x] Retries
     - [x] Progress indication
   - [ ] Forms
     - [x] Error messages
@@ -74,7 +74,7 @@ Stack:
   - [ ] Backend REST API
   - [x] Define frontend variables from backend / bundler
   - [x] Page rendering
-  - [ ] Css rendering from jss
+  - [x] Css rendering from jss
   - [ ] Hydrate data
   - [ ] CORS support
   - [ ] GZIP support
