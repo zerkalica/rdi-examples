@@ -1,15 +1,15 @@
-# reactive-di-todomvc
+# rdi-examples
 
-[Demo](http://zerkalica.github.io/reactive-di-todomvc/)
+[Demo](http://zerkalica.github.io/rdi-examples/)
 
 Basic solutions for typical web app tasks.
 
 
 Stack:
+ - lom_atom
  - reactive-di
- - modern-router
  - jss
- - react
+ - preact
 
 ## Run
 
@@ -20,15 +20,15 @@ Stack:
 ## Features
 
 - [x] Common
-  - [x] Isomorphic app
+  - [ ] Isomorphic app
   - [x] React-bindings on runtime, not on compile-time
   - [x] Folder structure
   - [x] Absolute imports
   - [x] Hierarcical dependency injection
   - [x] Component approach
-  - [x] I18n, L10n
-  - [x] Validation
-    - [x] Validation rules sharing
+  - [ ] I18n, L10n
+  - [ ] Validation
+  - [ ] Validation rules sharing
   - [x] Multiple environments / configuration management
   - [x] Multiple frontend entry points
   - [x] Universal routing for backend/frontend
@@ -43,11 +43,11 @@ Stack:
     - [x] Emit loading data on access
     - [x] Local state per component
   - [x] Data fetching
-    - [x] Optimistic updates
-    - [x] Request queue
-    - [x] Bad connection handling
-    - [x] Retries
-    - [x] Progress indication
+    - [ ] Optimistic updates
+    - [ ] Request queue
+    - [ ] Bad connection handling
+    - [ ] Retries
+    - [ ] Progress indication
   - [ ] Forms
     - [x] Error messages
     - [ ] Debounce
@@ -72,24 +72,13 @@ Stack:
 
 - [ ] Backend
   - [ ] Backend REST API
-  - [x] Define frontend variables from backend / bundler
-  - [x] Page rendering
-  - [x] Css rendering from jss
+  - [ ] Define frontend variables from backend / bundler
+  - [ ] Page rendering
+  - [ ] Css rendering from jss
   - [ ] Hydrate data
   - [ ] CORS support
   - [ ] GZIP support
   - [ ] DB pooling
-
-- [ ] Bundling
-  - [x] Webpack
-  - [x] Bundle minification (prod)
-  - [x] Bundle uglification (prod)
-  - [ ] Bundle vendor splitting (dev)
-  - [x] Source Maps (dev)
-  - [ ] Auto inline assets (prod)
-  - [ ] Cache management
-  - [ ] Skip already minified files
-  - [ ] Assets deduplication
 
 - [ ] Code Quality
   - [x] Linting
