@@ -41,7 +41,7 @@ const lomCreateElement = createCreateElement(
     createReactWrapper(
         Component,
         ErrorableView,
-        new Injector(undefined, undefined, jss)
+        new Injector(undefined, jss)
     ),
     h
 )
