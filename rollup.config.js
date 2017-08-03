@@ -1,12 +1,13 @@
 import babel from 'rollup-plugin-babel'
-import uglify from 'rollup-plugin-uglify'
+// import uglify from 'rollup-plugin-uglify'
+// import {minify} from 'uglify-es'
 import resolve from 'rollup-plugin-node-resolve'
 
 import globals from 'rollup-plugin-node-globals'
 import replace from 'rollup-plugin-replace'
 import commonjs from 'rollup-plugin-commonjs'
+import sourcemaps from 'rollup-plugin-sourcemaps'
 
-import {minify} from 'uglify-es'
 import babelrc from 'babelrc-rollup'
 
 import fs from 'fs'
@@ -29,12 +30,13 @@ export default {
                  'node_modules/lom_atom/**'
             ]
         }),
+        sourcemaps(),
         babel(babelrc()),
         globals(),
         replace({
             'process.env.NODE_ENV': JSON.stringify('development')
         }),
-        uglify({}, minify)
+        // uglify({}, minify)
     ],
     targets: [
         {dest: pkg['iife:main'], format: 'iife', moduleName: pkg.name.replace('-', '_').replace('-', '_')}
