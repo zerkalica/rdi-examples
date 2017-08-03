@@ -10,8 +10,7 @@
   },
   "iife:main": "docs/examples/app.js",
   "scripts": {
-    "major": "npm run release -- --release-as major && npm run postversion",
-    "release": "npm test && npm run build && standard-version && npm run postversion",
+    "release": "npm test && npm run build && standard-version -a && npm run postversion",
     "postversion": "git push --follow-tags origin master && npm publish",
     "build": "rimraf docs/examples && rollup -c",
     "start": "rimraf docs/examples && rollup -c -w --config rollup.config.examples.js"
