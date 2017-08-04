@@ -1,12 +1,12 @@
 // @flow
 import type {NamesOf} from 'lom_atom'
-import TodoStore from '../stores/TodoStore'
-import ViewStore from '../stores/ViewStore'
-import type {ITodo} from '../stores/TodoStore'
+import TodoService from './TodoService'
+import TodoFilterService from './TodoFilterService'
+import type {ITodo} from './TodoService'
 
-import TodoItem from './TodoItem'
+import TodoItemView from './TodoItemView'
 
-function TodoOverviewTheme() {
+function TodoMainTheme() {
     const toggleAll = {
         outline: 'none',
         position: 'absolute',
@@ -57,18 +57,18 @@ function TodoOverviewTheme() {
         }
     }
 }
-TodoOverviewTheme.theme = true
+TodoMainTheme.theme = true
 
-export default function TodoOverview(
-    {todoStore, viewStore}: {
-        todoStore: TodoStore;
-        viewStore: ViewStore;
+export default function TodoMainView(
+    {todoService, todoFilterService}: {
+        todoService: TodoService;
+        todoFilterService: TodoFilterService;
     },
     {theme}: {
-        theme: NamesOf<typeof TodoOverviewTheme>;
+        theme: NamesOf<typeof TodoMainTheme>;
     }
 ) {
-    if (!todoStore.todos.length) {
+    if (!todoService.todos.length) {
         return null
     }
 
@@ -76,18 +76,17 @@ export default function TodoOverview(
         <input
             className={theme.toggleAll}
             type="checkbox"
-            onChange={({target}: Event) => todoStore.toggleAll((target: any).checked)}
-            checked={todoStore.activeTodoCount === 0}
+            onChange={({target}: Event) => todoService.toggleAll((target: any).checked)}
+            checked={todoService.activeTodoCount === 0}
         />
         <ul className={theme.todoList}>
-            {viewStore.filteredTodos.map((todo: ITodo) =>
-                <TodoItem
+            {todoFilterService.filteredTodos.map((todo: ITodo) =>
+                <TodoItemView
                     key={todo.id}
                     todo={todo}
-                    viewStore={viewStore}
                 />
             )}
         </ul>
     </section>
 }
-TodoOverview.deps = [{theme: TodoOverviewTheme}]
+TodoMainView.deps = [{theme: TodoMainTheme}]

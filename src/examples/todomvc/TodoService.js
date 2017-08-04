@@ -1,5 +1,5 @@
 // @flow
-import uuid from 'uuid/v4'
+import {uuid} from '../common'
 import {mem, force} from 'lom_atom'
 
 interface ITodoBase {
@@ -22,9 +22,9 @@ class TodoModel implements ITodo {
     _title: string
     id: string
 
-    _store: TodoStore
+    _store: TodoService
 
-    constructor(todo?: $Shape<ITodoBase> = {}, store: TodoStore) {
+    constructor(todo?: $Shape<ITodoBase> = {}, store: TodoService) {
         this._title = todo.title || ''
         this.id = todo.id || uuid()
         this.completed = todo.completed || false
@@ -58,7 +58,7 @@ class TodoModel implements ITodo {
     }
 }
 
-export default class TodoStore {
+export default class TodoService {
     @mem opCount = 0
 
     get isOperationRunning(): boolean {

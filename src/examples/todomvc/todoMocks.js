@@ -1,12 +1,10 @@
 
-import uuid from 'uuid/v4'
-import {BrowserLocalStorage} from '../common'
+import {uuid, BrowserLocalStorage} from '../common'
 interface ITodo {
     id: string;
     title: string;
     completed: boolean;
 }
-
 
 function getBody(body?: ?(string | Object)): Object {
     return typeof body === 'string'

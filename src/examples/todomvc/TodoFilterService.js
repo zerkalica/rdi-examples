@@ -2,9 +2,9 @@
 
 import {mem} from 'lom_atom'
 
-import type {ITodo} from './TodoStore'
-import TodoStore from './TodoStore'
-import {AbstractLocationStore} from '../../common'
+import type {ITodo} from './TodoService'
+import TodoService from './TodoService'
+import {AbstractLocationStore} from '../common'
 
 export const TODO_FILTER = {
     ALL: 'all',
@@ -14,14 +14,14 @@ export const TODO_FILTER = {
 
 export type IFilter = $Values<typeof TODO_FILTER>
 
-export default class ViewStore {
-    _todoStore: TodoStore
+export default class TodoFilterService {
+    _todoService: TodoService
     _locationStore: AbstractLocationStore
 
-    static deps = [TodoStore, AbstractLocationStore]
+    static deps = [TodoService, AbstractLocationStore]
 
-    constructor(todoStore: TodoStore, locationStore: AbstractLocationStore) {
-        this._todoStore = todoStore
+    constructor(TodoService: TodoService, locationStore: AbstractLocationStore) {
+        this._todoService = TodoService
         this._locationStore = locationStore
     }
 
@@ -34,7 +34,7 @@ export default class ViewStore {
     }
 
     @mem get filteredTodos(): ITodo[] {
-        const todos = this._todoStore.todos
+        const todos = this._todoService.todos
         switch (this.filter) {
             case TODO_FILTER.ALL:
                 return todos

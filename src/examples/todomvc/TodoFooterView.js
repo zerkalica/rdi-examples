@@ -1,8 +1,8 @@
 // @flow
 
 import type {NamesOf} from 'lom_atom'
-import TodoStore from '../stores/TodoStore'
-import ViewStore, {TODO_FILTER} from '../stores/ViewStore'
+import TodoService from './TodoService'
+import TodoFilterService, {TODO_FILTER} from './TodoFilterService'
 
 const links = [
     {
@@ -19,10 +19,10 @@ const links = [
     }
 ]
 
-function createHandler<V: string>(viewStore: ViewStore, id: V): (e: Event) => void {
+function createHandler<V: string>(todoFilterService: TodoFilterService, id: V): (e: Event) => void {
     return function handler(e: Event) {
         e.preventDefault()
-        viewStore.filter = id
+        todoFilterService.filter = id
     }
 }
 
@@ -112,23 +112,23 @@ function TodoFooterTheme() {
 }
 TodoFooterTheme.theme = true
 
-export default function TodoFooter(
-    {todoStore, viewStore}: {
-        todoStore: TodoStore;
-        viewStore: ViewStore;
+export default function TodoFooterView(
+    {todoService, todoFilterService}: {
+        todoService: TodoService;
+        todoFilterService: TodoFilterService;
     },
     {theme}: {
         theme: NamesOf<typeof TodoFooterTheme>;
     }
 ) {
-    if (!todoStore.activeTodoCount && !todoStore.completedCount) {
+    if (!todoService.activeTodoCount && !todoService.completedCount) {
         return null
     }
-    const filter = viewStore.filter
+    const filter = todoFilterService.filter
 
     return <footer className={theme.footer}>
         <span className={theme.todoCount}>
-            <strong>{todoStore.activeTodoCount}</strong> item(s) left
+            <strong>{todoService.activeTodoCount}</strong> item(s) left
         </span>
         <ul className={theme.filters}>
             {links.map((link) =>
@@ -136,18 +136,18 @@ export default function TodoFooter(
                     id={`todo-filter-${link.id}`}
                     className={filter === link.id ? theme.linkSelected : theme.linkRegular}
                     href={`?todo_filter=${link.id}`}
-                    onClick={createHandler(viewStore, link.id)}
+                    onClick={createHandler(todoFilterService, link.id)}
                 >{link.title}</a></li>
             )}
         </ul>
-        {todoStore.completedCount === 0
+        {todoService.completedCount === 0
             ? null
             : <button
                 className={theme.clearCompleted}
-                onClick={() => todoStore.clearCompleted()}>
+                onClick={() => todoService.clearCompleted()}>
                 Clear completed
             </button>
         }
     </footer>
 }
-TodoFooter.deps = [{theme: TodoFooterTheme}]
+TodoFooterView.deps = [{theme: TodoFooterTheme}]

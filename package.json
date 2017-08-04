@@ -77,7 +77,6 @@
     "jss-nested": "^5.0.0",
     "lom_atom": "^1.0.5",
     "preact": "^8.2.1",
-    "reactive-di": "^4.0.3",
-    "uuid": "^3.1.0"
+    "reactive-di": "^4.0.3"
   }
 }

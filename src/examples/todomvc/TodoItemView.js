@@ -2,7 +2,7 @@
 
 import {animationFrame, mem} from 'lom_atom'
 import type {ResultOf, NamesOf} from 'lom_atom'
-import type {ITodo} from '../stores/TodoStore'
+import type {ITodo} from './TodoService'
 
 const ESCAPE_KEY = 27
 const ENTER_KEY = 13
@@ -11,7 +11,7 @@ interface ITodoProps {
     +todo: ITodo;
 }
 
-class TodoProps implements ITodoProps {
+class TodoItemProps implements ITodoProps {
     +todo: ITodo
 }
 
@@ -21,9 +21,9 @@ class TodoItemStore {
 
     _todo: ITodo
 
-    static deps = [TodoProps]
+    static deps = [TodoItemProps]
 
-    constructor({todo}: TodoProps) {
+    constructor({todo}: TodoItemProps) {
         this._todo = todo
     }
 
@@ -197,7 +197,7 @@ function TodoItemTheme() {
 }
 TodoItemTheme.theme = true
 
-export default function TodoItem(
+export default function TodoItemView(
     {todo}: ITodoProps,
     {itemStore, theme}: {
         theme: NamesOf<typeof TodoItemTheme>;
@@ -233,5 +233,5 @@ export default function TodoItem(
             <button className={theme.destroy} id="destroy" onClick={itemStore.handleDestroy} />
         </li>
 }
-TodoItem.deps = [{itemStore: TodoItemStore, theme: TodoItemTheme}]
-TodoItem.props = TodoProps
+TodoItemView.deps = [{itemStore: TodoItemStore, theme: TodoItemTheme}]
+TodoItemView.props = TodoItemProps

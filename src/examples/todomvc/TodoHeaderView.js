@@ -7,12 +7,12 @@ interface IStore {
     addTodo(title: string): void;
 }
 
-interface ITodoEntryProps {
-    todoStore: IStore
+interface ITodoHeaderViewProps {
+    todoService: IStore
 }
 
-class TodoEntryProps implements ITodoEntryProps {
-    todoStore: IStore
+class TodoHeaderViewProps implements ITodoHeaderViewProps {
+    todoService: IStore
 }
 
 
@@ -20,10 +20,10 @@ class TodoToAdd {
     @mem title: string = ''
     _store: IStore
 
-    static deps = [TodoEntryProps]
+    static deps = [TodoHeaderViewProps]
 
-    constructor({todoStore}: ITodoEntryProps) {
-        this._store = todoStore
+    constructor({todoService}: ITodoHeaderViewProps) {
+        this._store = todoService
     }
 
     onInput = ({target}: Event) => {
@@ -38,7 +38,7 @@ class TodoToAdd {
     }
 }
 
-function TodoEntryTheme() {
+function TodoHeaderTheme() {
     return {
         newTodo: {
             position: 'relative',
@@ -60,12 +60,12 @@ function TodoEntryTheme() {
         }
     }
 }
-TodoEntryTheme.theme = true
+TodoHeaderTheme.theme = true
 
-export default function TodoEntry(
-    _: ITodoEntryProps,
+export default function TodoHeaderView(
+    _: ITodoHeaderViewProps,
     {todoToAdd, theme}: {
-        theme: NamesOf<typeof TodoEntryTheme>;
+        theme: NamesOf<typeof TodoHeaderTheme>;
         todoToAdd: TodoToAdd;
     }
 ) {
@@ -78,5 +78,5 @@ export default function TodoEntry(
         autoFocus={true}
     />
 }
-TodoEntry.deps = [{todoToAdd: TodoToAdd, theme: TodoEntryTheme}]
-TodoEntry.props = TodoEntryProps
+TodoHeaderView.deps = [{todoToAdd: TodoToAdd, theme: TodoHeaderTheme}]
+TodoHeaderView.props = TodoHeaderViewProps

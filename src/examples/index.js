@@ -8,7 +8,7 @@ import {render} from 'preact'
 
 import {CounterView} from './counter'
 import {HelloView} from './hello'
-import {TodoApp, todoMocks} from './todomvc'
+import {TodoAppView, todoMocks} from './todomvc'
 import {AutocompleteView, autocompleteMocks} from './autocomplete'
 
 import {AbstractLocationStore, ItemView, Locale, mockFetch} from './common'
@@ -64,7 +64,7 @@ function AppView(
             break
 
         case 'todomvc':
-            page = <TodoApp />
+            page = <TodoAppView />
             break
 
         default:

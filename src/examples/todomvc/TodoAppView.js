@@ -1,11 +1,12 @@
 // @flow
 import type {NamesOf} from 'lom_atom'
-import TodoStore from '../stores/TodoStore'
-import ViewStore from '../stores/ViewStore'
 
-import TodoEntry from './TodoEntry'
-import TodoOverview from './TodoOverview'
-import TodoFooter from './TodoFooter'
+import TodoService from './TodoService'
+import TodoFilterService from './TodoFilterService'
+
+import TodoHeaderView from './TodoHeaderView'
+import TodoMainView from './TodoMainView'
+import TodoFooterView from './TodoFooterView'
 
 interface TodoAppProps {
 }
@@ -47,24 +48,24 @@ TodoAppTheme.theme = true
 
 export default function TodoApp(
     {}: TodoAppProps,
-    {todoStore, viewStore, theme}: {
-        todoStore: TodoStore;
-        viewStore: ViewStore;
+    {todoService, todoFilterService, theme}: {
+        todoService: TodoService;
+        todoFilterService: TodoFilterService;
         theme: NamesOf<typeof TodoAppTheme>
     }
 ) {
     return <div>
         {/* Loading fix: access data in TodoApp first to throw exception, if no todos loaded */}
-        {todoStore.activeTodoCount > 0 ? null : null}
-        <div style={{padding: '0.3em 0.5em'}}>{todoStore.isOperationRunning ? 'Saving...' : 'Idle'}</div>
+        {todoService.activeTodoCount > 0 ? null : null}
+        <div style={{padding: '0.3em 0.5em'}}>{todoService.isOperationRunning ? 'Saving...' : 'Idle'}</div>
         <div className={theme.todoapp}>
             <header>
-                <TodoEntry todoStore={todoStore} />
+                <TodoHeaderView todoService={todoService} />
             </header>
-            <TodoOverview todoStore={todoStore} viewStore={viewStore} />
-            <TodoFooter todoStore={todoStore} viewStore={viewStore} />
+            <TodoMainView todoService={todoService} todoFilterService={todoFilterService} />
+            <TodoFooterView todoService={todoService} todoFilterService={todoFilterService} />
         </div>
     </div>
 }
 
-TodoApp.deps = [{todoStore: TodoStore, viewStore: ViewStore, theme: TodoAppTheme}]
+TodoApp.deps = [{todoService: TodoService, todoFilterService: TodoFilterService, theme: TodoAppTheme}]

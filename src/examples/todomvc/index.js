@@ -2,4 +2,4 @@
 
 export {default as todoMocks} from './todoMocks'
 
-export {default as TodoApp} from './components/TodoApp'
+export {default as TodoAppView} from './TodoAppView'

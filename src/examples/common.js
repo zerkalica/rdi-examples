@@ -3,6 +3,20 @@ import type {NamesOf} from 'lom_atom'
 import {force, mem, memkey} from 'lom_atom'
 import fetchMock from 'fetch-mock/es5/client'
 
+export function uuid(): string {
+    let uuid = ''
+
+    for (let i = 0; i < 32; i++) {
+        let random = Math.random() * 16 | 0
+        if (i === 8 || i === 12 || i === 16 || i === 20) {
+            uuid += '-'
+        }
+        uuid += (i === 12 ? 4 : (i === 16 ? (random & 3 | 8) : random)).toString(16)
+    }
+
+    return uuid
+}
+
 export class AbstractLocationStore {
     location(key: string, value?: string, force?: boolean): string {
         throw new Error('implement')

@@ -6728,6 +6728,21 @@ function _applyDecoratedDescriptor$2(target, property, decorators, descriptor, c
   return desc;
 }
 
+function uuid() {
+  var uuid = '';
+
+  for (var i = 0; i < 32; i++) {
+    var random = Math.random() * 16 | 0;
+
+    if (i === 8 || i === 12 || i === 16 || i === 20) {
+      uuid += '-';
+    }
+
+    uuid += (i === 12 ? 4 : i === 16 ? random & 3 | 8 : random).toString(16);
+  }
+
+  return uuid;
+}
 var AbstractLocationStore = function () {
   function AbstractLocationStore() {}
 
@@ -7079,85 +7094,6 @@ HelloView.deps = [{
 }];
 HelloView.props = HelloProps;
 
-// browser this is a little complicated due to unknown quality of Math.random()
-// and inconsistent support for the `crypto` API.  We do the best we can via
-// feature-detection
-
-var rng;
-var crypto = commonjsGlobal.crypto || commonjsGlobal.msCrypto; // for IE 11
-
-if (crypto && crypto.getRandomValues) {
-  // WHATWG crypto RNG - http://wiki.whatwg.org/wiki/Crypto
-  var rnds8 = new Uint8Array(16); // eslint-disable-line no-undef
-
-  rng = function whatwgRNG() {
-    crypto.getRandomValues(rnds8);
-    return rnds8;
-  };
-}
-
-if (!rng) {
-  // Math.random()-based (RNG)
-  //
-  // If all else fails, use Math.random().  It's fast, but is of unspecified
-  // quality.
-  var rnds = new Array(16);
-
-  rng = function rng() {
-    for (var i = 0, r; i < 16; i++) {
-      if ((i & 0x03) === 0) r = Math.random() * 0x100000000;
-      rnds[i] = r >>> ((i & 0x03) << 3) & 0xff;
-    }
-
-    return rnds;
-  };
-}
-
-var rngBrowser = rng;
-
-/**
- * Convert array of 16 byte values to UUID string format of the form:
- * XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX
- */
-var byteToHex = [];
-
-for (var i = 0; i < 256; ++i) {
-  byteToHex[i] = (i + 0x100).toString(16).substr(1);
-}
-
-function bytesToUuid(buf, offset) {
-  var i = offset || 0;
-  var bth = byteToHex;
-  return bth[buf[i++]] + bth[buf[i++]] + bth[buf[i++]] + bth[buf[i++]] + '-' + bth[buf[i++]] + bth[buf[i++]] + '-' + bth[buf[i++]] + bth[buf[i++]] + '-' + bth[buf[i++]] + bth[buf[i++]] + '-' + bth[buf[i++]] + bth[buf[i++]] + bth[buf[i++]] + bth[buf[i++]] + bth[buf[i++]] + bth[buf[i++]];
-}
-
-var bytesToUuid_1 = bytesToUuid;
-
-function v4(options, buf, offset) {
-  var i = buf && offset || 0;
-
-  if (typeof options == 'string') {
-    buf = options == 'binary' ? new Array(16) : null;
-    options = null;
-  }
-
-  options = options || {};
-  var rnds = options.random || (options.rng || rngBrowser)(); // Per 4.4, set bits for version and `clock_seq_hi_and_reserved`
-
-  rnds[6] = rnds[6] & 0x0f | 0x40;
-  rnds[8] = rnds[8] & 0x3f | 0x80; // Copy bytes to buffer, if provided
-
-  if (buf) {
-    for (var ii = 0; ii < 16; ++ii) {
-      buf[i + ii] = rnds[ii];
-    }
-  }
-
-  return buf || bytesToUuid_1(rnds);
-}
-
-var v4_1 = v4;
-
 function getBody(body) {
   return typeof body === 'string' ? JSON.parse(body) : body || {};
 }
@@ -7272,7 +7208,7 @@ function todoMocks(rawStorage) {
       var todos = storage.get();
       var body = getBody(params.body);
       var newTodo = _extends({}, body, {
-        id: v4_1()
+        id: uuid()
       });
       todos.push(newTodo);
       storage.set(todos);
@@ -7332,7 +7268,7 @@ var TodoModel = function () {
     var todo = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
     var store = arguments[1];
     this._title = todo.title || '';
-    this.id = todo.id || v4_1();
+    this.id = todo.id || uuid();
     this.completed = todo.completed || false;
     this._store = store;
   }
@@ -7369,12 +7305,12 @@ var TodoModel = function () {
   return TodoModel;
 }();
 
-var TodoStore = (_class2$2 = function () {
-  function TodoStore() {
+var TodoService = (_class2$2 = function () {
+  function TodoService() {
     _initDefineProp$3(this, "opCount", _descriptor$3, this);
   }
 
-  TodoStore.prototype._handlePromise = function _handlePromise(p) {
+  TodoService.prototype._handlePromise = function _handlePromise(p) {
     var _this = this;
 
     this.opCount++;
@@ -7386,7 +7322,7 @@ var TodoStore = (_class2$2 = function () {
     });
   };
 
-  TodoStore.prototype.addTodo = function addTodo(title) {
+  TodoService.prototype.addTodo = function addTodo(title) {
     var _this2 = this;
 
     var todo = new TodoModel({
@@ -7404,7 +7340,7 @@ var TodoStore = (_class2$2 = function () {
     }));
   };
 
-  TodoStore.prototype.saveTodo = function saveTodo(todo) {
+  TodoService.prototype.saveTodo = function saveTodo(todo) {
     var _this3 = this;
 
     this.todos = this.todos.map(function (t) {
@@ -7421,7 +7357,7 @@ var TodoStore = (_class2$2 = function () {
     }));
   };
 
-  TodoStore.prototype.remove = function remove(id) {
+  TodoService.prototype.remove = function remove(id) {
     this.todos = this.todos.filter(function (todo) {
       return todo.id !== id;
     });
@@ -7431,7 +7367,7 @@ var TodoStore = (_class2$2 = function () {
     }));
   };
 
-  TodoStore.prototype.toggleAll = function toggleAll(completed) {
+  TodoService.prototype.toggleAll = function toggleAll(completed) {
     var _this4 = this;
 
     this.todos = this.todos.map(function (todo) {
@@ -7452,7 +7388,7 @@ var TodoStore = (_class2$2 = function () {
     }));
   };
 
-  TodoStore.prototype.clearCompleted = function clearCompleted() {
+  TodoService.prototype.clearCompleted = function clearCompleted() {
     var newTodos = [];
     var delIds = [];
 
@@ -7474,7 +7410,7 @@ var TodoStore = (_class2$2 = function () {
     }));
   };
 
-  createClass(TodoStore, [{
+  createClass(TodoService, [{
     key: "isOperationRunning",
     get: function get$$1() {
       return this.opCount !== 0;
@@ -7509,7 +7445,7 @@ var TodoStore = (_class2$2 = function () {
       return this.todos.length - this.activeTodoCount;
     }
   }]);
-  return TodoStore;
+  return TodoService;
 }(), (_descriptor$3 = _applyDecoratedDescriptor$5(_class2$2.prototype, "opCount", [mem], {
   enumerable: true,
   initializer: function initializer() {
@@ -7555,13 +7491,13 @@ var TODO_FILTER = {
   COMPLETE: 'complete',
   ACTIVE: 'active'
 };
-var ViewStore = (_class$4 = (_temp$2 = _class2$3 = function () {
-  function ViewStore(todoStore, locationStore) {
-    this._todoStore = todoStore;
+var TodoFilterService = (_class$4 = (_temp$2 = _class2$3 = function () {
+  function TodoFilterService(TodoService$$1, locationStore) {
+    this._todoService = TodoService$$1;
     this._locationStore = locationStore;
   }
 
-  createClass(ViewStore, [{
+  createClass(TodoFilterService, [{
     key: "filter",
     get: function get$$1() {
       return this._locationStore.location('todo_filter') || TODO_FILTER.ALL;
@@ -7572,7 +7508,7 @@ var ViewStore = (_class$4 = (_temp$2 = _class2$3 = function () {
   }, {
     key: "filteredTodos",
     get: function get$$1() {
-      var todos = this._todoStore.todos;
+      var todos = this._todoService.todos;
 
       switch (this.filter) {
         case TODO_FILTER.ALL:
@@ -7593,8 +7529,8 @@ var ViewStore = (_class$4 = (_temp$2 = _class2$3 = function () {
       }
     }
   }]);
-  return ViewStore;
-}(), _class2$3.deps = [TodoStore, AbstractLocationStore], _temp$2), (_applyDecoratedDescriptor$6(_class$4.prototype, "filteredTodos", [mem], Object.getOwnPropertyDescriptor(_class$4.prototype, "filteredTodos"), _class$4.prototype)), _class$4);
+  return TodoFilterService;
+}(), _class2$3.deps = [TodoService, AbstractLocationStore], _temp$2), (_applyDecoratedDescriptor$6(_class$4.prototype, "filteredTodos", [mem], Object.getOwnPropertyDescriptor(_class$4.prototype, "filteredTodos"), _class$4.prototype)), _class$4);
 
 var _class2$4;
 var _descriptor$4;
@@ -7640,12 +7576,12 @@ function _applyDecoratedDescriptor$7(target, property, decorators, descriptor, c
   return desc;
 }
 
-var TodoEntryProps = function TodoEntryProps() {};
+var TodoHeaderViewProps = function TodoHeaderViewProps() {};
 
 var TodoToAdd = (_class2$4 = (_temp$3 = _class3$1 = function TodoToAdd(_ref) {
   var _this = this;
 
-  var todoStore = _ref.todoStore;
+  var todoService = _ref.todoService;
 
   _initDefineProp$4(this, "title", _descriptor$4, this);
 
@@ -7662,15 +7598,15 @@ var TodoToAdd = (_class2$4 = (_temp$3 = _class3$1 = function TodoToAdd(_ref) {
     }
   };
 
-  this._store = todoStore;
-}, _class3$1.deps = [TodoEntryProps], _temp$3), (_descriptor$4 = _applyDecoratedDescriptor$7(_class2$4.prototype, "title", [mem], {
+  this._store = todoService;
+}, _class3$1.deps = [TodoHeaderViewProps], _temp$3), (_descriptor$4 = _applyDecoratedDescriptor$7(_class2$4.prototype, "title", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return '';
   }
 })), _class2$4);
 
-function TodoEntryTheme() {
+function TodoHeaderTheme() {
   var _newTodo;
 
   return {
@@ -7689,8 +7625,8 @@ function TodoEntryTheme() {
   };
 }
 
-TodoEntryTheme.theme = true;
-function TodoEntry(_, _ref3) {
+TodoHeaderTheme.theme = true;
+function TodoHeaderView(_, _ref3) {
   var todoToAdd = _ref3.todoToAdd,
       theme = _ref3.theme;
   return lom_h("input", {
@@ -7702,11 +7638,11 @@ function TodoEntry(_, _ref3) {
     autoFocus: true
   });
 }
-TodoEntry.deps = [{
+TodoHeaderView.deps = [{
   todoToAdd: TodoToAdd,
-  theme: TodoEntryTheme
+  theme: TodoHeaderTheme
 }];
-TodoEntry.props = TodoEntryProps;
+TodoHeaderView.props = TodoHeaderViewProps;
 
 var _class2$5;
 var _descriptor$5;
@@ -7756,7 +7692,7 @@ function _applyDecoratedDescriptor$8(target, property, decorators, descriptor, c
 var ESCAPE_KEY = 27;
 var ENTER_KEY = 13;
 
-var TodoProps = function TodoProps() {};
+var TodoItemProps = function TodoItemProps() {};
 
 var TodoItemStore = (_class2$5 = (_temp$4 = _class3$2 = function TodoItemStore(_ref) {
   var _this = this;
@@ -7825,7 +7761,7 @@ var TodoItemStore = (_class2$5 = (_temp$4 = _class3$2 = function TodoItemStore(_
   };
 
   this._todo = todo;
-}, _class3$2.deps = [TodoProps], _temp$4), (_descriptor$5 = _applyDecoratedDescriptor$8(_class2$5.prototype, "todoBeingEdited", [mem], {
+}, _class3$2.deps = [TodoItemProps], _temp$4), (_descriptor$5 = _applyDecoratedDescriptor$8(_class2$5.prototype, "todoBeingEdited", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return null;
@@ -7941,7 +7877,7 @@ function TodoItemTheme() {
 }
 
 TodoItemTheme.theme = true;
-function TodoItem(_ref3, _ref4) {
+function TodoItemView(_ref3, _ref4) {
   var todo = _ref3.todo;
   var itemStore = _ref4.itemStore,
       theme = _ref4.theme;
@@ -7973,13 +7909,13 @@ function TodoItem(_ref3, _ref4) {
     onClick: itemStore.handleDestroy
   }));
 }
-TodoItem.deps = [{
+TodoItemView.deps = [{
   itemStore: TodoItemStore,
   theme: TodoItemTheme
 }];
-TodoItem.props = TodoProps;
+TodoItemView.props = TodoItemProps;
 
-function TodoOverviewTheme() {
+function TodoMainTheme() {
   var toggleAll = {
     outline: 'none',
     position: 'absolute',
@@ -8028,13 +7964,13 @@ function TodoOverviewTheme() {
   };
 }
 
-TodoOverviewTheme.theme = true;
-function TodoOverview(_ref, _ref2) {
-  var todoStore = _ref.todoStore,
-      viewStore = _ref.viewStore;
+TodoMainTheme.theme = true;
+function TodoMainView(_ref, _ref2) {
+  var todoService = _ref.todoService,
+      todoFilterService = _ref.todoFilterService;
   var theme = _ref2.theme;
 
-  if (!todoStore.todos.length) {
+  if (!todoService.todos.length) {
     return null;
   }
 
@@ -8045,21 +7981,20 @@ function TodoOverview(_ref, _ref2) {
     type: "checkbox",
     onChange: function onChange(_ref3) {
       var target = _ref3.target;
-      return todoStore.toggleAll(target.checked);
+      return todoService.toggleAll(target.checked);
     },
-    checked: todoStore.activeTodoCount === 0
+    checked: todoService.activeTodoCount === 0
   }), lom_h("ul", {
     className: theme.todoList
-  }, viewStore.filteredTodos.map(function (todo) {
-    return lom_h(TodoItem, {
+  }, todoFilterService.filteredTodos.map(function (todo) {
+    return lom_h(TodoItemView, {
       key: todo.id,
-      todo: todo,
-      viewStore: viewStore
+      todo: todo
     });
   })));
 }
-TodoOverview.deps = [{
-  theme: TodoOverviewTheme
+TodoMainView.deps = [{
+  theme: TodoMainTheme
 }];
 
 var links = [{
@@ -8073,10 +8008,10 @@ var links = [{
   title: 'Completed'
 }];
 
-function createHandler(viewStore, id) {
+function createHandler(todoFilterService, id) {
   return function handler(e) {
     e.preventDefault();
-    viewStore.filter = id;
+    todoFilterService.filter = id;
   };
 }
 
@@ -8150,21 +8085,21 @@ function TodoFooterTheme() {
 }
 
 TodoFooterTheme.theme = true;
-function TodoFooter(_ref, _ref2) {
-  var todoStore = _ref.todoStore,
-      viewStore = _ref.viewStore;
+function TodoFooterView(_ref, _ref2) {
+  var todoService = _ref.todoService,
+      todoFilterService = _ref.todoFilterService;
   var theme = _ref2.theme;
 
-  if (!todoStore.activeTodoCount && !todoStore.completedCount) {
+  if (!todoService.activeTodoCount && !todoService.completedCount) {
     return null;
   }
 
-  var filter = viewStore.filter;
+  var filter = todoFilterService.filter;
   return lom_h("footer", {
     className: theme.footer
   }, lom_h("span", {
     className: theme.todoCount
-  }, lom_h("strong", null, todoStore.activeTodoCount), " item(s) left"), lom_h("ul", {
+  }, lom_h("strong", null, todoService.activeTodoCount), " item(s) left"), lom_h("ul", {
     className: theme.filters
   }, links.map(function (link) {
     return lom_h("li", {
@@ -8174,16 +8109,16 @@ function TodoFooter(_ref, _ref2) {
       id: "todo-filter-" + link.id,
       className: filter === link.id ? theme.linkSelected : theme.linkRegular,
       href: "?todo_filter=" + link.id,
-      onClick: createHandler(viewStore, link.id)
+      onClick: createHandler(todoFilterService, link.id)
     }, link.title));
-  })), todoStore.completedCount === 0 ? null : lom_h("button", {
+  })), todoService.completedCount === 0 ? null : lom_h("button", {
     className: theme.clearCompleted,
     onClick: function onClick() {
-      return todoStore.clearCompleted();
+      return todoService.clearCompleted();
     }
   }, "Clear completed"));
 }
-TodoFooter.deps = [{
+TodoFooterView.deps = [{
   theme: TodoFooterTheme
 }];
 
@@ -8222,29 +8157,29 @@ function TodoAppTheme() {
 
 TodoAppTheme.theme = true;
 function TodoApp(_ref, _ref2) {
-  var todoStore = _ref2.todoStore,
-      viewStore = _ref2.viewStore,
+  var todoService = _ref2.todoService,
+      todoFilterService = _ref2.todoFilterService,
       theme = _ref2.theme;
   objectDestructuringEmpty(_ref);
-  return lom_h("div", null, todoStore.activeTodoCount > 0 ? null : null, lom_h("div", {
+  return lom_h("div", null, todoService.activeTodoCount > 0 ? null : null, lom_h("div", {
     style: {
       padding: '0.3em 0.5em'
     }
-  }, todoStore.isOperationRunning ? 'Saving...' : 'Idle'), lom_h("div", {
+  }, todoService.isOperationRunning ? 'Saving...' : 'Idle'), lom_h("div", {
     className: theme.todoapp
-  }, lom_h("header", null, lom_h(TodoEntry, {
-    todoStore: todoStore
-  })), lom_h(TodoOverview, {
-    todoStore: todoStore,
-    viewStore: viewStore
-  }), lom_h(TodoFooter, {
-    todoStore: todoStore,
-    viewStore: viewStore
+  }, lom_h("header", null, lom_h(TodoHeaderView, {
+    todoService: todoService
+  })), lom_h(TodoMainView, {
+    todoService: todoService,
+    todoFilterService: todoFilterService
+  }), lom_h(TodoFooterView, {
+    todoService: todoService,
+    todoFilterService: todoFilterService
   })));
 }
 TodoApp.deps = [{
-  todoStore: TodoStore,
-  viewStore: ViewStore,
+  todoService: TodoService,
+  todoFilterService: TodoFilterService,
   theme: TodoAppTheme
 }];
 
