@@ -11,7 +11,7 @@ import {HelloView} from './hello'
 import {TodoApp, todoMocks} from './todomvc'
 import {AutocompleteView, autocompleteMocks} from './autocomplete'
 
-import {ItemView, Locale, mockFetch} from './common'
+import {AbstractLocationStore, ItemView, Locale, mockFetch} from './common'
 
 mockFetch(localStorage, 500, [
     todoMocks,
@@ -19,19 +19,38 @@ mockFetch(localStorage, 500, [
 ])
 
 class Store {
-    links = ['hello', 'counter', 'error', 'todomvc', 'autocomplete']
-    @mem route: string = 'hello'
+    static deps = [AbstractLocationStore]
+    _locationStore: AbstractLocationStore
+
+    constructor(locationStore: AbstractLocationStore) {
+        this._locationStore = locationStore
+    }
+
+    pages = ['hello', 'counter', 'error', 'todomvc', 'autocomplete']
+
+    get page(): string {
+        return this._locationStore.location('page') || this.pages[0]
+    }
+
+    set page(page: string) {
+        return this._locationStore.location('page', page)
+    }
+
     @mem name = 'vvv'
 }
 
 interface AppProps {
-    store: Store;
     lang: string;
 }
 
-function AppView({store}: AppProps) {
+function AppView(
+    {lang}: AppProps,
+    {store}: {
+        store: Store;
+    }
+) {
     let page
-    switch (store.route) {
+    switch (store.page) {
         case 'hello':
             page = <HelloView name={store.name} />
             break
@@ -54,17 +73,17 @@ function AppView({store}: AppProps) {
 
     return <div style={{dislay: 'flex', justifyContent: 'center'}}>
         <div style={{padding: '1em'}}>
-            {store.links.map((link: string) =>
+            {store.pages.map((link: string) =>
                 <button
                     key={link}
                     style={{margin: '0.3em'}}
                     id={link}
-                    onClick={() => store.route = link }
+                    onClick={() => store.page = link }
                 >{link}</button>
             )}
         </div>
         <div style={{border: '1px solid gray', padding: '1em', margin: '0 1em'}}>
-            <h1>{store.route}</h1>
+            <h1>{store.page}</h1>
             {page}
         </div>
         <ItemView>
@@ -75,7 +94,6 @@ function AppView({store}: AppProps) {
         </ItemView>
     </div>
 }
-AppView.deps = [{locale: Locale}]
-const store = new Store()
+AppView.deps = [{locale: Locale, store: Store}]
 
-render(<AppView store={store} lang="ru" />, document.getElementById('app'))
+render(<AppView lang="ru" />, document.getElementById('app'))

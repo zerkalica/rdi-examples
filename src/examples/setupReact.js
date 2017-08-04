@@ -8,6 +8,8 @@ import jssCamel from 'jss-camel-case'
 import jssGlobal from 'jss-global'
 import jssNested from 'jss-nested'
 
+import {BrowserLocationStore, AbstractLocationStore} from './common'
+
 function ErrorableView({
     error
 }: {
@@ -41,7 +43,9 @@ const lomCreateElement = createCreateElement(
     createReactWrapper(
         Component,
         ErrorableView,
-        new Injector(undefined, jss)
+        new Injector([
+            [AbstractLocationStore, new BrowserLocationStore(location, history)]
+        ], jss)
     ),
     h
 )

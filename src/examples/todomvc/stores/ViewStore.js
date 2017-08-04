@@ -4,6 +4,7 @@ import {mem} from 'lom_atom'
 
 import type {ITodo} from './TodoStore'
 import TodoStore from './TodoStore'
+import {AbstractLocationStore} from '../../common'
 
 export const TODO_FILTER = {
     ALL: 'all',
@@ -15,22 +16,21 @@ export type IFilter = $Values<typeof TODO_FILTER>
 
 export default class ViewStore {
     _todoStore: TodoStore
+    _locationStore: AbstractLocationStore
 
-    static deps = [TodoStore]
+    static deps = [TodoStore, AbstractLocationStore]
 
-    constructor(todoStore: TodoStore) {
+    constructor(todoStore: TodoStore, locationStore: AbstractLocationStore) {
         this._todoStore = todoStore
+        this._locationStore = locationStore
     }
 
-    @mem get filter(): IFilter {
-        const params = new URLSearchParams(location.search)
-        const filter: IFilter = params.get('todo_filter') || TODO_FILTER.ALL
-
-        return filter
+    get filter(): IFilter {
+        return this._locationStore.location('todo_filter') || TODO_FILTER.ALL
     }
 
-    @mem set filter(filter: IFilter) {
-        history.pushState(null, filter, `?todo_filter=${filter}`)
+    set filter(filter: IFilter) {
+        return this._locationStore.location('todo_filter', filter)
     }
 
     @mem get filteredTodos(): ITodo[] {

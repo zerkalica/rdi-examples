@@ -7,10 +7,12 @@ import globals from 'rollup-plugin-node-globals'
 import replace from 'rollup-plugin-replace'
 import commonjs from 'rollup-plugin-commonjs'
 import sourcemaps from 'rollup-plugin-sourcemaps'
+import visualizer from 'rollup-plugin-visualizer'
 
 import babelrc from 'babelrc-rollup'
 
 import fs from 'fs'
+import path from 'path'
 
 const pkg = JSON.parse(fs.readFileSync('./package.json'))
 
@@ -36,6 +38,7 @@ export default {
         replace({
             'process.env.NODE_ENV': JSON.stringify('development')
         }),
+        visualizer({filename: path.join(__dirname, 'docs', 'stat.html') })
         // uglify({}, minify)
     ],
     targets: [
