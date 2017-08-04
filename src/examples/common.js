@@ -1,54 +1,7 @@
 // @flow
 import type {NamesOf} from 'lom_atom'
-import {force, mem, memkey} from 'lom_atom'
+import {force, mem} from 'lom_atom'
 import fetchMock from 'fetch-mock/es5/client'
-
-export function uuid(): string {
-    let uuid = ''
-
-    for (let i = 0; i < 32; i++) {
-        let random = Math.random() * 16 | 0
-        if (i === 8 || i === 12 || i === 16 || i === 20) {
-            uuid += '-'
-        }
-        uuid += (i === 12 ? 4 : (i === 16 ? (random & 3 | 8) : random)).toString(16)
-    }
-
-    return uuid
-}
-
-export class AbstractLocationStore {
-    location(key: string, value?: string, force?: boolean): string {
-        throw new Error('implement')
-    }
-}
-
-export class BrowserLocationStore extends AbstractLocationStore {
-    _location: Location
-    _history: History
-    _ns: string = 'lom_app'
-
-    constructor(location: Location, history: History) {
-        super()
-        this._location = location
-        this._history = history
-    }
-
-    _params(): URLSearchParams {
-        return new URLSearchParams(this._location.search)
-    }
-
-    @memkey
-    location(key: string, value?: string, force?: boolean): string {
-        const params = this._params()
-        if (value === undefined) return params.get(key)
-
-        params.set(key, value)
-        this._history.pushState(null, this._ns, `?${params.toString()}`)
-
-        return value
-    }
-}
 
 function KeyValueTheme() {
     return {

@@ -1,5 +1,5 @@
 // @flow
-import {uuid} from '../common'
+import {uuid} from '../common-todomvc'
 import {mem, force} from 'lom_atom'
 
 interface ITodoBase {
@@ -155,12 +155,12 @@ export default class TodoService {
         )
     }
 
-    toggleAll(completed: boolean) {
+    toggleAll = () => {
         this.todos = this.todos.map(
             (todo: ITodo) => new TodoModel({
                 title: todo.title,
                 id: todo.id,
-                completed
+                completed: true
             }, this)
         )
 
@@ -169,7 +169,7 @@ export default class TodoService {
                 method: 'PUT',
                 body: JSON.stringify(
                     this.todos.map(
-                        (todo: ITodo) => ([todo.id, {completed}])
+                        (todo: ITodo) => ([todo.id, {completed: true}])
                     )
                 )
             })

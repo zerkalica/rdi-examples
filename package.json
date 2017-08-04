@@ -77,6 +77,7 @@
     "jss-nested": "^5.0.0",
     "lom_atom": "^1.0.5",
     "preact": "^8.2.1",
-    "reactive-di": "^4.0.3"
+    "reactive-di": "^4.0.3",
+    "todomvc-common": "^1.0.3"
   }
 }

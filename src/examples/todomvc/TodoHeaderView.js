@@ -15,15 +15,14 @@ class TodoHeaderViewProps implements ITodoHeaderViewProps {
     todoService: IStore
 }
 
-
 class TodoToAdd {
     @mem title: string = ''
-    _store: IStore
+    _todoService: IStore
 
     static deps = [TodoHeaderViewProps]
 
     constructor({todoService}: ITodoHeaderViewProps) {
-        this._store = todoService
+        this._todoService = todoService
     }
 
     onInput = ({target}: Event) => {
@@ -32,7 +31,7 @@ class TodoToAdd {
 
     onKeyDown = (e: Event) => {
         if (e.keyCode === 13 && this.title) {
-            this._store.addTodo(this.title)
+            this._todoService.addTodo(this.title)
             this.title = ''
         }
     }
@@ -65,18 +64,20 @@ TodoHeaderTheme.theme = true
 export default function TodoHeaderView(
     _: ITodoHeaderViewProps,
     {todoToAdd, theme}: {
-        theme: NamesOf<typeof TodoHeaderTheme>;
+        theme: NamesOf<TodoHeaderTheme>;
         todoToAdd: TodoToAdd;
     }
 ) {
-    return <input
-        className={theme.newTodo}
-        placeholder="What needs to be done?"
-        onInput={todoToAdd.onInput}
-        value={todoToAdd.title}
-        onKeyDown={todoToAdd.onKeyDown}
-        autoFocus={true}
-    />
+    return <header>
+        <input
+            className={theme.newTodo}
+            placeholder="What needs to be done?"
+            onInput={todoToAdd.onInput}
+            value={todoToAdd.title}
+            onKeyDown={todoToAdd.onKeyDown}
+            autoFocus={true}
+        />
+    </header>
 }
 TodoHeaderView.deps = [{todoToAdd: TodoToAdd, theme: TodoHeaderTheme}]
 TodoHeaderView.props = TodoHeaderViewProps

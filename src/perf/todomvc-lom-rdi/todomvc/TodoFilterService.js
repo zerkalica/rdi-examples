@@ -4,7 +4,7 @@ import {mem} from 'lom_atom'
 
 import type {ITodo} from './TodoService'
 import TodoService from './TodoService'
-import {AbstractLocationStore} from '../common-todomvc'
+import {AbstractLocationStore} from './common-todomvc'
 
 export const TODO_FILTER = {
     ALL: 'all',

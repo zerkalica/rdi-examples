@@ -1,5 +1,6 @@
 
-import {uuid, BrowserLocalStorage} from '../common'
+import {BrowserLocalStorage} from '../common'
+import {uuid} from '../common-todomvc'
 interface ITodo {
     id: string;
     title: string;

@@ -11,7 +11,8 @@ import {HelloView} from './hello'
 import {TodoAppView, todoMocks} from './todomvc'
 import {AutocompleteView, autocompleteMocks} from './autocomplete'
 
-import {AbstractLocationStore, ItemView, Locale, mockFetch} from './common'
+import {ItemView, Locale, mockFetch} from './common'
+import {AbstractLocationStore} from './common-todomvc'
 
 mockFetch(localStorage, 500, [
     todoMocks,

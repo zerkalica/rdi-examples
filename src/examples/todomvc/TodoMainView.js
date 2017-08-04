@@ -76,7 +76,7 @@ export default function TodoMainView(
         <input
             className={theme.toggleAll}
             type="checkbox"
-            onChange={({target}: Event) => todoService.toggleAll((target: any).checked)}
+            onChange={todoService.toggleAll}
             checked={todoService.activeTodoCount === 0}
         />
         <ul className={theme.todoList}>

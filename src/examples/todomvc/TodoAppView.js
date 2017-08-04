@@ -59,9 +59,7 @@ export default function TodoApp(
         {todoService.activeTodoCount > 0 ? null : null}
         <div style={{padding: '0.3em 0.5em'}}>{todoService.isOperationRunning ? 'Saving...' : 'Idle'}</div>
         <div className={theme.todoapp}>
-            <header>
-                <TodoHeaderView todoService={todoService} />
-            </header>
+            <TodoHeaderView todoService={todoService} />
             <TodoMainView todoService={todoService} todoFilterService={todoFilterService} />
             <TodoFooterView todoService={todoService} todoFilterService={todoFilterService} />
         </div>

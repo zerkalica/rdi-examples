@@ -1,4 +1,3 @@
-document.write('<script src="http://' + (location.host || 'localhost').split(':')[0] + ':35729/livereload.js?snipver=1"></' + 'script>');
 (function () {
 'use strict';
 
@@ -5394,6 +5393,172 @@ var index$5 = createCommonjsModule(function (module, exports) {
 });
 var jssNested = unwrapExports(index$5);
 
+var _class$1;
+
+function _applyDecoratedDescriptor$2(target, property, decorators, descriptor, context) {
+  var desc = {};
+  Object['ke' + 'ys'](descriptor).forEach(function (key) {
+    desc[key] = descriptor[key];
+  });
+  desc.enumerable = !!desc.enumerable;
+  desc.configurable = !!desc.configurable;
+
+  if ('value' in desc || desc.initializer) {
+    desc.writable = true;
+  }
+
+  desc = decorators.slice().reverse().reduce(function (desc, decorator) {
+    return decorator(target, property, desc) || desc;
+  }, desc);
+
+  if (context && desc.initializer !== void 0) {
+    desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
+    desc.initializer = undefined;
+  }
+
+  if (desc.initializer === void 0) {
+    Object['define' + 'Property'](target, property, desc);
+    desc = null;
+  }
+
+  return desc;
+}
+
+function uuid() {
+  var uuid = '';
+
+  for (var i = 0; i < 32; i++) {
+    var random = Math.random() * 16 | 0;
+
+    if (i === 8 || i === 12 || i === 16 || i === 20) {
+      uuid += '-';
+    }
+
+    uuid += (i === 12 ? 4 : i === 16 ? random & 3 | 8 : random).toString(16);
+  }
+
+  return uuid;
+}
+
+var AbstractLocationStore = function () {
+  function AbstractLocationStore() {}
+
+  AbstractLocationStore.prototype.location = function location(key, value, force$$1) {
+    throw new Error('implement');
+  };
+
+  return AbstractLocationStore;
+}();
+var BrowserLocationStore = (_class$1 = function (_AbstractLocationStor) {
+  inheritsLoose$1(BrowserLocationStore, _AbstractLocationStor);
+
+  function BrowserLocationStore(location, history) {
+    var _this;
+
+    _this = _AbstractLocationStor.call(this) || this;
+    _this._ns = 'lom_app';
+    _this._location = location;
+    _this._history = history;
+    return _this;
+  }
+
+  BrowserLocationStore.prototype._params = function _params() {
+    return new URLSearchParams(this._location.search);
+  };
+
+  BrowserLocationStore.prototype.location = function location(key, value, force$$1) {
+    var params = this._params();
+
+    if (value === undefined) return params.get(key);
+    params.set(key, value);
+
+    this._history.pushState(null, this._ns, "?" + params.toString());
+
+    return value;
+  };
+
+  return BrowserLocationStore;
+}(AbstractLocationStore), (_applyDecoratedDescriptor$2(_class$1.prototype, "location", [memkey], Object.getOwnPropertyDescriptor(_class$1.prototype, "location"), _class$1.prototype)), _class$1);
+
+function ErrorableView(_ref) {
+  var error = _ref.error;
+  return lom_h("div", null, error instanceof mem.Wait ? lom_h("div", null, "Loading...") : lom_h("div", null, lom_h("h3", null, "Fatal error !"), lom_h("div", null, error.message), lom_h("pre", null, error.stack.toString())));
+}
+
+var jss = index_1({
+  plugins: [jssNested(), jssCamel(), jssGlobal()]
+});
+var lomCreateElement = createCreateElement(createReactWrapper(Component, ErrorableView, new Injector([[AbstractLocationStore, new BrowserLocationStore(location, history)]], jss)), h);
+global$1['lom_h'] = lomCreateElement;
+
+var _class$2;
+
+function _applyDecoratedDescriptor$3(target, property, decorators, descriptor, context) {
+  var desc = {};
+  Object['ke' + 'ys'](descriptor).forEach(function (key) {
+    desc[key] = descriptor[key];
+  });
+  desc.enumerable = !!desc.enumerable;
+  desc.configurable = !!desc.configurable;
+
+  if ('value' in desc || desc.initializer) {
+    desc.writable = true;
+  }
+
+  desc = decorators.slice().reverse().reduce(function (desc, decorator) {
+    return decorator(target, property, desc) || desc;
+  }, desc);
+
+  if (context && desc.initializer !== void 0) {
+    desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
+    desc.initializer = undefined;
+  }
+
+  if (desc.initializer === void 0) {
+    Object['define' + 'Property'](target, property, desc);
+    desc = null;
+  }
+
+  return desc;
+}
+
+var Counter = (_class$2 = function () {
+  function Counter() {}
+
+  createClass(Counter, [{
+    key: "value",
+    get: function get$$1() {
+      var _this = this;
+
+      setTimeout(function () {
+        _this.value = 1; // this.value = new Error('loading error')
+      }, 500);
+      throw new mem.Wait();
+    },
+    set: function set$$1(v) {
+      if (typeof v === 'string') {
+        throw new TypeError('Test error');
+      }
+    }
+  }]);
+  return Counter;
+}(), (_applyDecoratedDescriptor$3(_class$2.prototype, "value", [mem], Object.getOwnPropertyDescriptor(_class$2.prototype, "value"), _class$2.prototype), _applyDecoratedDescriptor$3(_class$2.prototype, "value", [mem], Object.getOwnPropertyDescriptor(_class$2.prototype, "value"), _class$2.prototype)), _class$2);
+function CounterView(_, _ref) {
+  var counter = _ref.counter;
+  return lom_h("div", null, lom_h("div", null, "Count: ", counter.value), lom_h("button", {
+    onClick: function onClick() {
+      counter.value++;
+    }
+  }, "Add"), lom_h("button", {
+    onClick: function onClick() {
+      counter.value = 'error';
+    }
+  }, "Gen error"));
+}
+CounterView.deps = [{
+  counter: Counter
+}];
+
 var index$6 = function index(glob, opts) {
   if (typeof glob !== 'string') {
     throw new TypeError('Expected a string');
@@ -6685,11 +6850,10 @@ fetchMock$1.setImplementations({
 });
 var client = new fetchMock$1();
 
-var _class$1;
-var _class3;
-var _descriptor$1;
+var _class$4;
+var _descriptor$2;
 
-function _initDefineProp$1(target, property, descriptor, context) {
+function _initDefineProp$2(target, property, descriptor, context) {
   if (!descriptor) return;
   Object.defineProperty(target, property, {
     enumerable: descriptor.enumerable,
@@ -6699,7 +6863,7 @@ function _initDefineProp$1(target, property, descriptor, context) {
   });
 }
 
-function _applyDecoratedDescriptor$2(target, property, decorators, descriptor, context) {
+function _applyDecoratedDescriptor$5(target, property, decorators, descriptor, context) {
   var desc = {};
   Object['ke' + 'ys'](descriptor).forEach(function (key) {
     desc[key] = descriptor[key];
@@ -6727,61 +6891,6 @@ function _applyDecoratedDescriptor$2(target, property, decorators, descriptor, c
 
   return desc;
 }
-
-function uuid() {
-  var uuid = '';
-
-  for (var i = 0; i < 32; i++) {
-    var random = Math.random() * 16 | 0;
-
-    if (i === 8 || i === 12 || i === 16 || i === 20) {
-      uuid += '-';
-    }
-
-    uuid += (i === 12 ? 4 : i === 16 ? random & 3 | 8 : random).toString(16);
-  }
-
-  return uuid;
-}
-var AbstractLocationStore = function () {
-  function AbstractLocationStore() {}
-
-  AbstractLocationStore.prototype.location = function location(key, value, force$$1) {
-    throw new Error('implement');
-  };
-
-  return AbstractLocationStore;
-}();
-var BrowserLocationStore = (_class$1 = function (_AbstractLocationStor) {
-  inheritsLoose$1(BrowserLocationStore, _AbstractLocationStor);
-
-  function BrowserLocationStore(location, history) {
-    var _this;
-
-    _this = _AbstractLocationStor.call(this) || this;
-    _this._ns = 'lom_app';
-    _this._location = location;
-    _this._history = history;
-    return _this;
-  }
-
-  BrowserLocationStore.prototype._params = function _params() {
-    return new URLSearchParams(this._location.search);
-  };
-
-  BrowserLocationStore.prototype.location = function location(key, value, force$$1) {
-    var params = this._params();
-
-    if (value === undefined) return params.get(key);
-    params.set(key, value);
-
-    this._history.pushState(null, this._ns, "?" + params.toString());
-
-    return value;
-  };
-
-  return BrowserLocationStore;
-}(AbstractLocationStore), (_applyDecoratedDescriptor$2(_class$1.prototype, "location", [memkey], Object.getOwnPropertyDescriptor(_class$1.prototype, "location"), _class$1.prototype)), _class$1);
 
 function KeyValueTheme() {
   return {
@@ -6834,14 +6943,14 @@ ItemView.deps = [{
 }];
 ItemView.Key = KeyView;
 ItemView.Value = ValueView;
-var Locale = (_class3 = function () {
+var Locale = (_class$4 = function () {
   createClass(Locale, [{
     key: "lang",
     get: function get$$1() {
-      var _this2 = this;
+      var _this = this;
 
       setTimeout(function () {
-        _this2.$.lang = 'gb';
+        _this.$.lang = 'gb';
       }, 400);
       return this._defaultLang;
     },
@@ -6849,16 +6958,16 @@ var Locale = (_class3 = function () {
   }]);
 
   function Locale(lang) {
-    _initDefineProp$1(this, "$", _descriptor$1, this);
+    _initDefineProp$2(this, "$", _descriptor$2, this);
 
     this._defaultLang = lang;
   }
 
   return Locale;
-}(), (_descriptor$1 = _applyDecoratedDescriptor$2(_class3.prototype, "$", [force], {
+}(), (_descriptor$2 = _applyDecoratedDescriptor$5(_class$4.prototype, "$", [force], {
   enumerable: true,
   initializer: null
-}), _applyDecoratedDescriptor$2(_class3.prototype, "lang", [mem], Object.getOwnPropertyDescriptor(_class3.prototype, "lang"), _class3.prototype), _applyDecoratedDescriptor$2(_class3.prototype, "lang", [mem], Object.getOwnPropertyDescriptor(_class3.prototype, "lang"), _class3.prototype)), _class3);
+}), _applyDecoratedDescriptor$5(_class$4.prototype, "lang", [mem], Object.getOwnPropertyDescriptor(_class$4.prototype, "lang"), _class$4.prototype), _applyDecoratedDescriptor$5(_class$4.prototype, "lang", [mem], Object.getOwnPropertyDescriptor(_class$4.prototype, "lang"), _class$4.prototype)), _class$4);
 var BrowserLocalStorage = function () {
   function BrowserLocalStorage(storage, key) {
     this._storage = storage;
@@ -6908,87 +7017,8 @@ function mockFetch(storage) {
   });
 }
 
-function ErrorableView(_ref) {
-  var error = _ref.error;
-  return lom_h("div", null, error instanceof mem.Wait ? lom_h("div", null, "Loading...") : lom_h("div", null, lom_h("h3", null, "Fatal error !"), lom_h("div", null, error.message), lom_h("pre", null, error.stack.toString())));
-}
-
-var jss = index_1({
-  plugins: [jssNested(), jssCamel(), jssGlobal()]
-});
-var lomCreateElement = createCreateElement(createReactWrapper(Component, ErrorableView, new Injector([[AbstractLocationStore, new BrowserLocationStore(location, history)]], jss)), h);
-global$1['lom_h'] = lomCreateElement;
-
-var _class$2;
-
-function _applyDecoratedDescriptor$3(target, property, decorators, descriptor, context) {
-  var desc = {};
-  Object['ke' + 'ys'](descriptor).forEach(function (key) {
-    desc[key] = descriptor[key];
-  });
-  desc.enumerable = !!desc.enumerable;
-  desc.configurable = !!desc.configurable;
-
-  if ('value' in desc || desc.initializer) {
-    desc.writable = true;
-  }
-
-  desc = decorators.slice().reverse().reduce(function (desc, decorator) {
-    return decorator(target, property, desc) || desc;
-  }, desc);
-
-  if (context && desc.initializer !== void 0) {
-    desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
-    desc.initializer = undefined;
-  }
-
-  if (desc.initializer === void 0) {
-    Object['define' + 'Property'](target, property, desc);
-    desc = null;
-  }
-
-  return desc;
-}
-
-var Counter = (_class$2 = function () {
-  function Counter() {}
-
-  createClass(Counter, [{
-    key: "value",
-    get: function get$$1() {
-      var _this = this;
-
-      setTimeout(function () {
-        _this.value = 1; // this.value = new Error('loading error')
-      }, 500);
-      throw new mem.Wait();
-    },
-    set: function set$$1(v) {
-      if (typeof v === 'string') {
-        throw new TypeError('Test error');
-      }
-    }
-  }]);
-  return Counter;
-}(), (_applyDecoratedDescriptor$3(_class$2.prototype, "value", [mem], Object.getOwnPropertyDescriptor(_class$2.prototype, "value"), _class$2.prototype), _applyDecoratedDescriptor$3(_class$2.prototype, "value", [mem], Object.getOwnPropertyDescriptor(_class$2.prototype, "value"), _class$2.prototype)), _class$2);
-function CounterView(_, _ref) {
-  var counter = _ref.counter;
-  return lom_h("div", null, lom_h("div", null, "Count: ", counter.value), lom_h("button", {
-    onClick: function onClick() {
-      counter.value++;
-    }
-  }, "Add"), lom_h("button", {
-    onClick: function onClick() {
-      counter.value = 'error';
-    }
-  }, "Gen error"));
-}
-CounterView.deps = [{
-  counter: Counter
-}];
-
 var _class$3;
-var _descriptor$2;
+var _descriptor$1;
 var _class4;
 var _descriptor2;
 var _class5;
@@ -6996,7 +7026,7 @@ var _temp$1;
 var _class6;
 var _temp2;
 
-function _initDefineProp$2(target, property, descriptor, context) {
+function _initDefineProp$1(target, property, descriptor, context) {
   if (!descriptor) return;
   Object.defineProperty(target, property, {
     enumerable: descriptor.enumerable,
@@ -7036,8 +7066,8 @@ function _applyDecoratedDescriptor$4(target, property, decorators, descriptor, c
 }
 
 var Hello = (_class$3 = function Hello() {
-  _initDefineProp$2(this, "name", _descriptor$2, this);
-}, (_descriptor$2 = _applyDecoratedDescriptor$4(_class$3.prototype, "name", [mem], {
+  _initDefineProp$1(this, "name", _descriptor$1, this);
+}, (_descriptor$1 = _applyDecoratedDescriptor$4(_class$3.prototype, "name", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return 'test';
@@ -7049,7 +7079,7 @@ var HelloProps = function HelloProps() {};
 var HelloOptions = (_class4 = (_temp$1 = _class5 = function HelloOptions(_ref) {
   var name = _ref.name;
 
-  _initDefineProp$2(this, "actionName", _descriptor2, this);
+  _initDefineProp$1(this, "actionName", _descriptor2, this);
 
   this.actionName = name + '-hello';
 }, _class5.deps = [HelloProps], _temp$1), (_descriptor2 = _applyDecoratedDescriptor$4(_class4.prototype, "actionName", [mem], {
@@ -7230,7 +7260,7 @@ function _initDefineProp$3(target, property, descriptor, context) {
   });
 }
 
-function _applyDecoratedDescriptor$5(target, property, decorators, descriptor, context) {
+function _applyDecoratedDescriptor$6(target, property, decorators, descriptor, context) {
   var desc = {};
   Object['ke' + 'ys'](descriptor).forEach(function (key) {
     desc[key] = descriptor[key];
@@ -7307,23 +7337,44 @@ var TodoModel = function () {
 
 var TodoService = (_class2$2 = function () {
   function TodoService() {
+    var _this = this;
+
     _initDefineProp$3(this, "opCount", _descriptor$3, this);
+
+    this.toggleAll = function () {
+      _this.todos = _this.todos.map(function (todo) {
+        return new TodoModel({
+          title: todo.title,
+          id: todo.id,
+          completed: true
+        }, _this);
+      });
+
+      _this._handlePromise(fetch("/api/todos", {
+        method: 'PUT',
+        body: JSON.stringify(_this.todos.map(function (todo) {
+          return [todo.id, {
+            completed: true
+          }];
+        }))
+      }));
+    };
   }
 
   TodoService.prototype._handlePromise = function _handlePromise(p) {
-    var _this = this;
+    var _this2 = this;
 
     this.opCount++;
     return p.then(function () {
-      _this.opCount--;
+      _this2.opCount--;
     }).catch(function (e) {
-      _this.opCount--;
-      _this.todos = e;
+      _this2.opCount--;
+      _this2.todos = e;
     });
   };
 
   TodoService.prototype.addTodo = function addTodo(title) {
-    var _this2 = this;
+    var _this3 = this;
 
     var todo = new TodoModel({
       title: title
@@ -7334,25 +7385,25 @@ var TodoService = (_class2$2 = function () {
       method: 'PUT',
       body: JSON.stringify(todo)
     }).then(toJson).then(function (updatedTodo) {
-      _this2.todos = _this2.todos.map(function (t) {
-        return t.id === todo.id ? new TodoModel(updatedTodo, _this2) : t;
+      _this3.todos = _this3.todos.map(function (t) {
+        return t.id === todo.id ? new TodoModel(updatedTodo, _this3) : t;
       });
     }));
   };
 
   TodoService.prototype.saveTodo = function saveTodo(todo) {
-    var _this3 = this;
+    var _this4 = this;
 
     this.todos = this.todos.map(function (t) {
-      return t.id === todo.id ? new TodoModel(todo, _this3) : t;
+      return t.id === todo.id ? new TodoModel(todo, _this4) : t;
     });
 
     this._handlePromise(fetch("/api/todo/" + todo.id, {
       method: 'POST',
       body: JSON.stringify(todo)
     }).then(toJson).then(function (updatedTodo) {
-      _this3.todos = _this3.todos.map(function (t) {
-        return t.id === todo.id ? new TodoModel(updatedTodo, _this3) : t;
+      _this4.todos = _this4.todos.map(function (t) {
+        return t.id === todo.id ? new TodoModel(updatedTodo, _this4) : t;
       });
     }));
   };
@@ -7364,27 +7415,6 @@ var TodoService = (_class2$2 = function () {
 
     this._handlePromise(fetch("/api/todo/" + id, {
       method: 'DELETE'
-    }));
-  };
-
-  TodoService.prototype.toggleAll = function toggleAll(completed) {
-    var _this4 = this;
-
-    this.todos = this.todos.map(function (todo) {
-      return new TodoModel({
-        title: todo.title,
-        id: todo.id,
-        completed: completed
-      }, _this4);
-    });
-
-    this._handlePromise(fetch("/api/todos", {
-      method: 'PUT',
-      body: JSON.stringify(this.todos.map(function (todo) {
-        return [todo.id, {
-          completed: completed
-        }];
-      }))
     }));
   };
 
@@ -7446,18 +7476,18 @@ var TodoService = (_class2$2 = function () {
     }
   }]);
   return TodoService;
-}(), (_descriptor$3 = _applyDecoratedDescriptor$5(_class2$2.prototype, "opCount", [mem], {
+}(), (_descriptor$3 = _applyDecoratedDescriptor$6(_class2$2.prototype, "opCount", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return 0;
   }
-}), _applyDecoratedDescriptor$5(_class2$2.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "todos"), _class2$2.prototype), _applyDecoratedDescriptor$5(_class2$2.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "todos"), _class2$2.prototype), _applyDecoratedDescriptor$5(_class2$2.prototype, "activeTodoCount", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "activeTodoCount"), _class2$2.prototype)), _class2$2);
+}), _applyDecoratedDescriptor$6(_class2$2.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "todos"), _class2$2.prototype), _applyDecoratedDescriptor$6(_class2$2.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "todos"), _class2$2.prototype), _applyDecoratedDescriptor$6(_class2$2.prototype, "activeTodoCount", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "activeTodoCount"), _class2$2.prototype)), _class2$2);
 
-var _class$4;
+var _class$5;
 var _class2$3;
 var _temp$2;
 
-function _applyDecoratedDescriptor$6(target, property, decorators, descriptor, context) {
+function _applyDecoratedDescriptor$7(target, property, decorators, descriptor, context) {
   var desc = {};
   Object['ke' + 'ys'](descriptor).forEach(function (key) {
     desc[key] = descriptor[key];
@@ -7491,7 +7521,7 @@ var TODO_FILTER = {
   COMPLETE: 'complete',
   ACTIVE: 'active'
 };
-var TodoFilterService = (_class$4 = (_temp$2 = _class2$3 = function () {
+var TodoFilterService = (_class$5 = (_temp$2 = _class2$3 = function () {
   function TodoFilterService(TodoService$$1, locationStore) {
     this._todoService = TodoService$$1;
     this._locationStore = locationStore;
@@ -7530,127 +7560,14 @@ var TodoFilterService = (_class$4 = (_temp$2 = _class2$3 = function () {
     }
   }]);
   return TodoFilterService;
-}(), _class2$3.deps = [TodoService, AbstractLocationStore], _temp$2), (_applyDecoratedDescriptor$6(_class$4.prototype, "filteredTodos", [mem], Object.getOwnPropertyDescriptor(_class$4.prototype, "filteredTodos"), _class$4.prototype)), _class$4);
+}(), _class2$3.deps = [TodoService, AbstractLocationStore], _temp$2), (_applyDecoratedDescriptor$7(_class$5.prototype, "filteredTodos", [mem], Object.getOwnPropertyDescriptor(_class$5.prototype, "filteredTodos"), _class$5.prototype)), _class$5);
 
 var _class2$4;
 var _descriptor$4;
-var _class3$1;
+var _class3;
 var _temp$3;
 
 function _initDefineProp$4(target, property, descriptor, context) {
-  if (!descriptor) return;
-  Object.defineProperty(target, property, {
-    enumerable: descriptor.enumerable,
-    configurable: descriptor.configurable,
-    writable: descriptor.writable,
-    value: descriptor.initializer ? descriptor.initializer.call(context) : void 0
-  });
-}
-
-function _applyDecoratedDescriptor$7(target, property, decorators, descriptor, context) {
-  var desc = {};
-  Object['ke' + 'ys'](descriptor).forEach(function (key) {
-    desc[key] = descriptor[key];
-  });
-  desc.enumerable = !!desc.enumerable;
-  desc.configurable = !!desc.configurable;
-
-  if ('value' in desc || desc.initializer) {
-    desc.writable = true;
-  }
-
-  desc = decorators.slice().reverse().reduce(function (desc, decorator) {
-    return decorator(target, property, desc) || desc;
-  }, desc);
-
-  if (context && desc.initializer !== void 0) {
-    desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
-    desc.initializer = undefined;
-  }
-
-  if (desc.initializer === void 0) {
-    Object['define' + 'Property'](target, property, desc);
-    desc = null;
-  }
-
-  return desc;
-}
-
-var TodoHeaderViewProps = function TodoHeaderViewProps() {};
-
-var TodoToAdd = (_class2$4 = (_temp$3 = _class3$1 = function TodoToAdd(_ref) {
-  var _this = this;
-
-  var todoService = _ref.todoService;
-
-  _initDefineProp$4(this, "title", _descriptor$4, this);
-
-  this.onInput = function (_ref2) {
-    var target = _ref2.target;
-    _this.title = target.value;
-  };
-
-  this.onKeyDown = function (e) {
-    if (e.keyCode === 13 && _this.title) {
-      _this._store.addTodo(_this.title);
-
-      _this.title = '';
-    }
-  };
-
-  this._store = todoService;
-}, _class3$1.deps = [TodoHeaderViewProps], _temp$3), (_descriptor$4 = _applyDecoratedDescriptor$7(_class2$4.prototype, "title", [mem], {
-  enumerable: true,
-  initializer: function initializer() {
-    return '';
-  }
-})), _class2$4);
-
-function TodoHeaderTheme() {
-  var _newTodo;
-
-  return {
-    newTodo: (_newTodo = {
-      position: 'relative',
-      margin: '0',
-      width: '100%',
-      fontSize: '24px',
-      fontFamily: 'inherit',
-      fontWeight: 'inherit',
-      lineHeight: '1.4em',
-      border: '0',
-      color: 'inherit',
-      padding: '16px 16px 16px 60px'
-    }, _newTodo["border"] = 'none', _newTodo.background = 'rgba(0, 0, 0, 0.003)', _newTodo.boxShadow = 'inset 0 -2px 1px rgba(0,0,0,0.03)', _newTodo.boxSizing = 'border-box', _newTodo['-webkit-font-smoothing'] = 'antialiased', _newTodo['-moz-osx-font-smoothing'] = 'grayscale', _newTodo)
-  };
-}
-
-TodoHeaderTheme.theme = true;
-function TodoHeaderView(_, _ref3) {
-  var todoToAdd = _ref3.todoToAdd,
-      theme = _ref3.theme;
-  return lom_h("input", {
-    className: theme.newTodo,
-    placeholder: "What needs to be done?",
-    onInput: todoToAdd.onInput,
-    value: todoToAdd.title,
-    onKeyDown: todoToAdd.onKeyDown,
-    autoFocus: true
-  });
-}
-TodoHeaderView.deps = [{
-  todoToAdd: TodoToAdd,
-  theme: TodoHeaderTheme
-}];
-TodoHeaderView.props = TodoHeaderViewProps;
-
-var _class2$5;
-var _descriptor$5;
-var _descriptor2$1;
-var _class3$2;
-var _temp$4;
-
-function _initDefineProp$5(target, property, descriptor, context) {
   if (!descriptor) return;
   Object.defineProperty(target, property, {
     enumerable: descriptor.enumerable,
@@ -7689,12 +7606,125 @@ function _applyDecoratedDescriptor$8(target, property, decorators, descriptor, c
   return desc;
 }
 
+var TodoHeaderViewProps = function TodoHeaderViewProps() {};
+
+var TodoToAdd = (_class2$4 = (_temp$3 = _class3 = function TodoToAdd(_ref) {
+  var _this = this;
+
+  var todoService = _ref.todoService;
+
+  _initDefineProp$4(this, "title", _descriptor$4, this);
+
+  this.onInput = function (_ref2) {
+    var target = _ref2.target;
+    _this.title = target.value;
+  };
+
+  this.onKeyDown = function (e) {
+    if (e.keyCode === 13 && _this.title) {
+      _this._todoService.addTodo(_this.title);
+
+      _this.title = '';
+    }
+  };
+
+  this._todoService = todoService;
+}, _class3.deps = [TodoHeaderViewProps], _temp$3), (_descriptor$4 = _applyDecoratedDescriptor$8(_class2$4.prototype, "title", [mem], {
+  enumerable: true,
+  initializer: function initializer() {
+    return '';
+  }
+})), _class2$4);
+
+function TodoHeaderTheme() {
+  var _newTodo;
+
+  return {
+    newTodo: (_newTodo = {
+      position: 'relative',
+      margin: '0',
+      width: '100%',
+      fontSize: '24px',
+      fontFamily: 'inherit',
+      fontWeight: 'inherit',
+      lineHeight: '1.4em',
+      border: '0',
+      color: 'inherit',
+      padding: '16px 16px 16px 60px'
+    }, _newTodo["border"] = 'none', _newTodo.background = 'rgba(0, 0, 0, 0.003)', _newTodo.boxShadow = 'inset 0 -2px 1px rgba(0,0,0,0.03)', _newTodo.boxSizing = 'border-box', _newTodo['-webkit-font-smoothing'] = 'antialiased', _newTodo['-moz-osx-font-smoothing'] = 'grayscale', _newTodo)
+  };
+}
+
+TodoHeaderTheme.theme = true;
+function TodoHeaderView(_, _ref3) {
+  var todoToAdd = _ref3.todoToAdd,
+      theme = _ref3.theme;
+  return lom_h("header", null, lom_h("input", {
+    className: theme.newTodo,
+    placeholder: "What needs to be done?",
+    onInput: todoToAdd.onInput,
+    value: todoToAdd.title,
+    onKeyDown: todoToAdd.onKeyDown,
+    autoFocus: true
+  }));
+}
+TodoHeaderView.deps = [{
+  todoToAdd: TodoToAdd,
+  theme: TodoHeaderTheme
+}];
+TodoHeaderView.props = TodoHeaderViewProps;
+
+var _class2$5;
+var _descriptor$5;
+var _descriptor2$1;
+var _class3$1;
+var _temp$4;
+
+function _initDefineProp$5(target, property, descriptor, context) {
+  if (!descriptor) return;
+  Object.defineProperty(target, property, {
+    enumerable: descriptor.enumerable,
+    configurable: descriptor.configurable,
+    writable: descriptor.writable,
+    value: descriptor.initializer ? descriptor.initializer.call(context) : void 0
+  });
+}
+
+function _applyDecoratedDescriptor$9(target, property, decorators, descriptor, context) {
+  var desc = {};
+  Object['ke' + 'ys'](descriptor).forEach(function (key) {
+    desc[key] = descriptor[key];
+  });
+  desc.enumerable = !!desc.enumerable;
+  desc.configurable = !!desc.configurable;
+
+  if ('value' in desc || desc.initializer) {
+    desc.writable = true;
+  }
+
+  desc = decorators.slice().reverse().reduce(function (desc, decorator) {
+    return decorator(target, property, desc) || desc;
+  }, desc);
+
+  if (context && desc.initializer !== void 0) {
+    desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
+    desc.initializer = undefined;
+  }
+
+  if (desc.initializer === void 0) {
+    Object['define' + 'Property'](target, property, desc);
+    desc = null;
+  }
+
+  return desc;
+}
+
 var ESCAPE_KEY = 27;
 var ENTER_KEY = 13;
 
 var TodoItemProps = function TodoItemProps() {};
 
-var TodoItemStore = (_class2$5 = (_temp$4 = _class3$2 = function TodoItemStore(_ref) {
+var TodoItemStore = (_class2$5 = (_temp$4 = _class3$1 = function TodoItemStore(_ref) {
   var _this = this;
 
   var todo = _ref.todo;
@@ -7761,12 +7791,12 @@ var TodoItemStore = (_class2$5 = (_temp$4 = _class3$2 = function TodoItemStore(_
   };
 
   this._todo = todo;
-}, _class3$2.deps = [TodoItemProps], _temp$4), (_descriptor$5 = _applyDecoratedDescriptor$8(_class2$5.prototype, "todoBeingEdited", [mem], {
+}, _class3$1.deps = [TodoItemProps], _temp$4), (_descriptor$5 = _applyDecoratedDescriptor$9(_class2$5.prototype, "todoBeingEdited", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return null;
   }
-}), _descriptor2$1 = _applyDecoratedDescriptor$8(_class2$5.prototype, "editText", [mem], {
+}), _descriptor2$1 = _applyDecoratedDescriptor$9(_class2$5.prototype, "editText", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return '';
@@ -7979,10 +8009,7 @@ function TodoMainView(_ref, _ref2) {
   }, lom_h("input", {
     className: theme.toggleAll,
     type: "checkbox",
-    onChange: function onChange(_ref3) {
-      var target = _ref3.target;
-      return todoService.toggleAll(target.checked);
-    },
+    onChange: todoService.toggleAll,
     checked: todoService.activeTodoCount === 0
   }), lom_h("ul", {
     className: theme.todoList
@@ -8167,9 +8194,9 @@ function TodoApp(_ref, _ref2) {
     }
   }, todoService.isOperationRunning ? 'Saving...' : 'Idle'), lom_h("div", {
     className: theme.todoapp
-  }, lom_h("header", null, lom_h(TodoHeaderView, {
+  }, lom_h(TodoHeaderView, {
     todoService: todoService
-  })), lom_h(TodoMainView, {
+  }), lom_h(TodoMainView, {
     todoService: todoService,
     todoFilterService: todoFilterService
   }), lom_h(TodoFooterView, {
@@ -8185,7 +8212,7 @@ TodoApp.deps = [{
 
 var _class2$6;
 var _descriptor$6;
-var _class3$3;
+var _class3$2;
 var _temp$5;
 
 function _initDefineProp$6(target, property, descriptor, context) {
@@ -8198,7 +8225,7 @@ function _initDefineProp$6(target, property, descriptor, context) {
   });
 }
 
-function _applyDecoratedDescriptor$9(target, property, decorators, descriptor, context) {
+function _applyDecoratedDescriptor$10(target, property, decorators, descriptor, context) {
   var desc = {};
   Object['ke' + 'ys'](descriptor).forEach(function (key) {
     desc[key] = descriptor[key];
@@ -8229,7 +8256,7 @@ function _applyDecoratedDescriptor$9(target, property, decorators, descriptor, c
 
 var AutocompleteProps = function AutocompleteProps() {};
 
-var AutocompleteService = (_class2$6 = (_temp$5 = _class3$3 = function () {
+var AutocompleteService = (_class2$6 = (_temp$5 = _class3$2 = function () {
   createClass(AutocompleteService, [{
     key: "$",
     get: function get$$1() {
@@ -8278,10 +8305,10 @@ var AutocompleteService = (_class2$6 = (_temp$5 = _class3$3 = function () {
     set: function set$$1(searchResults) {}
   }]);
   return AutocompleteService;
-}(), _class3$3.deps = [AutocompleteProps], _temp$5), (_descriptor$6 = _applyDecoratedDescriptor$9(_class2$6.prototype, "nameToSearch", [mem], {
+}(), _class3$2.deps = [AutocompleteProps], _temp$5), (_descriptor$6 = _applyDecoratedDescriptor$10(_class2$6.prototype, "nameToSearch", [mem], {
   enumerable: true,
   initializer: null
-}), _applyDecoratedDescriptor$9(_class2$6.prototype, "$", [force], Object.getOwnPropertyDescriptor(_class2$6.prototype, "$"), _class2$6.prototype), _applyDecoratedDescriptor$9(_class2$6.prototype, "searchResults", [mem], Object.getOwnPropertyDescriptor(_class2$6.prototype, "searchResults"), _class2$6.prototype), _applyDecoratedDescriptor$9(_class2$6.prototype, "searchResults", [mem], Object.getOwnPropertyDescriptor(_class2$6.prototype, "searchResults"), _class2$6.prototype)), _class2$6);
+}), _applyDecoratedDescriptor$10(_class2$6.prototype, "$", [force], Object.getOwnPropertyDescriptor(_class2$6.prototype, "$"), _class2$6.prototype), _applyDecoratedDescriptor$10(_class2$6.prototype, "searchResults", [mem], Object.getOwnPropertyDescriptor(_class2$6.prototype, "searchResults"), _class2$6.prototype), _applyDecoratedDescriptor$10(_class2$6.prototype, "searchResults", [mem], Object.getOwnPropertyDescriptor(_class2$6.prototype, "searchResults"), _class2$6.prototype)), _class2$6);
 
 function AutocompleteResultsView(_ref2) {
   var searchResults = _ref2.searchResults;

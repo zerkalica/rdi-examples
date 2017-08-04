@@ -1,14 +1,8 @@
 // @flow
 import {mem} from 'lom_atom'
 import {createReactWrapper, createCreateElement, Injector} from 'reactive-di'
-
 import {h, Component} from 'preact'
-import {create as createJss} from 'jss'
-import jssCamel from 'jss-camel-case'
-import jssGlobal from 'jss-global'
-import jssNested from 'jss-nested'
-
-import {BrowserLocationStore, AbstractLocationStore} from './common-todomvc'
+import {BrowserLocationStore, AbstractLocationStore} from './todomvc/common-todomvc'
 
 function ErrorableView({
     error
@@ -31,21 +25,13 @@ function ErrorableView({
     </div>
 }
 
-const jss = createJss({
-    plugins: [
-        jssNested(),
-        jssCamel(),
-        jssGlobal()
-    ]
-})
-
 const lomCreateElement = createCreateElement(
     createReactWrapper(
         Component,
         ErrorableView,
         new Injector([
             [AbstractLocationStore, new BrowserLocationStore(location, history)]
-        ], jss)
+        ])
     ),
     h
 )
