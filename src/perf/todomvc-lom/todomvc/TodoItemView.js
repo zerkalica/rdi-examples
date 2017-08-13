@@ -6,26 +6,16 @@ import type {ITodo} from './TodoService'
 const ESCAPE_KEY = 27
 const ENTER_KEY = 13
 
-class TodoItemProps {
-    todo: ITodo
-}
-
-
 export class TodoItemService {
     @mem editingId: ?string = null
     @mem editText: string = ''
 
     _todo: ITodo
 
-    static deps = [TodoItemProps]
-
-    constructor({todo}: TodoItemProps) {
+    beginEdit = (todo: ITodo) => {
         this._todo = todo
-    }
-
-    beginEdit = () => {
-        this.editText = this._todo.title
-        this.editingId = this._todo.id
+        this.editText = todo.title
+        this.editingId = todo.id
     }
 
     setFocus = (el: HTMLInputElement) => {
@@ -39,7 +29,7 @@ export class TodoItemService {
     }
 
     cancel = () => {
-        // this.editText = ''
+        this.editText = ''
         this.editingId = null
     }
 
@@ -58,12 +48,11 @@ export class TodoItemService {
     }
 }
 
+const todoItemService = new TodoItemService()
+
 export default function TodoItemView(
     {todo}: {
         todo: ITodo;
-    },
-    {todoItemService}: {
-        todoItemService: TodoItemService;
     }
 ) {
     const editing = todoItemService.editingId === todo.id
@@ -77,7 +66,7 @@ export default function TodoItemView(
                 checked={todo.completed || 0}
                 onClick={todo.toggle}
             />
-            <label onDblClick={todoItemService.beginEdit}>{todo.title}</label>
+            <label onDblClick={() => todoItemService.beginEdit(todo)}>{todo.title}</label>
             <button class="destroy" onClick={todo.destroy} />
         </div>
         {editing
@@ -93,5 +82,3 @@ export default function TodoItemView(
         }
     </li>
 }
-TodoItemView.deps = [{todoItemService: TodoItemService}]
-TodoItemView.props = TodoItemProps

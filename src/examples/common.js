@@ -1,6 +1,6 @@
 // @flow
 import type {NamesOf} from 'lom_atom'
-import {force, mem} from 'lom_atom'
+import {mem} from 'lom_atom'
 import fetchMock from 'fetch-mock/es5/client'
 
 function KeyValueTheme() {
@@ -46,11 +46,10 @@ ItemView.Value = ValueView
 
 export class Locale {
     _defaultLang: string
-    @force $: Locale
 
     @mem get lang(): string {
         setTimeout(() => {
-            this.$.lang = 'gb'
+            this.lang = 'gb'
         }, 400)
 
         return this._defaultLang

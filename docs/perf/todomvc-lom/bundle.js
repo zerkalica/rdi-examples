@@ -611,6 +611,19 @@ function memkey() {
   };
 }
 
+function forceGet() {
+  defaultContext.force = true;
+  return this;
+}
+
+function force(proto, name, descr) {
+  return {
+    enumerable: descr.enumerable,
+    configurable: descr.configurable,
+    get: forceGet
+  };
+}
+
 function detached(proto, name, descr) {
   return memMethod(proto, name, descr, undefined, true);
 }
@@ -2180,7 +2193,9 @@ function uuid() {
 
   return uuid;
 }
-
+function pluralize(count, word) {
+  return count === 1 ? word : word + 's';
+}
 var AbstractLocationStore = function () {
   function AbstractLocationStore() {}
 
@@ -2226,10 +2241,21 @@ function ErrorableView(_ref) {
   return lom_h("div", null, error instanceof mem.Wait ? lom_h("div", null, "Loading...") : lom_h("div", null, lom_h("h3", null, "Fatal error !"), lom_h("div", null, error.message), lom_h("pre", null, error.stack.toString())));
 }
 
-var lomCreateElement = createCreateElement(createReactWrapper(Component, ErrorableView, new Injector([[AbstractLocationStore, new BrowserLocationStore(location, history)]])), h);
+var lomCreateElement = createCreateElement(createReactWrapper(Component, ErrorableView), h);
 global$1['lom_h'] = lomCreateElement;
 
 var _class2$1;
+var _descriptor;
+
+function _initDefineProp(target, property, descriptor, context) {
+  if (!descriptor) return;
+  Object.defineProperty(target, property, {
+    enumerable: descriptor.enumerable,
+    configurable: descriptor.configurable,
+    writable: descriptor.writable,
+    value: descriptor.initializer ? descriptor.initializer.call(context) : void 0
+  });
+}
 
 function _applyDecoratedDescriptor$2(target, property, decorators, descriptor, context) {
   var desc = {};
@@ -2306,7 +2332,9 @@ var TodoModel = function () {
 }();
 
 var TodoService = (_class2$1 = function () {
-  function TodoService() {}
+  function TodoService() {
+    _initDefineProp(this, "$", _descriptor, this);
+  }
 
   TodoService.prototype.addTodo = function addTodo(title) {
     var todo = new TodoModel({
@@ -2320,7 +2348,7 @@ var TodoService = (_class2$1 = function () {
   TodoService.prototype.saveTodo = function saveTodo(todo) {
     var _this2 = this;
 
-    this.todos = this.todos.map(function (t) {
+    this.todos = this.todos.map(function (t, i) {
       return t.id === todo.id ? new TodoModel(todo, _this2) : t;
     });
   };
@@ -2335,7 +2363,7 @@ var TodoService = (_class2$1 = function () {
     var _this3 = this;
 
     var completed = this.activeTodoCount > 0;
-    this.todos = this.todos.map(function (todo) {
+    this.todos = this.todos.map(function (todo, i) {
       return new TodoModel({
         title: todo.title,
         id: todo.id,
@@ -2381,11 +2409,12 @@ var TodoService = (_class2$1 = function () {
     }
   }]);
   return TodoService;
-}(), (_applyDecoratedDescriptor$2(_class2$1.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class2$1.prototype, "todos"), _class2$1.prototype), _applyDecoratedDescriptor$2(_class2$1.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class2$1.prototype, "todos"), _class2$1.prototype), _applyDecoratedDescriptor$2(_class2$1.prototype, "activeTodoCount", [mem], Object.getOwnPropertyDescriptor(_class2$1.prototype, "activeTodoCount"), _class2$1.prototype), _applyDecoratedDescriptor$2(_class2$1.prototype, "addTodo", [action], Object.getOwnPropertyDescriptor(_class2$1.prototype, "addTodo"), _class2$1.prototype), _applyDecoratedDescriptor$2(_class2$1.prototype, "saveTodo", [action], Object.getOwnPropertyDescriptor(_class2$1.prototype, "saveTodo"), _class2$1.prototype), _applyDecoratedDescriptor$2(_class2$1.prototype, "toggleAll", [action], Object.getOwnPropertyDescriptor(_class2$1.prototype, "toggleAll"), _class2$1.prototype), _applyDecoratedDescriptor$2(_class2$1.prototype, "clearCompleted", [action], Object.getOwnPropertyDescriptor(_class2$1.prototype, "clearCompleted"), _class2$1.prototype)), _class2$1);
+}(), (_applyDecoratedDescriptor$2(_class2$1.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class2$1.prototype, "todos"), _class2$1.prototype), _descriptor = _applyDecoratedDescriptor$2(_class2$1.prototype, "$", [force], {
+  enumerable: true,
+  initializer: null
+}), _applyDecoratedDescriptor$2(_class2$1.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class2$1.prototype, "todos"), _class2$1.prototype), _applyDecoratedDescriptor$2(_class2$1.prototype, "activeTodoCount", [mem], Object.getOwnPropertyDescriptor(_class2$1.prototype, "activeTodoCount"), _class2$1.prototype), _applyDecoratedDescriptor$2(_class2$1.prototype, "addTodo", [action], Object.getOwnPropertyDescriptor(_class2$1.prototype, "addTodo"), _class2$1.prototype), _applyDecoratedDescriptor$2(_class2$1.prototype, "saveTodo", [action], Object.getOwnPropertyDescriptor(_class2$1.prototype, "saveTodo"), _class2$1.prototype), _applyDecoratedDescriptor$2(_class2$1.prototype, "toggleAll", [action], Object.getOwnPropertyDescriptor(_class2$1.prototype, "toggleAll"), _class2$1.prototype), _applyDecoratedDescriptor$2(_class2$1.prototype, "clearCompleted", [action], Object.getOwnPropertyDescriptor(_class2$1.prototype, "clearCompleted"), _class2$1.prototype)), _class2$1);
 
 var _class$1;
-var _class2$2;
-var _temp;
 
 function _applyDecoratedDescriptor$3(target, property, decorators, descriptor, context) {
   var desc = {};
@@ -2421,9 +2450,9 @@ var TODO_FILTER = {
   COMPLETE: 'complete',
   ACTIVE: 'active'
 };
-var TodoFilterService = (_class$1 = (_temp = _class2$2 = function () {
-  function TodoFilterService(TodoService$$1, locationStore) {
-    this._todoService = TodoService$$1;
+var TodoFilterService = (_class$1 = function () {
+  function TodoFilterService(todoService, locationStore) {
+    this._todoService = todoService;
     this._locationStore = locationStore;
   }
 
@@ -2442,9 +2471,8 @@ var TodoFilterService = (_class$1 = (_temp = _class2$2 = function () {
 
       switch (this.filter) {
         case TODO_FILTER.ALL:
-          return todos.filter(function (todo) {
-            return !todo.deleted;
-          });
+          return todos;
+        // .filter((todo: ITodo) => !todo.deleted)
 
         case TODO_FILTER.COMPLETE:
           return todos.filter(function (todo) {
@@ -2462,14 +2490,12 @@ var TodoFilterService = (_class$1 = (_temp = _class2$2 = function () {
     }
   }]);
   return TodoFilterService;
-}(), _class2$2.deps = [TodoService, AbstractLocationStore], _temp), (_applyDecoratedDescriptor$3(_class$1.prototype, "filteredTodos", [mem], Object.getOwnPropertyDescriptor(_class$1.prototype, "filteredTodos"), _class$1.prototype)), _class$1);
+}(), (_applyDecoratedDescriptor$3(_class$1.prototype, "filteredTodos", [mem], Object.getOwnPropertyDescriptor(_class$1.prototype, "filteredTodos"), _class$1.prototype)), _class$1);
 
-var _class2$3;
-var _descriptor;
-var _class3;
-var _temp$1;
+var _class2$2;
+var _descriptor$1;
 
-function _initDefineProp(target, property, descriptor, context) {
+function _initDefineProp$1(target, property, descriptor, context) {
   if (!descriptor) return;
   Object.defineProperty(target, property, {
     enumerable: descriptor.enumerable,
@@ -2508,13 +2534,11 @@ function _applyDecoratedDescriptor$4(target, property, decorators, descriptor, c
   return desc;
 }
 
-var TodoHeaderProps = function TodoHeaderProps() {};
-
 var ENTER_KEY = 13;
-var TodoToAdd = (_class2$3 = (_temp$1 = _class3 = function TodoToAdd(props) {
+var TodoHeaderService = (_class2$2 = function TodoHeaderService(todoService) {
   var _this = this;
 
-  _initDefineProp(this, "title", _descriptor, this);
+  _initDefineProp$1(this, "title", _descriptor$1, this);
 
   this.onInput = function (_ref) {
     var target = _ref.target;
@@ -2528,45 +2552,74 @@ var TodoToAdd = (_class2$3 = (_temp$1 = _class3 = function TodoToAdd(props) {
       var text = _this.title.trim();
 
       if (text) {
-        _this._props.addTodo(text);
+        _this._todoService.addTodo(text);
 
         _this.title = '';
       }
     }
   };
 
-  this._props = props;
-}, _class3.deps = [TodoHeaderProps], _temp$1), (_descriptor = _applyDecoratedDescriptor$4(_class2$3.prototype, "title", [mem], {
+  this._todoService = todoService;
+}, (_descriptor$1 = _applyDecoratedDescriptor$4(_class2$2.prototype, "title", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return '';
   }
-})), _class2$3);
-function TodoHeaderView(_, _ref2) {
-  var todoToAdd = _ref2.todoToAdd;
+})), _class2$2);
+function TodoHeaderView(_ref2) {
+  var todoHeaderService = _ref2.todoHeaderService;
   return lom_h("header", {
     id: "header"
   }, lom_h("h1", null, "todos"), lom_h("input", {
     id: "new-todo",
     placeholder: "What needs to be done?",
-    onInput: todoToAdd.onInput,
-    value: todoToAdd.title,
-    onKeyDown: todoToAdd.onKeyDown,
+    onInput: todoHeaderService.onInput,
+    value: todoHeaderService.title,
+    onKeyDown: todoHeaderService.onKeyDown,
     autoFocus: true
   }));
 }
-TodoHeaderView.deps = [{
-  todoToAdd: TodoToAdd
-}];
-TodoHeaderView.props = TodoHeaderProps;
 
-var _class2$4;
-var _descriptor$1;
+var ALL_TODOS = 'all';
+var ACTIVE_TODOS = 'active';
+var COMPLETED_TODOS = 'completed';
+function TodoFooterView(_ref) {
+  var nowShowing = _ref.nowShowing,
+      count = _ref.count,
+      completedCount = _ref.completedCount,
+      onClearCompleted = _ref.onClearCompleted;
+  return lom_h("footer", {
+    id: "footer"
+  }, lom_h("span", {
+    id: "todo-count"
+  }, lom_h("strong", null, count), " ", pluralize(count, 'item'), " left"), lom_h("ul", {
+    id: "filters"
+  }, lom_h("li", null, lom_h("a", {
+    href: "./?todo_filter=all",
+    "class": {
+      selected: nowShowing === ALL_TODOS
+    }
+  }, "All")), "\xA0", lom_h("li", null, lom_h("a", {
+    href: "./?todo_filter=active",
+    "class": {
+      selected: nowShowing === ACTIVE_TODOS
+    }
+  }, "Active")), "\xA0", lom_h("li", null, lom_h("a", {
+    href: "./?todo_filter=completed",
+    "class": {
+      selected: nowShowing === COMPLETED_TODOS
+    }
+  }, "Completed"))), completedCount > 0 ? lom_h("button", {
+    id: "clear-completed",
+    onClick: onClearCompleted
+  }, "Clear completed") : null);
+}
+
+var _class$2;
+var _descriptor$2;
 var _descriptor2;
-var _class3$1;
-var _temp$2;
 
-function _initDefineProp$1(target, property, descriptor, context) {
+function _initDefineProp$2(target, property, descriptor, context) {
   if (!descriptor) return;
   Object.defineProperty(target, property, {
     enumerable: descriptor.enumerable,
@@ -2607,21 +2660,17 @@ function _applyDecoratedDescriptor$5(target, property, decorators, descriptor, c
 
 var ESCAPE_KEY = 27;
 var ENTER_KEY$1 = 13;
-
-var TodoItemProps = function TodoItemProps() {};
-
-var TodoItemService = (_class2$4 = (_temp$2 = _class3$1 = function TodoItemService(_ref) {
+var TodoItemService = (_class$2 = function TodoItemService() {
   var _this = this;
 
-  var todo = _ref.todo;
+  _initDefineProp$2(this, "editingId", _descriptor$2, this);
 
-  _initDefineProp$1(this, "editingId", _descriptor$1, this);
+  _initDefineProp$2(this, "editText", _descriptor2, this);
 
-  _initDefineProp$1(this, "editText", _descriptor2, this);
-
-  this.beginEdit = function () {
-    _this.editText = _this._todo.title;
-    _this.editingId = _this._todo.id;
+  this.beginEdit = function (todo) {
+    _this._todo = todo;
+    _this.editText = todo.title;
+    _this.editingId = todo.id;
   };
 
   this.setFocus = function (el) {
@@ -2637,7 +2686,7 @@ var TodoItemService = (_class2$4 = (_temp$2 = _class3$1 = function TodoItemServi
   };
 
   this.cancel = function () {
-    // this.editText = ''
+    _this.editText = '';
     _this.editingId = null;
   };
 
@@ -2654,22 +2703,20 @@ var TodoItemService = (_class2$4 = (_temp$2 = _class3$1 = function TodoItemServi
       _this.submit();
     }
   };
-
-  this._todo = todo;
-}, _class3$1.deps = [TodoItemProps], _temp$2), (_descriptor$1 = _applyDecoratedDescriptor$5(_class2$4.prototype, "editingId", [mem], {
+}, (_descriptor$2 = _applyDecoratedDescriptor$5(_class$2.prototype, "editingId", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return null;
   }
-}), _descriptor2 = _applyDecoratedDescriptor$5(_class2$4.prototype, "editText", [mem], {
+}), _descriptor2 = _applyDecoratedDescriptor$5(_class$2.prototype, "editText", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return '';
   }
-})), _class2$4);
-function TodoItemView(_ref2, _ref3) {
-  var todo = _ref2.todo;
-  var todoItemService = _ref3.todoItemService;
+})), _class$2);
+var todoItemService = new TodoItemService();
+function TodoItemView(_ref) {
+  var todo = _ref.todo;
   var editing = todoItemService.editingId === todo.id;
   return lom_h("li", {
     "class": "" + (todo.completed ? 'completed ' : ' ') + (editing ? 'editing' : '')
@@ -2681,7 +2728,9 @@ function TodoItemView(_ref2, _ref3) {
     checked: todo.completed || 0,
     onClick: todo.toggle
   }), lom_h("label", {
-    onDblClick: todoItemService.beginEdit
+    onDblClick: function onDblClick() {
+      return todoItemService.beginEdit(todo);
+    }
   }, todo.title), lom_h("button", {
     "class": "destroy",
     onClick: todo.destroy
@@ -2694,34 +2743,45 @@ function TodoItemView(_ref2, _ref3) {
     onKeyDown: todoItemService.onKey
   }) : null);
 }
-TodoItemView.deps = [{
-  todoItemService: TodoItemService
-}];
-TodoItemView.props = TodoItemProps;
 
-function TodoPerfView(_, _ref) {
+function TodoPerfView(_ref) {
   var todoService = _ref.todoService,
-      todoFilterService = _ref.todoFilterService;
+      todoFilterService = _ref.todoFilterService,
+      todoHeaderService = _ref.todoHeaderService;
   var todos = todoService.todos;
   return lom_h("div", null, lom_h(TodoHeaderView, {
-    addTodo: todoService.addTodo
+    todoHeaderService: todoHeaderService
   }), todos.length ? lom_h("section", {
     id: "main"
-  }, lom_h("ul", {
+  }, lom_h("input", {
+    id: "toggle-all",
+    type: "checkbox",
+    onChange: todoService.toggleAll,
+    checked: todoService.activeTodoCount === 0
+  }), lom_h("ul", {
     id: "todo-list"
   }, todoFilterService.filteredTodos.map(function (todo) {
     return lom_h(TodoItemView, {
       key: todo.id,
       todo: todo
     });
-  }))) : null);
+  }))) : null, todoService.activeTodoCount || todoService.completedCount ? lom_h(TodoFooterView, {
+    count: todoService.activeTodoCount,
+    completedCount: todoService.completedCount,
+    nowShowing: todoFilterService.filter,
+    onClearCompleted: todoService.clearCompleted
+  }) : null);
 }
-TodoPerfView.deps = [{
-  todoService: TodoService,
-  todoFilterService: TodoFilterService
-}];
 
-render(lom_h(TodoPerfView, null), document.getElementById('todoapp'));
+var todoService = new TodoService();
+var browserLocationStore = new BrowserLocationStore(location, history);
+var todoFilterService = new TodoFilterService(todoService, browserLocationStore);
+var todoHeaderService = new TodoHeaderService(todoService);
+render(lom_h(TodoPerfView, {
+  todoHeaderService: todoHeaderService,
+  todoService: todoService,
+  todoFilterService: todoFilterService
+}), document.getElementById('todoapp'));
 
 }());
 //# sourceMappingURL=bundle.js.map

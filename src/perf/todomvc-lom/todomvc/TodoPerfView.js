@@ -4,28 +4,28 @@ import TodoService from './TodoService'
 import type {ITodo} from './TodoService'
 import TodoFilterService from './TodoFilterService'
 
-import TodoHeaderView from './TodoHeaderView'
+import TodoHeaderView, {TodoHeaderService} from './TodoHeaderView'
 import TodoFooterView from './TodoFooterView'
 import TodoItemView from './TodoItemView'
 
 export default function TodoPerfView(
-    _: {},
-    {todoService, todoFilterService}: {
+    {todoService, todoFilterService, todoHeaderService}: {
         todoService: TodoService;
+        todoHeaderService: TodoHeaderService;
         todoFilterService: TodoFilterService;
     }
 ) {
     const todos = todoService.todos
     return <div>
-        <TodoHeaderView addTodo={todoService.addTodo}/>
+        <TodoHeaderView todoHeaderService={todoHeaderService}/>
         {todos.length
             ? <section id="main">
-                {/* <input
+                <input
                     id="toggle-all"
                     type="checkbox"
                     onChange={todoService.toggleAll}
                     checked={todoService.activeTodoCount === 0}
-                /> */}
+                />
                 <ul id="todo-list">
                     {todoFilterService.filteredTodos.map((todo: ITodo) =>
                         <TodoItemView
@@ -38,7 +38,7 @@ export default function TodoPerfView(
             : null
         }
 
-        {/* {todoService.activeTodoCount || todoService.completedCount
+        {todoService.activeTodoCount || todoService.completedCount
             ? <TodoFooterView
                 count={todoService.activeTodoCount}
                 completedCount={todoService.completedCount}
@@ -46,10 +46,6 @@ export default function TodoPerfView(
                 onClearCompleted={todoService.clearCompleted}
             />
             : null
-        } */}
+        }
     </div>
 }
-TodoPerfView.deps = [{
-    todoService: TodoService,
-    todoFilterService: TodoFilterService
-}]

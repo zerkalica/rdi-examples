@@ -15,6 +15,7 @@ import fs from 'fs'
 import path from 'path'
 
 const pkg = JSON.parse(fs.readFileSync('./package.json'))
+// console.log(JSON.stringify(babelrc(), 0, '  '))
 
 const baseConfig = {
     sourceMap: true,
@@ -38,31 +39,37 @@ const baseConfig = {
     ]
 }
 
+const perfPlugins = baseConfig.plugins.concat([
+    replace({
+        'process.env.NODE_ENV': JSON.stringify('production')
+    }),
+    // uglify({}, minify)
+])
+
 const perfLomRdiConfig = Object.assign({}, baseConfig, {
     entry: 'src/perf/todomvc-lom-rdi/index.js',
     targets: [
         {dest: 'docs/perf/todomvc-lom-rdi/bundle.js', format: 'iife', moduleName: 'todomvc_lom_rdi_perf'}
     ],
-    plugins: baseConfig.plugins.concat([
-        replace({
-            'process.env.NODE_ENV': JSON.stringify('production')
-        }),
-        uglify({}, minify)
-    ])
+    plugins: perfPlugins
 })
 
-// const perfLomConfig = Object.assign({}, baseConfig, {
-//     entry: 'src/todomvc-lom-perf/index.js',
-//     targets: [
-//         {dest: 'docs/todomvc-lom-perf/bundle.js', format: 'iife', moduleName: 'todomvc_lom_perf'}
-//     ],
-//     plugins: baseConfig.plugins.concat([
-//         replace({
-//             'process.env.NODE_ENV': JSON.stringify('production')
-//         }),
-//         // uglify({}, minify)
-//     ])
-// })
+const perfLomConfig = Object.assign({}, baseConfig, {
+    entry: 'src/perf/todomvc-lom/index.js',
+    targets: [
+        {dest: 'docs/perf/todomvc-lom/bundle.js', format: 'iife', moduleName: 'todomvc_lom_perf'}
+    ],
+    plugins: perfPlugins
+})
+
+const perfPreactConfig = Object.assign({}, baseConfig, {
+    entry: 'src/perf/preact/index.js',
+    targets: [
+        {dest: 'docs/perf/preact/bundle.js', format: 'iife', moduleName: 'preact'}
+    ],
+    plugins: perfPlugins
+})
+
 
 const examplesConfig = Object.assign({}, baseConfig, {
     entry: 'src/examples/index.js',
@@ -79,6 +86,7 @@ const examplesConfig = Object.assign({}, baseConfig, {
 
 export default [
     examplesConfig,
-    // perfLomConfig,
-    perfLomRdiConfig
+    perfLomConfig,
+    perfLomRdiConfig,
+    perfPreactConfig
 ]

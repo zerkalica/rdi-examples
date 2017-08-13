@@ -1,6 +1,6 @@
 // @flow
 import {uuid} from './common-todomvc'
-import {mem, force, action} from 'lom_atom'
+import {mem, action} from 'lom_atom'
 
 interface ITodoBase {
     completed: boolean;
@@ -87,7 +87,7 @@ export default class TodoService {
     @action
     saveTodo(todo: ITodoBase) {
         this.todos = this.todos.map(
-            (t: ITodo) => t.id === todo.id
+            (t: ITodo, i) => t.id === todo.id
                 ? new TodoModel(todo, this)
                 : t
         )
@@ -102,7 +102,7 @@ export default class TodoService {
         const completed = this.activeTodoCount > 0
 
         this.todos = this.todos.map(
-            (todo: ITodo) => new TodoModel({
+            (todo: ITodo, i) => new TodoModel({
                 title: todo.title,
                 id: todo.id,
                 completed

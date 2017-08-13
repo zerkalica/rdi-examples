@@ -1,7 +1,9 @@
 import serve from 'rollup-plugin-serve'
 import livereload from 'rollup-plugin-livereload'
 
-import conf from './rollup.config'
+import confs from './rollup.config'
+
+const conf = confs[0]
 
 export default Object.assign(
     {},

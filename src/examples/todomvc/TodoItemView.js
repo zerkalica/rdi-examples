@@ -1,6 +1,6 @@
 // @flow
 
-import {animationFrame, mem} from 'lom_atom'
+import {mem} from 'lom_atom'
 import type {ResultOf, NamesOf} from 'lom_atom'
 import type {ITodo} from './TodoService'
 
@@ -40,11 +40,11 @@ class TodoItemStore {
     setEditInputRef = (el: ?HTMLInputElement) => {
         if (el && !this._focused) {
             this._focused = true
-            animationFrame(() => {
+            setTimeout(() => {
                 if (el) {
                     el.focus()
                 }
-            })
+            }, 0)
         }
     }
 
@@ -222,7 +222,7 @@ export default function TodoItemView(
                 className={theme.toggle}
                 type="checkbox"
                 checked={todo.completed}
-                onInput={itemStore.toggle}
+                onChange={itemStore.toggle}
             />
             <label
                 className={todo.completed ? theme.viewLabelCompleted : theme.viewLabelRegular}

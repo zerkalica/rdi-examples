@@ -1,6 +1,6 @@
 // @flow
 
-import {force, mem} from 'lom_atom'
+import {mem} from 'lom_atom'
 
 interface IAutocompleteProps {
     initialValue: string;
@@ -12,7 +12,6 @@ class AutocompleteProps implements IAutocompleteProps {
 
 class AutocompleteService {
     @mem nameToSearch: string
-    @force get $(): this {return this}
 
     static deps = [AutocompleteProps]
 
@@ -33,15 +32,16 @@ class AutocompleteService {
             fetch(`/api/autocomplete?q=${name}`)
                 .then((r: Response) => r.json())
                 .then((data: string[]) => {
-                    this.$.searchResults = data
+                    this.searchResults = data
                 })
                 .catch((e: Error) => {
-                    this.$.searchResults = e
+                    this.searchResults = e
                 })
         }, 500)
 
         throw new mem.Wait()
     }
+
     @mem
     set searchResults(searchResults: string[] | Error) {}
 
