@@ -1,6 +1,6 @@
 // @flow
 
-import {mem} from 'lom_atom'
+import {mem, action} from 'lom_atom'
 import type {ITodo} from './TodoService'
 
 const ESCAPE_KEY = 27
@@ -34,7 +34,8 @@ export class TodoItemService {
         }
     }
 
-    setEditText = (e: Event) => {
+    @action
+    setEditText(e: Event) {
         this.editText = (e.target: any).value
     }
 

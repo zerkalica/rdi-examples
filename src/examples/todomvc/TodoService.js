@@ -1,6 +1,6 @@
 // @flow
 import {uuid} from '../common-todomvc'
-import {mem, force} from 'lom_atom'
+import {action, mem} from 'lom_atom'
 
 interface ITodoBase {
     completed: boolean;
@@ -145,7 +145,7 @@ export default class TodoService {
         )
     }
 
-    remove(id: string) {
+    @action remove(id: string) {
         this.todos = this.todos.filter((todo: ITodo) => todo.id !== id)
 
         this._handlePromise(
@@ -155,7 +155,7 @@ export default class TodoService {
         )
     }
 
-    toggleAll = () => {
+    @action toggleAll() {
         this.todos = this.todos.map(
             (todo: ITodo) => new TodoModel({
                 title: todo.title,

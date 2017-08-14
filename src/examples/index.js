@@ -34,7 +34,7 @@ class Store {
     }
 
     set page(page: string) {
-        return this._locationStore.location('page', page)
+        return this._locationStore.location('page', page, true)
     }
 
     @mem name = 'vvv'

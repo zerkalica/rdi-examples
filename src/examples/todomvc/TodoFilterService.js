@@ -20,8 +20,8 @@ export default class TodoFilterService {
 
     static deps = [TodoService, AbstractLocationStore]
 
-    constructor(TodoService: TodoService, locationStore: AbstractLocationStore) {
-        this._todoService = TodoService
+    constructor(todoService: TodoService, locationStore: AbstractLocationStore) {
+        this._todoService = todoService
         this._locationStore = locationStore
     }
 
@@ -30,7 +30,7 @@ export default class TodoFilterService {
     }
 
     set filter(filter: IFilter) {
-        return this._locationStore.location('todo_filter', filter)
+        return this._locationStore.location('todo_filter', filter, true)
     }
 
     @mem get filteredTodos(): ITodo[] {

@@ -1,6 +1,6 @@
 // @flow
 
-import {mem} from 'lom_atom'
+import {action, mem} from 'lom_atom'
 import TodoService from './TodoService'
 interface ITodoHeaderProps {
     addTodo(title: string): void;
@@ -20,7 +20,8 @@ export class TodoHeaderService {
         this._todoService = todoService
     }
 
-    onInput = ({target}: Event) => {
+    @action
+    onInput({target}: Event) {
         this.title = (target: any).value
     }
 

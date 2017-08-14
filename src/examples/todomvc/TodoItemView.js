@@ -1,6 +1,6 @@
 // @flow
 
-import {mem} from 'lom_atom'
+import {action, mem} from 'lom_atom'
 import type {ResultOf, NamesOf} from 'lom_atom'
 import type {ITodo} from './TodoService'
 
@@ -32,7 +32,8 @@ class TodoItemStore {
         this.editText = this._todo.title
     }
 
-    setText = ({target}: Event) => {
+    @action
+    setText({target}: Event) {
         this.editText = (target: any).value
     }
 

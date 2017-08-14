@@ -263,8 +263,6 @@ var Atom = function () {
       }
 
       context.newValue(this, oldValue, normalized);
-      context.beginTransaction();
-      context.endTransaction();
     } else {
       this.obsolete();
       this.actualize(normalized);
@@ -303,7 +301,6 @@ var Atom = function () {
     var context = this._context;
     var slave = context.last;
     context.last = this;
-    context.beginTransaction();
 
     try {
       newValue = this._normalize(this.key === undefined ? this.host[this.field](proposedValue, force, this.cached) : this.host[this.field](this.key, proposedValue, force, this.cached), this.cached);
@@ -328,10 +325,6 @@ var Atom = function () {
       }
 
       this._context.newValue(this, oldValue, newValue);
-
-      context.endTransaction();
-    } else {
-      context.endTransaction(true);
     }
   };
 
@@ -390,6 +383,12 @@ var Atom = function () {
   return Atom;
 }();
 
+var scheduleNative = typeof requestAnimationFrame == 'function' ? function (handler) {
+  return requestAnimationFrame(handler);
+} : function (handler) {
+  return setTimeout(handler, 16);
+};
+
 function reap(atom, key, reaping) {
   reaping.delete(atom);
 
@@ -421,12 +420,25 @@ function getKey(params) {
 
 var Context = function () {
   function Context() {
+    var _this = this;
+
     this.last = null;
     this.force = false;
     this._logger = null;
     this._updating = [];
     this._reaping = new Set();
     this._atomMap = new WeakMap();
+    this._scheduled = false;
+
+    this.__run = function () {
+      if (_this._scheduled) {
+        _this._scheduled = false;
+
+        _this._run();
+      }
+    };
+
+    this._start = 0;
     this._pendCount = 0;
   }
 
@@ -496,11 +508,15 @@ var Context = function () {
   Context.prototype.proposeToPull = function proposeToPull(atom) {
     // this.logger.pull(atom)
     this._updating.push(atom);
+
+    this._schedule();
   };
 
   Context.prototype.proposeToReap = function proposeToReap(atom) {
     // this.logger.reap(atom)
     this._reaping.add(atom);
+
+    this._schedule();
   };
 
   Context.prototype.unreap = function unreap(atom) {
@@ -508,43 +524,56 @@ var Context = function () {
     this._reaping.delete(atom);
   };
 
+  Context.prototype._schedule = function _schedule() {
+    if (!this._scheduled) {
+      scheduleNative(this.__run);
+      this._scheduled = true;
+    }
+  };
+
+  Context.prototype._run = function _run() {
+    this._schedule();
+
+    var reaping = this._reaping;
+    var updating = this._updating;
+    var start = this._start;
+
+    do {
+      var end = updating.length;
+
+      for (var i = start; i < end; i++) {
+        this._start = i;
+        var atom = updating[i];
+
+        if (!reaping.has(atom) && !atom.destroyed()) {
+          atom.actualize();
+        }
+      }
+
+      start = end;
+    } while (updating.length > start);
+
+    updating.length = 0;
+    this._start = 0;
+
+    while (reaping.size > 0) {
+      reaping.forEach(reap);
+    }
+
+    this._scheduled = false;
+    this._pendCount = 0;
+  };
+
   Context.prototype.beginTransaction = function beginTransaction() {
     this._pendCount++;
   };
 
-  Context.prototype.run = function run() {
-    this.beginTransaction();
-    this.endTransaction();
-  };
-
-  Context.prototype.endTransaction = function endTransaction(noUpdate) {
-    if (this._pendCount === 1 && noUpdate !== true) {
-      var reaping = this._reaping;
-      var updating = this._updating;
-      var start = 0;
-
-      do {
-        var end = updating.length;
-
-        for (var i = start; i < end; i++) {
-          var atom = updating[i];
-
-          if (!reaping.has(atom) && !atom.destroyed()) {
-            atom.actualize();
-          }
-        }
-
-        start = end;
-      } while (updating.length > start);
-
-      updating.length = 0;
-
-      while (reaping.size > 0) {
-        reaping.forEach(reap);
-      }
+  Context.prototype.endTransaction = function endTransaction() {
+    if (this._pendCount === 1) {
+      this._run();
+    } else {
+      this._pendCount--;
     }
-
-    this._pendCount--;
   };
 
   return Context;
@@ -637,6 +666,129 @@ function memkey() {
 
 function detached(proto, name, descr) {
   return memMethod(proto, name, descr, undefined, true);
+}
+
+function createActionMethod(t, hk, context) {
+  function action() {
+    var result = void 0;
+    context.beginTransaction();
+
+    switch (arguments.length) {
+      case 0:
+        result = t[hk]();
+        break;
+
+      case 1:
+        result = t[hk](arguments[0]);
+        break;
+
+      case 2:
+        result = t[hk](arguments[0], arguments[1]);
+        break;
+
+      case 3:
+        result = t[hk](arguments[0], arguments[1], arguments[2]);
+        break;
+
+      case 4:
+        result = t[hk](arguments[0], arguments[1], arguments[2], arguments[3]);
+        break;
+
+      case 5:
+        result = t[hk](arguments[0], arguments[1], arguments[2], arguments[3], arguments[4]);
+        break;
+
+      default:
+        result = t[hk].apply(t, arguments);
+    }
+
+    context.endTransaction();
+    return result;
+  }
+
+  action.displayName = hk;
+  return action;
+}
+
+function createActionFn(fn, name, context) {
+  function action() {
+    var result = void 0;
+    context.beginTransaction();
+
+    switch (arguments.length) {
+      case 0:
+        result = fn();
+        break;
+
+      case 1:
+        result = fn(arguments[0]);
+        break;
+
+      case 2:
+        result = fn(arguments[0], arguments[1]);
+        break;
+
+      case 3:
+        result = fn(arguments[0], arguments[1], arguments[2]);
+        break;
+
+      case 4:
+        result = fn(arguments[0], arguments[1], arguments[2], arguments[3]);
+        break;
+
+      case 5:
+        result = fn(arguments[0], arguments[1], arguments[2], arguments[3], arguments[4]);
+        break;
+
+      default:
+        result = fn.apply(null, arguments);
+    }
+
+    context.endTransaction();
+    return result;
+  }
+
+  action.displayName = name || fn.displayName || fn.name;
+  return action;
+}
+
+function actionMethod(proto, field, descr, context) {
+  var hk = field + "$";
+
+  if (descr.value === undefined) {
+    throw new TypeError(field + " is not an function (next?: V)");
+  }
+
+  proto[hk] = descr.value;
+  var definingProperty = false;
+  return {
+    enumerable: descr.enumerable,
+    configurable: descr.configurable,
+    get: function get$$1() {
+      if (definingProperty) {
+        return this[hk];
+      }
+
+      definingProperty = true;
+      var actionFn = createActionMethod(this, hk, context);
+      Object.defineProperty(this, field, {
+        configurable: true,
+        get: function get$$1() {
+          return actionFn;
+        }
+      });
+      definingProperty = false;
+      return actionFn;
+    }
+  };
+}
+
+function action() {
+  if (arguments.length === 3) {
+    return actionMethod(arguments[0], arguments[1], arguments[2], defaultContext);
+  }
+
+  return createActionFn(arguments[0], arguments[1], defaultContext);
 }
 
 function mem() {
@@ -7285,44 +7437,23 @@ var TodoModel = function () {
 
 var TodoService = (_class2$2 = function () {
   function TodoService() {
-    var _this = this;
-
     _initDefineProp$2(this, "opCount", _descriptor$2, this);
-
-    this.toggleAll = function () {
-      _this.todos = _this.todos.map(function (todo) {
-        return new TodoModel({
-          title: todo.title,
-          id: todo.id,
-          completed: true
-        }, _this);
-      });
-
-      _this._handlePromise(fetch("/api/todos", {
-        method: 'PUT',
-        body: JSON.stringify(_this.todos.map(function (todo) {
-          return [todo.id, {
-            completed: true
-          }];
-        }))
-      }));
-    };
   }
 
   TodoService.prototype._handlePromise = function _handlePromise(p) {
-    var _this2 = this;
+    var _this = this;
 
     this.opCount++;
     return p.then(function () {
-      _this2.opCount--;
+      _this.opCount--;
     }).catch(function (e) {
-      _this2.opCount--;
-      _this2.todos = e;
+      _this.opCount--;
+      _this.todos = e;
     });
   };
 
   TodoService.prototype.addTodo = function addTodo(title) {
-    var _this3 = this;
+    var _this2 = this;
 
     var todo = new TodoModel({
       title: title
@@ -7333,25 +7464,25 @@ var TodoService = (_class2$2 = function () {
       method: 'PUT',
       body: JSON.stringify(todo)
     }).then(toJson).then(function (updatedTodo) {
-      _this3.todos = _this3.todos.map(function (t) {
-        return t.id === todo.id ? new TodoModel(updatedTodo, _this3) : t;
+      _this2.todos = _this2.todos.map(function (t) {
+        return t.id === todo.id ? new TodoModel(updatedTodo, _this2) : t;
       });
     }));
   };
 
   TodoService.prototype.saveTodo = function saveTodo(todo) {
-    var _this4 = this;
+    var _this3 = this;
 
     this.todos = this.todos.map(function (t) {
-      return t.id === todo.id ? new TodoModel(todo, _this4) : t;
+      return t.id === todo.id ? new TodoModel(todo, _this3) : t;
     });
 
     this._handlePromise(fetch("/api/todo/" + todo.id, {
       method: 'POST',
       body: JSON.stringify(todo)
     }).then(toJson).then(function (updatedTodo) {
-      _this4.todos = _this4.todos.map(function (t) {
-        return t.id === todo.id ? new TodoModel(updatedTodo, _this4) : t;
+      _this3.todos = _this3.todos.map(function (t) {
+        return t.id === todo.id ? new TodoModel(updatedTodo, _this3) : t;
       });
     }));
   };
@@ -7363,6 +7494,27 @@ var TodoService = (_class2$2 = function () {
 
     this._handlePromise(fetch("/api/todo/" + id, {
       method: 'DELETE'
+    }));
+  };
+
+  TodoService.prototype.toggleAll = function toggleAll() {
+    var _this4 = this;
+
+    this.todos = this.todos.map(function (todo) {
+      return new TodoModel({
+        title: todo.title,
+        id: todo.id,
+        completed: true
+      }, _this4);
+    });
+
+    this._handlePromise(fetch("/api/todos", {
+      method: 'PUT',
+      body: JSON.stringify(this.todos.map(function (todo) {
+        return [todo.id, {
+          completed: true
+        }];
+      }))
     }));
   };
 
@@ -7429,7 +7581,7 @@ var TodoService = (_class2$2 = function () {
   initializer: function initializer() {
     return 0;
   }
-}), _applyDecoratedDescriptor$6(_class2$2.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "todos"), _class2$2.prototype), _applyDecoratedDescriptor$6(_class2$2.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "todos"), _class2$2.prototype), _applyDecoratedDescriptor$6(_class2$2.prototype, "activeTodoCount", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "activeTodoCount"), _class2$2.prototype)), _class2$2);
+}), _applyDecoratedDescriptor$6(_class2$2.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "todos"), _class2$2.prototype), _applyDecoratedDescriptor$6(_class2$2.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "todos"), _class2$2.prototype), _applyDecoratedDescriptor$6(_class2$2.prototype, "activeTodoCount", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "activeTodoCount"), _class2$2.prototype), _applyDecoratedDescriptor$6(_class2$2.prototype, "remove", [action], Object.getOwnPropertyDescriptor(_class2$2.prototype, "remove"), _class2$2.prototype), _applyDecoratedDescriptor$6(_class2$2.prototype, "toggleAll", [action], Object.getOwnPropertyDescriptor(_class2$2.prototype, "toggleAll"), _class2$2.prototype)), _class2$2);
 
 var _class$5;
 var _class2$3;
@@ -7470,8 +7622,8 @@ var TODO_FILTER = {
   ACTIVE: 'active'
 };
 var TodoFilterService = (_class$5 = (_temp$2 = _class2$3 = function () {
-  function TodoFilterService(TodoService$$1, locationStore) {
-    this._todoService = TodoService$$1;
+  function TodoFilterService(todoService, locationStore) {
+    this._todoService = todoService;
     this._locationStore = locationStore;
   }
 
@@ -7481,7 +7633,7 @@ var TodoFilterService = (_class$5 = (_temp$2 = _class2$3 = function () {
       return this._locationStore.location('todo_filter') || TODO_FILTER.ALL;
     },
     set: function set$$1(filter) {
-      return this._locationStore.location('todo_filter', filter);
+      return this._locationStore.location('todo_filter', filter, true);
     }
   }, {
     key: "filteredTodos",
@@ -7672,74 +7824,78 @@ var ENTER_KEY = 13;
 
 var TodoItemProps = function TodoItemProps() {};
 
-var TodoItemStore = (_class2$5 = (_temp$4 = _class3$1 = function TodoItemStore(_ref) {
-  var _this = this;
+var TodoItemStore = (_class2$5 = (_temp$4 = _class3$1 = function () {
+  function TodoItemStore(_ref) {
+    var _this = this;
 
-  var todo = _ref.todo;
+    var todo = _ref.todo;
 
-  _initDefineProp$4(this, "todoBeingEdited", _descriptor$4, this);
+    _initDefineProp$4(this, "todoBeingEdited", _descriptor$4, this);
 
-  _initDefineProp$4(this, "editText", _descriptor2$1, this);
+    _initDefineProp$4(this, "editText", _descriptor2$1, this);
 
-  this.beginEdit = function () {
-    _this.todoBeingEdited = _this._todo;
-    _this.editText = _this._todo.title;
-  };
-
-  this.setText = function (_ref2) {
-    var target = _ref2.target;
-    _this.editText = target.value;
-  };
-
-  this._focused = false;
-
-  this.setEditInputRef = function (el) {
-    if (el && !_this._focused) {
-      _this._focused = true;
-      setTimeout(function () {
-        if (el) {
-          el.focus();
-        }
-      }, 0);
-    }
-  };
-
-  this.handleSubmit = function (event) {
-    var val = _this.editText.trim();
-
-    if (val) {
-      _this._todo.title = val;
-      _this.editText = '';
-    } else {
-      _this.handleDestroy();
-    }
-
-    _this.todoBeingEdited = null;
-  };
-
-  this.handleKeyDown = function (event) {
-    if (event.which === ESCAPE_KEY) {
+    this.beginEdit = function () {
+      _this.todoBeingEdited = _this._todo;
       _this.editText = _this._todo.title;
+    };
+
+    this._focused = false;
+
+    this.setEditInputRef = function (el) {
+      if (el && !_this._focused) {
+        _this._focused = true;
+        setTimeout(function () {
+          if (el) {
+            el.focus();
+          }
+        }, 0);
+      }
+    };
+
+    this.handleSubmit = function (event) {
+      var val = _this.editText.trim();
+
+      if (val) {
+        _this._todo.title = val;
+        _this.editText = '';
+      } else {
+        _this.handleDestroy();
+      }
+
       _this.todoBeingEdited = null;
-    } else if (event.which === ENTER_KEY) {
-      _this.handleSubmit(event);
-    }
+    };
+
+    this.handleKeyDown = function (event) {
+      if (event.which === ESCAPE_KEY) {
+        _this.editText = _this._todo.title;
+        _this.todoBeingEdited = null;
+      } else if (event.which === ENTER_KEY) {
+        _this.handleSubmit(event);
+      }
+    };
+
+    this.toggle = function () {
+      _this._todo.toggle();
+
+      _this.todoBeingEdited = null;
+    };
+
+    this.handleDestroy = function () {
+      _this._todo.destroy();
+
+      _this.todoBeingEdited = null;
+    };
+
+    this._todo = todo;
+  }
+
+  TodoItemStore.prototype.setText = function setText(_ref2) {
+    var target = _ref2.target;
+    this.editText = target.value;
   };
 
-  this.toggle = function () {
-    _this._todo.toggle();
-
-    _this.todoBeingEdited = null;
-  };
-
-  this.handleDestroy = function () {
-    _this._todo.destroy();
-
-    _this.todoBeingEdited = null;
-  };
-
-  this._todo = todo;
-}, _class3$1.deps = [TodoItemProps], _temp$4), (_descriptor$4 = _applyDecoratedDescriptor$9(_class2$5.prototype, "todoBeingEdited", [mem], {
+  return TodoItemStore;
+}(), _class3$1.deps = [TodoItemProps], _temp$4), (_descriptor$4 = _applyDecoratedDescriptor$9(_class2$5.prototype, "todoBeingEdited", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return null;
@@ -7749,7 +7905,7 @@ var TodoItemStore = (_class2$5 = (_temp$4 = _class3$1 = function TodoItemStore(_
   initializer: function initializer() {
     return '';
   }
-})), _class2$5);
+}), _applyDecoratedDescriptor$9(_class2$5.prototype, "setText", [action], Object.getOwnPropertyDescriptor(_class2$5.prototype, "setText"), _class2$5.prototype)), _class2$5);
 
 function TodoItemTheme() {
   var itemBase = {
@@ -8349,7 +8505,7 @@ var Store = (_class = (_temp = _class2 = function () {
       return this._locationStore.location('page') || this.pages[0];
     },
     set: function set$$1(page) {
-      return this._locationStore.location('page', page);
+      return this._locationStore.location('page', page, true);
     }
   }]);
   return Store;

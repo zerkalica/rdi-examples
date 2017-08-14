@@ -239,8 +239,6 @@ var Atom = function () {
       }
 
       context.newValue(this, oldValue, normalized);
-      context.beginTransaction();
-      context.endTransaction();
     } else {
       this.obsolete();
       this.actualize(normalized);
@@ -279,7 +277,6 @@ var Atom = function () {
     var context = this._context;
     var slave = context.last;
     context.last = this;
-    context.beginTransaction();
 
     try {
       newValue = this._normalize(this.key === undefined ? this.host[this.field](proposedValue, force, this.cached) : this.host[this.field](this.key, proposedValue, force, this.cached), this.cached);
@@ -304,10 +301,6 @@ var Atom = function () {
       }
 
       this._context.newValue(this, oldValue, newValue);
-
-      context.endTransaction();
-    } else {
-      context.endTransaction(true);
     }
   };
 
@@ -366,6 +359,12 @@ var Atom = function () {
   return Atom;
 }();
 
+var scheduleNative = typeof requestAnimationFrame == 'function' ? function (handler) {
+  return requestAnimationFrame(handler);
+} : function (handler) {
+  return setTimeout(handler, 16);
+};
+
 function reap(atom, key, reaping) {
   reaping.delete(atom);
 
@@ -397,12 +396,25 @@ function getKey(params) {
 
 var Context = function () {
   function Context() {
+    var _this = this;
+
     this.last = null;
     this.force = false;
     this._logger = null;
     this._updating = [];
     this._reaping = new Set();
     this._atomMap = new WeakMap();
+    this._scheduled = false;
+
+    this.__run = function () {
+      if (_this._scheduled) {
+        _this._scheduled = false;
+
+        _this._run();
+      }
+    };
+
+    this._start = 0;
     this._pendCount = 0;
   }
 
@@ -472,11 +484,15 @@ var Context = function () {
   Context.prototype.proposeToPull = function proposeToPull(atom) {
     // this.logger.pull(atom)
     this._updating.push(atom);
+
+    this._schedule();
   };
 
   Context.prototype.proposeToReap = function proposeToReap(atom) {
     // this.logger.reap(atom)
     this._reaping.add(atom);
+
+    this._schedule();
   };
 
   Context.prototype.unreap = function unreap(atom) {
@@ -484,43 +500,56 @@ var Context = function () {
     this._reaping.delete(atom);
   };
 
+  Context.prototype._schedule = function _schedule() {
+    if (!this._scheduled) {
+      scheduleNative(this.__run);
+      this._scheduled = true;
+    }
+  };
+
+  Context.prototype._run = function _run() {
+    this._schedule();
+
+    var reaping = this._reaping;
+    var updating = this._updating;
+    var start = this._start;
+
+    do {
+      var end = updating.length;
+
+      for (var i = start; i < end; i++) {
+        this._start = i;
+        var atom = updating[i];
+
+        if (!reaping.has(atom) && !atom.destroyed()) {
+          atom.actualize();
+        }
+      }
+
+      start = end;
+    } while (updating.length > start);
+
+    updating.length = 0;
+    this._start = 0;
+
+    while (reaping.size > 0) {
+      reaping.forEach(reap);
+    }
+
+    this._scheduled = false;
+    this._pendCount = 0;
+  };
+
   Context.prototype.beginTransaction = function beginTransaction() {
     this._pendCount++;
   };
 
-  Context.prototype.run = function run() {
-    this.beginTransaction();
-    this.endTransaction();
-  };
-
-  Context.prototype.endTransaction = function endTransaction(noUpdate) {
-    if (this._pendCount === 1 && noUpdate !== true) {
-      var reaping = this._reaping;
-      var updating = this._updating;
-      var start = 0;
-
-      do {
-        var end = updating.length;
-
-        for (var i = start; i < end; i++) {
-          var atom = updating[i];
-
-          if (!reaping.has(atom) && !atom.destroyed()) {
-            atom.actualize();
-          }
-        }
-
-        start = end;
-      } while (updating.length > start);
-
-      updating.length = 0;
-
-      while (reaping.size > 0) {
-        reaping.forEach(reap);
-      }
+  Context.prototype.endTransaction = function endTransaction() {
+    if (this._pendCount === 1) {
+      this._run();
+    } else {
+      this._pendCount--;
     }
-
-    this._pendCount--;
   };
 
   return Context;
@@ -615,10 +644,10 @@ function detached(proto, name, descr) {
   return memMethod(proto, name, descr, undefined, true);
 }
 
-function createAction(t, hk) {
+function createActionMethod(t, hk, context) {
   function action() {
     var result = void 0;
-    defaultContext.beginTransaction();
+    context.beginTransaction();
 
     switch (arguments.length) {
       case 0:
@@ -649,7 +678,7 @@ function createAction(t, hk) {
         result = t[hk].apply(t, arguments);
     }
 
-    defaultContext.endTransaction();
+    context.endTransaction();
     return result;
   }
 
@@ -657,7 +686,49 @@ function createAction(t, hk) {
   return action;
 }
 
-function action(proto, field, descr) {
+function createActionFn(fn, name, context) {
+  function action() {
+    var result = void 0;
+    context.beginTransaction();
+
+    switch (arguments.length) {
+      case 0:
+        result = fn();
+        break;
+
+      case 1:
+        result = fn(arguments[0]);
+        break;
+
+      case 2:
+        result = fn(arguments[0], arguments[1]);
+        break;
+
+      case 3:
+        result = fn(arguments[0], arguments[1], arguments[2]);
+        break;
+
+      case 4:
+        result = fn(arguments[0], arguments[1], arguments[2], arguments[3]);
+        break;
+
+      case 5:
+        result = fn(arguments[0], arguments[1], arguments[2], arguments[3], arguments[4]);
+        break;
+
+      default:
+        result = fn.apply(null, arguments);
+    }
+
+    context.endTransaction();
+    return result;
+  }
+
+  action.displayName = name || fn.displayName || fn.name;
+  return action;
+}
+
+function actionMethod(proto, field, descr, context) {
   var hk = field + "$";
 
   if (descr.value === undefined) {
@@ -675,7 +746,7 @@ function action(proto, field, descr) {
       }
 
       definingProperty = true;
-      var actionFn = createAction(this, hk);
+      var actionFn = createActionMethod(this, hk, context);
       Object.defineProperty(this, field, {
         configurable: true,
         get: function get$$1() {
@@ -686,6 +757,14 @@ function action(proto, field, descr) {
       return actionFn;
     }
   };
+}
+
+function action() {
+  if (arguments.length === 3) {
+    return actionMethod(arguments[0], arguments[1], arguments[2], defaultContext);
+  }
+
+  return createActionFn(arguments[0], arguments[1], defaultContext);
 }
 
 function mem() {
@@ -2381,7 +2460,7 @@ var TodoService = (_class2$1 = function () {
     }
   }]);
   return TodoService;
-}(), (_applyDecoratedDescriptor$2(_class2$1.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class2$1.prototype, "todos"), _class2$1.prototype), _applyDecoratedDescriptor$2(_class2$1.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class2$1.prototype, "todos"), _class2$1.prototype), _applyDecoratedDescriptor$2(_class2$1.prototype, "activeTodoCount", [mem], Object.getOwnPropertyDescriptor(_class2$1.prototype, "activeTodoCount"), _class2$1.prototype), _applyDecoratedDescriptor$2(_class2$1.prototype, "addTodo", [action], Object.getOwnPropertyDescriptor(_class2$1.prototype, "addTodo"), _class2$1.prototype), _applyDecoratedDescriptor$2(_class2$1.prototype, "saveTodo", [action], Object.getOwnPropertyDescriptor(_class2$1.prototype, "saveTodo"), _class2$1.prototype), _applyDecoratedDescriptor$2(_class2$1.prototype, "toggleAll", [action], Object.getOwnPropertyDescriptor(_class2$1.prototype, "toggleAll"), _class2$1.prototype), _applyDecoratedDescriptor$2(_class2$1.prototype, "clearCompleted", [action], Object.getOwnPropertyDescriptor(_class2$1.prototype, "clearCompleted"), _class2$1.prototype)), _class2$1);
+}(), (_applyDecoratedDescriptor$2(_class2$1.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class2$1.prototype, "todos"), _class2$1.prototype), _applyDecoratedDescriptor$2(_class2$1.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class2$1.prototype, "todos"), _class2$1.prototype), _applyDecoratedDescriptor$2(_class2$1.prototype, "activeTodoCount", [mem], Object.getOwnPropertyDescriptor(_class2$1.prototype, "activeTodoCount"), _class2$1.prototype), _applyDecoratedDescriptor$2(_class2$1.prototype, "addTodo", [action], Object.getOwnPropertyDescriptor(_class2$1.prototype, "addTodo"), _class2$1.prototype), _applyDecoratedDescriptor$2(_class2$1.prototype, "saveTodo", [action], Object.getOwnPropertyDescriptor(_class2$1.prototype, "saveTodo"), _class2$1.prototype), _applyDecoratedDescriptor$2(_class2$1.prototype, "remove", [action], Object.getOwnPropertyDescriptor(_class2$1.prototype, "remove"), _class2$1.prototype), _applyDecoratedDescriptor$2(_class2$1.prototype, "toggleAll", [action], Object.getOwnPropertyDescriptor(_class2$1.prototype, "toggleAll"), _class2$1.prototype), _applyDecoratedDescriptor$2(_class2$1.prototype, "clearCompleted", [action], Object.getOwnPropertyDescriptor(_class2$1.prototype, "clearCompleted"), _class2$1.prototype)), _class2$1);
 
 var _class$1;
 var _class2$2;
@@ -2442,9 +2521,7 @@ var TodoFilterService = (_class$1 = (_temp = _class2$2 = function () {
 
       switch (this.filter) {
         case TODO_FILTER.ALL:
-          return todos.filter(function (todo) {
-            return !todo.deleted;
-          });
+          return todos;
 
         case TODO_FILTER.COMPLETE:
           return todos.filter(function (todo) {
@@ -2511,37 +2588,41 @@ function _applyDecoratedDescriptor$4(target, property, decorators, descriptor, c
 var TodoHeaderProps = function TodoHeaderProps() {};
 
 var ENTER_KEY = 13;
-var TodoToAdd = (_class2$3 = (_temp$1 = _class3 = function TodoToAdd(props) {
-  var _this = this;
+var TodoToAdd = (_class2$3 = (_temp$1 = _class3 = function () {
+  function TodoToAdd(props) {
+    var _this = this;
 
-  _initDefineProp(this, "title", _descriptor, this);
+    _initDefineProp(this, "title", _descriptor, this);
 
-  this.onInput = function (_ref) {
-    var target = _ref.target;
-    _this.title = target.value;
-  };
+    this.onKeyDown = function (e) {
+      if (e.keyCode === ENTER_KEY && _this.title) {
+        e.preventDefault();
 
-  this.onKeyDown = function (e) {
-    if (e.keyCode === ENTER_KEY && _this.title) {
-      e.preventDefault();
+        var text = _this.title.trim();
 
-      var text = _this.title.trim();
+        if (text) {
+          _this._props.addTodo(text);
 
-      if (text) {
-        _this._props.addTodo(text);
-
-        _this.title = '';
+          _this.title = '';
+        }
       }
-    }
+    };
+
+    this._props = props;
+  }
+
+  TodoToAdd.prototype.onInput = function onInput(_ref) {
+    var target = _ref.target;
+    this.title = target.value;
   };
 
-  this._props = props;
-}, _class3.deps = [TodoHeaderProps], _temp$1), (_descriptor = _applyDecoratedDescriptor$4(_class2$3.prototype, "title", [mem], {
+  return TodoToAdd;
+}(), _class3.deps = [TodoHeaderProps], _temp$1), (_descriptor = _applyDecoratedDescriptor$4(_class2$3.prototype, "title", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return '';
   }
-})), _class2$3);
+}), _applyDecoratedDescriptor$4(_class2$3.prototype, "onInput", [action], Object.getOwnPropertyDescriptor(_class2$3.prototype, "onInput"), _class2$3.prototype)), _class2$3);
 function TodoHeaderView(_, _ref2) {
   var todoToAdd = _ref2.todoToAdd;
   return lom_h("header", {
@@ -2610,53 +2691,57 @@ var ENTER_KEY$1 = 13;
 
 var TodoItemProps = function TodoItemProps() {};
 
-var TodoItemService = (_class2$4 = (_temp$2 = _class3$1 = function TodoItemService(_ref) {
-  var _this = this;
+var TodoItemService = (_class2$4 = (_temp$2 = _class3$1 = function () {
+  function TodoItemService(_ref) {
+    var _this = this;
 
-  var todo = _ref.todo;
+    var todo = _ref.todo;
 
-  _initDefineProp$1(this, "editingId", _descriptor$1, this);
+    _initDefineProp$1(this, "editingId", _descriptor$1, this);
 
-  _initDefineProp$1(this, "editText", _descriptor2, this);
+    _initDefineProp$1(this, "editText", _descriptor2, this);
 
-  this.beginEdit = function () {
-    _this.editText = _this._todo.title;
-    _this.editingId = _this._todo.id;
+    this.beginEdit = function () {
+      _this.editText = _this._todo.title;
+      _this.editingId = _this._todo.id;
+    };
+
+    this.setFocus = function (el) {
+      if (el) {
+        setTimeout(function () {
+          return el.focus();
+        }, 0);
+      }
+    };
+
+    this.cancel = function () {
+      // this.editText = ''
+      _this.editingId = null;
+    };
+
+    this.submit = function () {
+      _this._todo.title = _this.editText;
+      _this.editText = '';
+      _this.editingId = null;
+    };
+
+    this.onKey = function (e) {
+      if (e.which === ESCAPE_KEY) {
+        _this.cancel();
+      } else if (e.which === ENTER_KEY$1) {
+        _this.submit();
+      }
+    };
+
+    this._todo = todo;
+  }
+
+  TodoItemService.prototype.setEditText = function setEditText(e) {
+    this.editText = e.target.value;
   };
 
-  this.setFocus = function (el) {
-    if (el) {
-      setTimeout(function () {
-        return el.focus();
-      }, 0);
-    }
-  };
-
-  this.setEditText = function (e) {
-    _this.editText = e.target.value;
-  };
-
-  this.cancel = function () {
-    // this.editText = ''
-    _this.editingId = null;
-  };
-
-  this.submit = function () {
-    _this._todo.title = _this.editText;
-    _this.editText = '';
-    _this.editingId = null;
-  };
-
-  this.onKey = function (e) {
-    if (e.which === ESCAPE_KEY) {
-      _this.cancel();
-    } else if (e.which === ENTER_KEY$1) {
-      _this.submit();
-    }
-  };
-
-  this._todo = todo;
-}, _class3$1.deps = [TodoItemProps], _temp$2), (_descriptor$1 = _applyDecoratedDescriptor$5(_class2$4.prototype, "editingId", [mem], {
+  return TodoItemService;
+}(), _class3$1.deps = [TodoItemProps], _temp$2), (_descriptor$1 = _applyDecoratedDescriptor$5(_class2$4.prototype, "editingId", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return null;
@@ -2666,7 +2751,7 @@ var TodoItemService = (_class2$4 = (_temp$2 = _class3$1 = function TodoItemServi
   initializer: function initializer() {
     return '';
   }
-})), _class2$4);
+}), _applyDecoratedDescriptor$5(_class2$4.prototype, "setEditText", [action], Object.getOwnPropertyDescriptor(_class2$4.prototype, "setEditText"), _class2$4.prototype)), _class2$4);
 function TodoItemView(_ref2, _ref3) {
   var todo = _ref2.todo;
   var todoItemService = _ref3.todoItemService;

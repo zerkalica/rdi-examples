@@ -54,7 +54,7 @@
     "babelrc-rollup": "^3.0.0",
     "flow-bin": "^0.52.0",
     "rimraf": "^2.6.1",
-    "rollup": "^0.45.2",
+    "rollup": "^0.47.4",
     "rollup-plugin-babel": "=3.0.0-alpha.17",
     "rollup-plugin-commonjs": "^8.1.0",
     "rollup-plugin-livereload": "^0.4.0",
@@ -75,9 +75,9 @@
     "jss-camel-case": "^5.0.0",
     "jss-global": "^2.0.0",
     "jss-nested": "^5.0.0",
-    "lom_atom": "^1.0.6",
+    "lom_atom": "^1.0.8",
     "preact": "^8.2.1",
-    "reactive-di": "^4.0.4",
+    "reactive-di": "^4.0.5",
     "todomvc-common": "^1.0.3"
   }
 }

@@ -1,6 +1,6 @@
 // @flow
 
-import {mem} from 'lom_atom'
+import {action, mem} from 'lom_atom'
 
 interface ITodoHeaderProps {
     addTodo(title: string): void;
@@ -22,7 +22,8 @@ class TodoToAdd {
         this._props = props
     }
 
-    onInput = ({target}: Event) => {
+    @action
+    onInput({target}: Event) {
         this.title = (target: any).value
     }
 

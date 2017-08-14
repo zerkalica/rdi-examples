@@ -93,6 +93,7 @@ export default class TodoService {
         )
     }
 
+    @action
     remove(id: string) {
         this.todos = this.todos.filter((todo) => todo.id !== id)
     }
