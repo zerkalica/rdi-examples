@@ -35,8 +35,7 @@ const baseConfig = {
         sourcemaps(),
         babel(babelrc()),
         globals()
-        // uglify({}, minify)
-    ]
+    ].concat(process.env.UGLIFY === '1' ? [uglify({}, minify)] : [])
 }
 
 const perfPlugins = baseConfig.plugins.concat([
@@ -45,31 +44,6 @@ const perfPlugins = baseConfig.plugins.concat([
     }),
     // uglify({}, minify)
 ])
-
-const perfLomRdiConfig = Object.assign({}, baseConfig, {
-    entry: 'src/perf/todomvc-lom-rdi/index.js',
-    targets: [
-        {dest: 'docs/perf/todomvc-lom-rdi/bundle.js', format: 'iife', moduleName: 'todomvc_lom_rdi_perf'}
-    ],
-    plugins: perfPlugins
-})
-
-const perfLomConfig = Object.assign({}, baseConfig, {
-    entry: 'src/perf/todomvc-lom/index.js',
-    targets: [
-        {dest: 'docs/perf/todomvc-lom/bundle.js', format: 'iife', moduleName: 'todomvc_lom_perf'}
-    ],
-    plugins: perfPlugins
-})
-
-const perfPreactConfig = Object.assign({}, baseConfig, {
-    entry: 'src/perf/preact/index.js',
-    targets: [
-        {dest: 'docs/perf/preact/bundle.js', format: 'iife', moduleName: 'preact'}
-    ],
-    plugins: perfPlugins
-})
-
 
 const examplesConfig = Object.assign({}, baseConfig, {
     entry: 'src/examples/index.js',
@@ -84,9 +58,16 @@ const examplesConfig = Object.assign({}, baseConfig, {
     ])
 })
 
+function toConfig(name) {
+    return Object.assign({}, baseConfig, {
+        entry: `src/perf/${name}/index.js`,
+        targets: [
+            {dest: `docs/perf/${name}/bundle.js`, format: 'iife', moduleName: name.replace(/\-/g, '_')}
+        ],
+        plugins: perfPlugins
+    })
+}
+
 export default [
     examplesConfig,
-    perfLomConfig,
-    perfLomRdiConfig,
-    perfPreactConfig
-]
+].concat(['preact', 'preact-mobx', 'preact-lom', 'preact-lom-rdi'].map(toConfig))

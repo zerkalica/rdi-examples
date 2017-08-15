@@ -76,6 +76,8 @@
     "jss-global": "^2.0.0",
     "jss-nested": "^5.0.0",
     "lom_atom": "^1.0.9",
+    "mobx": "^3.2.2",
+    "mobx-preact": "^0.3.1",
     "preact": "^8.2.1",
     "reactive-di": "^4.0.6",
     "todomvc-common": "^1.0.3"

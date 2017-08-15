@@ -21,7 +21,7 @@ class TodoToAdd {
 
     static deps = [TodoHeaderViewProps]
 
-    constructor({todoService}: ITodoHeaderViewProps) {
+    constructor({todoService}: TodoHeaderViewProps) {
         this._todoService = todoService
     }
 

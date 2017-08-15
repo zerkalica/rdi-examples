@@ -832,7 +832,7 @@ var FakeSheet = function () {
     this.classes = {};
   }
 
-  FakeSheet.prototype.update = function update(props) {
+  FakeSheet.prototype.update = function update(name, props) {
     return this;
   };
 
@@ -883,7 +883,7 @@ var Injector = (_class2 = function () {
 
     if (key.theme === true) {
       if (this.top === this) {
-        var sheet = oldValue === undefined ? this._sheetProcessor.createStyleSheet(this._fastCall(key)) : oldValue.update(this._fastCall(key));
+        var sheet = oldValue === undefined ? this._sheetProcessor.createStyleSheet(this._fastCall(key)) : oldValue.update(undefined, this._fastCall(key));
         sheet.attach();
         return sheet;
       }
