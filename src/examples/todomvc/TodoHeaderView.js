@@ -1,6 +1,6 @@
 // @flow
 
-import {mem} from 'lom_atom'
+import {action, mem} from 'lom_atom'
 import type {NamesOf} from 'lom_atom'
 
 interface IStore {
@@ -25,7 +25,8 @@ class TodoToAdd {
         this._todoService = todoService
     }
 
-    onInput = ({target}: Event) => {
+    @action
+    onInput({target}: Event) {
         this.title = (target: any).value
     }
 
@@ -64,7 +65,7 @@ TodoHeaderTheme.theme = true
 export default function TodoHeaderView(
     _: ITodoHeaderViewProps,
     {todoToAdd, theme}: {
-        theme: NamesOf<TodoHeaderTheme>;
+        theme: NamesOf<typeof TodoHeaderTheme>;
         todoToAdd: TodoToAdd;
     }
 ) {

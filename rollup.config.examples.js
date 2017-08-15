@@ -15,9 +15,11 @@ export default Object.assign(
                 historyApiFallback: true,
                 contentBase: 'docs'
             }),
+
             livereload({
                 watch: ['docs', 'src']
             })
+
         ])
     }
 )

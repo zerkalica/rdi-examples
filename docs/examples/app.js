@@ -1,3 +1,4 @@
+document.write('<script src="http://' + (location.host || 'localhost').split(':')[0] + ':35729/livereload.js?snipver=1"></' + 'script>');
 (function () {
 'use strict';
 
@@ -856,7 +857,7 @@ var FakeSheet = function () {
     this.classes = {};
   }
 
-  FakeSheet.prototype.update = function update(props) {
+  FakeSheet.prototype.update = function update(name, props) {
     return this;
   };
 
@@ -907,7 +908,7 @@ var Injector = (_class2$1 = function () {
 
     if (key.theme === true) {
       if (this.top === this) {
-        var sheet = oldValue === undefined ? this._sheetProcessor.createStyleSheet(this._fastCall(key)) : oldValue.update(this._fastCall(key));
+        var sheet = oldValue === undefined ? this._sheetProcessor.createStyleSheet(this._fastCall(key)) : oldValue.update(undefined, this._fastCall(key));
         sheet.attach();
         return sheet;
       }
@@ -7708,33 +7709,37 @@ function _applyDecoratedDescriptor$8(target, property, decorators, descriptor, c
 
 var TodoHeaderViewProps = function TodoHeaderViewProps() {};
 
-var TodoToAdd = (_class2$4 = (_temp$3 = _class3 = function TodoToAdd(_ref) {
-  var _this = this;
+var TodoToAdd = (_class2$4 = (_temp$3 = _class3 = function () {
+  function TodoToAdd(_ref) {
+    var _this = this;
 
-  var todoService = _ref.todoService;
+    var todoService = _ref.todoService;
 
-  _initDefineProp$3(this, "title", _descriptor$3, this);
+    _initDefineProp$3(this, "title", _descriptor$3, this);
 
-  this.onInput = function (_ref2) {
+    this.onKeyDown = function (e) {
+      if (e.keyCode === 13 && _this.title) {
+        _this._todoService.addTodo(_this.title);
+
+        _this.title = '';
+      }
+    };
+
+    this._todoService = todoService;
+  }
+
+  TodoToAdd.prototype.onInput = function onInput(_ref2) {
     var target = _ref2.target;
-    _this.title = target.value;
+    this.title = target.value;
   };
 
-  this.onKeyDown = function (e) {
-    if (e.keyCode === 13 && _this.title) {
-      _this._todoService.addTodo(_this.title);
-
-      _this.title = '';
-    }
-  };
-
-  this._todoService = todoService;
-}, _class3.deps = [TodoHeaderViewProps], _temp$3), (_descriptor$3 = _applyDecoratedDescriptor$8(_class2$4.prototype, "title", [mem], {
+  return TodoToAdd;
+}(), _class3.deps = [TodoHeaderViewProps], _temp$3), (_descriptor$3 = _applyDecoratedDescriptor$8(_class2$4.prototype, "title", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return '';
   }
-})), _class2$4);
+}), _applyDecoratedDescriptor$8(_class2$4.prototype, "onInput", [action], Object.getOwnPropertyDescriptor(_class2$4.prototype, "onInput"), _class2$4.prototype)), _class2$4);
 
 function TodoHeaderTheme() {
   var _newTodo;

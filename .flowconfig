@@ -1,5 +1,9 @@
 [ignore]
 .*/node_modules/conventional-changelog-core/.*
+.*/node_modules/preact/src/preact.*
+
+[libs]
+node_modules/jss/flow-typed
 
 [options]
 munge_underscores=true
