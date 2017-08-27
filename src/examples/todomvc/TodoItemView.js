@@ -19,17 +19,17 @@ class TodoItemStore {
     @mem todoBeingEdited: ?ITodo = null
     @mem editText = ''
 
-    _todo: ITodo
+    _props: ITodoProps
 
     static deps = [TodoItemProps]
 
-    constructor({todo}: TodoItemProps) {
-        this._todo = todo
+    constructor(props: TodoItemProps) {
+        this._props = props
     }
 
     beginEdit = () => {
-        this.todoBeingEdited = this._todo
-        this.editText = this._todo.title
+        this.todoBeingEdited = this._props.todo
+        this.editText = this._props.todo.title
     }
 
     @action
@@ -52,7 +52,7 @@ class TodoItemStore {
     handleSubmit = (event: Event) => {
         const val = this.editText.trim()
         if (val) {
-            this._todo.title = val
+            this._props.todo.title = val
             this.editText = ''
         } else {
             this.handleDestroy()
@@ -62,7 +62,7 @@ class TodoItemStore {
 
     handleKeyDown = (event: Event) => {
         if (event.which === ESCAPE_KEY) {
-            this.editText = this._todo.title
+            this.editText = this._props.todo.title
             this.todoBeingEdited = null
         } else if (event.which === ENTER_KEY) {
             this.handleSubmit(event)
@@ -70,12 +70,12 @@ class TodoItemStore {
     }
 
     toggle = () => {
-        this._todo.toggle()
+        this._props.todo.toggle()
         this.todoBeingEdited = null
     }
 
     handleDestroy = () => {
-        this._todo.destroy()
+        this._props.todo.destroy()
         this.todoBeingEdited = null
     }
 }
@@ -206,32 +206,32 @@ export default function TodoItemView(
     }
 ) {
     return itemStore.todoBeingEdited === todo
-        ? <li className={theme.editing}>
+        ? <li class={theme.editing}>
             <input
                 id="edit"
                 ref={itemStore.setEditInputRef}
-                className={theme.edit}
+                class={theme.edit}
                 value={itemStore.editText}
                 onBlur={itemStore.handleSubmit}
                 onInput={itemStore.setText}
                 onKeyDown={itemStore.handleKeyDown}
             />
         </li>
-        : <li className={todo.completed ? theme.completed : theme.regular}>
+        : <li class={todo.completed ? theme.completed : theme.regular}>
             <input
                 id="toggle"
-                className={theme.toggle}
+                class={theme.toggle}
                 type="checkbox"
                 checked={todo.completed}
                 onChange={itemStore.toggle}
             />
             <label
-                className={todo.completed ? theme.viewLabelCompleted : theme.viewLabelRegular}
+                class={todo.completed ? theme.viewLabelCompleted : theme.viewLabelRegular}
                 id="beginEdit"
                 onDblClick={itemStore.beginEdit}>
                 {todo.title}
             </label>
-            <button className={theme.destroy} id="destroy" onClick={itemStore.handleDestroy} />
+            <button class={theme.destroy} id="destroy" onClick={itemStore.handleDestroy} />
         </li>
 }
 TodoItemView.deps = [{itemStore: TodoItemStore, theme: TodoItemTheme}]

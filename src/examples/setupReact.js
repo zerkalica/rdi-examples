@@ -3,6 +3,7 @@ import {mem} from 'lom_atom'
 import {createReactWrapper, createCreateElement, Injector} from 'reactive-di'
 
 import {h, Component} from 'preact'
+import 'preact/devtools'
 import {create as createJss} from 'jss'
 import jssCamel from 'jss-camel-case'
 import jssGlobal from 'jss-global'

@@ -71,7 +71,7 @@ export default function TodoHeaderView(
 ) {
     return <header>
         <input
-            className={theme.newTodo}
+            class={theme.newTodo}
             placeholder="What needs to be done?"
             onInput={todoToAdd.onInput}
             value={todoToAdd.title}

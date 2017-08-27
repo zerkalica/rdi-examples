@@ -18,7 +18,7 @@ export class TodoItemService {
         this.editingId = todo.id
     }
 
-    setFocus = (el: HTMLInputElement) => {
+    setFocus = (el: any) => {
         if (el) {
             setTimeout(() => el.focus(), 0)
         }

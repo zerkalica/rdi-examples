@@ -3,32 +3,37 @@
 import {mem, action} from 'lom_atom'
 import type {ITodo} from './TodoService'
 
+import atomize from '../atomize'
+
 const ESCAPE_KEY = 27
 const ENTER_KEY = 13
 
-class TodoItemProps {
-    todo: ITodo
+interface ITodoItemProps {
+    todo: ITodo;
 }
 
+class TodoItemProps implements ITodoItemProps {
+    todo: ITodo
+}
 
 export class TodoItemService {
     @mem editingId: ?string = null
     @mem editText: string = ''
 
-    _todo: ITodo
+    _props: ITodoItemProps
 
     static deps = [TodoItemProps]
 
-    constructor({todo}: TodoItemProps) {
-        this._todo = todo
+    constructor(props: TodoItemProps) {
+        this._props = props
     }
 
     beginEdit = () => {
-        this.editText = this._todo.title
-        this.editingId = this._todo.id
+        this.editText = this._props.todo.title
+        this.editingId = this._props.todo.id
     }
 
-    setFocus = (el: HTMLInputElement) => {
+    setFocus = (el: any) => {
         if (el) {
             setTimeout(() => el.focus(), 0)
         }
@@ -45,7 +50,7 @@ export class TodoItemService {
     }
 
     submit = () => {
-        this._todo.title = this.editText
+        this._props.todo.title = this.editText
         this.editText = ''
         this.editingId = null
     }
@@ -59,13 +64,13 @@ export class TodoItemService {
     }
 }
 
-export default function TodoItemView(
-    {todo}: {
-        todo: ITodo;
-    },
-    {todoItemService}: {
-        todoItemService: TodoItemService;
-    }
+interface ITodoItemContext {
+    todoItemService: TodoItemService;
+}
+
+function TodoItemView(
+    {todo}: ITodoItemProps,
+    todoItemService: TodoItemService
 ) {
     const editing = todoItemService.editingId === todo.id
     return <li
@@ -94,5 +99,7 @@ export default function TodoItemView(
         }
     </li>
 }
-TodoItemView.deps = [{todoItemService: TodoItemService}]
+TodoItemView.deps = [TodoItemService]
 TodoItemView.props = TodoItemProps
+
+export default TodoItemView

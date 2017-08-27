@@ -10,16 +10,17 @@ export default Object.assign(
     conf,
     {
         plugins: conf.plugins.concat([
+
             serve({
                 open: true,
                 historyApiFallback: true,
                 contentBase: 'docs'
             }),
-
             livereload({
                 watch: ['docs', 'src']
             })
 
         ])
+
     }
 )

@@ -126,15 +126,15 @@ export default function TodoFooterView(
     }
     const filter = todoFilterService.filter
 
-    return <footer className={theme.footer}>
-        <span className={theme.todoCount}>
+    return <footer class={theme.footer}>
+        <span class={theme.todoCount}>
             <strong>{todoService.activeTodoCount}</strong> item(s) left
         </span>
-        <ul className={theme.filters}>
+        <ul class={theme.filters}>
             {links.map((link) =>
-                <li key={link.id} className={theme.filterItem}><a
+                <li key={link.id} class={theme.filterItem}><a
                     id={`todo-filter-${link.id}`}
-                    className={filter === link.id ? theme.linkSelected : theme.linkRegular}
+                    class={filter === link.id ? theme.linkSelected : theme.linkRegular}
                     href={`?todo_filter=${link.id}`}
                     onClick={createHandler(todoFilterService, link.id)}
                 >{link.title}</a></li>
@@ -143,7 +143,7 @@ export default function TodoFooterView(
         {todoService.completedCount === 0
             ? null
             : <button
-                className={theme.clearCompleted}
+                class={theme.clearCompleted}
                 onClick={() => todoService.clearCompleted()}>
                 Clear completed
             </button>

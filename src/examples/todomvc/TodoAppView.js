@@ -51,14 +51,14 @@ export default function TodoApp(
     {todoService, todoFilterService, theme}: {
         todoService: TodoService;
         todoFilterService: TodoFilterService;
-        theme: NamesOf<typeof TodoAppTheme>
+        theme: NamesOf<typeof TodoAppTheme>;
     }
 ) {
     return <div>
         {/* Loading fix: access data in TodoApp first to throw exception, if no todos loaded */}
         {todoService.activeTodoCount > 0 ? null : null}
         <div style={{padding: '0.3em 0.5em'}}>{todoService.isOperationRunning ? 'Saving...' : 'Idle'}</div>
-        <div className={theme.todoapp}>
+        <div class={theme.todoapp}>
             <TodoHeaderView todoService={todoService} />
             <TodoMainView todoService={todoService} todoFilterService={todoFilterService} />
             <TodoFooterView todoService={todoService} todoFilterService={todoFilterService} />

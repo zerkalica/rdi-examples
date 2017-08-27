@@ -1,7 +1,7 @@
 // @flow
 import {mem} from 'lom_atom'
-import {createReactWrapper, createCreateElement, Injector} from 'reactive-di'
-import {h, Component} from '../../adapters/preact'
+import {createReactWrapper, Injector} from 'reactive-di'
+import {Component} from '../../adapters/preact'
 
 import {BrowserLocationStore, AbstractLocationStore} from './todomvc/common-todomvc'
 
@@ -26,11 +26,10 @@ function ErrorableView({
     </div>
 }
 
-const lomCreateElement = createCreateElement(
-    createReactWrapper(
-        Component,
-        ErrorableView
-    ),
-    h
+export default createReactWrapper(
+    Component,
+    ErrorableView,
+    new Injector([
+        [AbstractLocationStore, new BrowserLocationStore(location, history)]
+    ])
 )
-global['lom_h'] = lomCreateElement

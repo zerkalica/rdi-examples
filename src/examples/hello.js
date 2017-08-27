@@ -16,11 +16,16 @@ class HelloProps implements IHelloProps {
 }
 
 class HelloOptions {
-    @mem actionName: string
-    static deps = [HelloProps]
+    @mem get actionName(): string {
+        return this._props.name + '-hello'
+    }
+    @mem set actionName(name: string) {}
 
-    constructor({name}: IHelloProps) {
-        this.actionName = name + '-hello'
+    static deps = [HelloProps]
+    _props: IHelloProps
+
+    constructor(props: IHelloProps) {
+        this._props = props
     }
 }
 

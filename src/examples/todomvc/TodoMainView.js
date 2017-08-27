@@ -72,14 +72,14 @@ export default function TodoMainView(
         return null
     }
 
-    return <section className={theme.main}>
+    return <section class={theme.main}>
         <input
-            className={theme.toggleAll}
+            class={theme.toggleAll}
             type="checkbox"
             onChange={todoService.toggleAll}
             checked={todoService.activeTodoCount === 0}
         />
-        <ul className={theme.todoList}>
+        <ul class={theme.todoList}>
             {todoFilterService.filteredTodos.map((todo: ITodo) =>
                 <TodoItemView
                     key={todo.id}

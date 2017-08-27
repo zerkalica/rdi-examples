@@ -1,5 +1,5 @@
 // @flow
-
+import atomize from '../atomize'
 import {action, mem} from 'lom_atom'
 
 interface ITodoHeaderProps {
@@ -39,7 +39,7 @@ class TodoToAdd {
     }
 }
 
-export default function TodoHeaderView(
+function TodoHeaderView(
     _: ITodoHeaderProps,
     {todoToAdd}: {
         todoToAdd: TodoToAdd;
@@ -59,3 +59,5 @@ export default function TodoHeaderView(
 }
 TodoHeaderView.deps = [{todoToAdd: TodoToAdd}]
 TodoHeaderView.props = TodoHeaderProps
+
+export default (TodoHeaderView)

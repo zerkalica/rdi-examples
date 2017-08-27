@@ -19,26 +19,26 @@ function KeyValueTheme() {
 KeyValueTheme.theme = true
 
 function KeyView(
-    {children}: {children?: mixed},
+    {children}: {children?: any},
     {theme}: {theme: NamesOf<typeof KeyValueTheme>}
 ) {
-    return <div className={theme.key}>{children}</div>
+    return <div class={theme.key}>{children}</div>
 }
 KeyView.deps = [{theme: KeyValueTheme}]
 
 function ValueView(
-    {children}: {children?: mixed},
+    {children}: {children?: any},
     {theme}: {theme: NamesOf<typeof KeyValueTheme>}
 ) {
-    return <div className={theme.value}>{children}</div>
+    return <div class={theme.value}>{children}</div>
 }
 ValueView.deps = [{theme: KeyValueTheme}]
 
 export function ItemView(
-    {children}: {children?: mixed},
+    {children}: {children?: any},
     {theme}: {theme: NamesOf<typeof KeyValueTheme>}
 ) {
-    return <div className={theme.item}>{children}</div>
+    return <div class={theme.item}>{children}</div>
 }
 ItemView.deps = [{theme: KeyValueTheme}]
 ItemView.Key = KeyView

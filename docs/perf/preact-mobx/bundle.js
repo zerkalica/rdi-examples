@@ -5585,7 +5585,7 @@ var makeReactive_1 = createCommonjsModule(function (module, exports) {
   exports.default = makeReactive;
 });
 
-var index$3 = createCommonjsModule(function (module, exports) {
+var dist = createCommonjsModule(function (module, exports) {
   'use strict';
 
   Object.defineProperty(exports, "__esModule", {
@@ -5652,7 +5652,7 @@ var KNOWN_STATICS = {
 };
 var isGetOwnPropertySymbolsAvailable = typeof Object.getOwnPropertySymbols === 'function';
 
-var index$5 = function hoistNonReactStatics(targetComponent, sourceComponent, customStatics) {
+var hoistNonReactStatics = function hoistNonReactStatics(targetComponent, sourceComponent, customStatics) {
   if (typeof sourceComponent !== 'string') {
     // don't hoist over string (html) components
     var keys = Object.getOwnPropertyNames(sourceComponent);
@@ -5681,7 +5681,7 @@ var inject_1 = createCommonjsModule(function (module, exports) {
    */
 
   function createStoreInjector(grabStoresFn, component) {
-    var Injector = index$3.default({
+    var Injector = dist.default({
       displayName: component.name,
       render: function render() {
         var _this = this;
@@ -5711,7 +5711,7 @@ var inject_1 = createCommonjsModule(function (module, exports) {
       mobxStores: function mobxStores() {}
     };
     Injector.wrappedComponent = component;
-    index$5(Injector, component);
+    hoistNonReactStatics(Injector, component);
     return Injector;
   }
 
@@ -5795,7 +5795,7 @@ var connect_1 = createCommonjsModule(function (module, exports) {
     // wrap it to a Inferno class automatically
 
     if (typeof componentClass === 'function' && (!componentClass.prototype || !componentClass.prototype.render) && !componentClass.isReactClass && !preact_1.Component.isPrototypeOf(componentClass)) {
-      var newClass = index$3.default({
+      var newClass = dist.default({
         displayName: componentClass.displayName || componentClass.name,
         propTypes: componentClass.propTypes,
         contextTypes: componentClass.contextTypes,
@@ -5823,7 +5823,7 @@ var connect_1 = createCommonjsModule(function (module, exports) {
   exports.default = connect;
 });
 
-var index$1 = createCommonjsModule(function (module, exports) {
+var lib$1 = createCommonjsModule(function (module, exports) {
   "use strict";
 
   exports.Provider = Provider_1.default;
@@ -5842,7 +5842,7 @@ var index$1 = createCommonjsModule(function (module, exports) {
     componentByNodeRegistery: makeReactive_1.componentByNodeRegistery
   };
 });
-var index_5 = index$1.observer;
+var lib_5 = lib$1.observer;
 
 function uuid() {
   var uuid = '';
@@ -6231,7 +6231,7 @@ function TodoHeaderView(_ref2) {
   }));
 }
 
-var TodoHeaderView$1 = index_5(TodoHeaderView);
+var TodoHeaderView$1 = lib_5(TodoHeaderView);
 
 var ALL_TODOS = 'all';
 var ACTIVE_TODOS = 'active';
@@ -6395,7 +6395,7 @@ function TodoItemView(_ref) {
   }) : null);
 }
 
-var TodoItemView$1 = index_5(TodoItemView);
+var TodoItemView$1 = lib_5(TodoItemView);
 
 function TodoPerfView(_ref) {
   var todoService = _ref.todoService,
@@ -6426,7 +6426,7 @@ function TodoPerfView(_ref) {
   }) : null);
 }
 
-var TodoPerfView$1 = index_5(TodoPerfView);
+var TodoPerfView$1 = lib_5(TodoPerfView);
 
 var todoService = new TodoService();
 var browserLocationStore = new BrowserLocationStore(location, history);

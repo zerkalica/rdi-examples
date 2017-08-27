@@ -1,6 +1,6 @@
 // @flow
 
-import {render, h} from 'preact'
+import {h, render} from '../../adapters/preact'
 
 import {TodoPerfView} from './todomvc'
 

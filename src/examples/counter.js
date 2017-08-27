@@ -3,6 +3,8 @@
 import {mem, force} from 'lom_atom'
 
 class Counter {
+    @force $: Counter
+
     @mem get value(): number {
         setTimeout(() => {
             this.value = 1
@@ -21,16 +23,14 @@ class Counter {
 
 export function CounterView(
     _: {},
-    {counter}: {
-        counter: Counter
-    }
+    counter: Counter
 ) {
     return <div>
         <div>
             Count: {counter.value}
         </div>
         <button onClick={() => { counter.value++ }}>Add</button>
-        <button onClick={() => { counter.value = ('error': any) }}>Gen error</button>
+        <button onClick={() => { counter.$.value = ('someStr': any) }}>Gen error</button>
     </div>
 }
-CounterView.deps = [{counter: Counter}]
+CounterView.deps = [Counter]

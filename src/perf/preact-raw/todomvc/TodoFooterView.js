@@ -1,13 +1,11 @@
 // @flow
-
-import atomize from '../atomize'
 import {pluralize} from './common-todomvc'
 
 const ALL_TODOS = 'all'
 const ACTIVE_TODOS = 'active'
 const COMPLETED_TODOS = 'completed'
 
-function TodoFooterView(
+export default function TodoFooterView(
     {nowShowing, count, completedCount, onClearCompleted}: {
         nowShowing: string;
         count: number;
@@ -39,5 +37,3 @@ function TodoFooterView(
         ) : null}
     </footer>
 }
-
-export default (TodoFooterView)

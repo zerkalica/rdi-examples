@@ -4,6 +4,7 @@
 
 [libs]
 node_modules/jss/flow-typed
+node_modules/reactive-di/flow-typed
 
 [options]
 munge_underscores=true

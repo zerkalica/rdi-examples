@@ -15,11 +15,25 @@ import fs from 'fs'
 import path from 'path'
 
 const pkg = JSON.parse(fs.readFileSync('./package.json'))
-// console.log(JSON.stringify(babelrc(), 0, '  '))
+
+function fixbabelrc(rc) {
+    return Object.assign({}, rc, {
+        presets: rc.presets.map((preset) => {
+            if (preset[0] === 'es2015') {
+               return preset
+            }
+            delete preset[1].modules
+            return Object.keys(preset[1]).length ? preset : preset[0]
+        })
+    })
+}
+
+const rc = fixbabelrc(babelrc())
 
 const baseConfig = {
-    sourceMap: true,
+    sourcemap: true,
     plugins: [
+
         resolve({
             browser: true,
             module: true
@@ -27,13 +41,14 @@ const baseConfig = {
         commonjs({
             include: 'node_modules/**',
             exclude: [
-                 'node_modules/preact/**',
+                //  'node_modules/preact/**',
                  'node_modules/reactive-di/**',
                  'node_modules/lom_atom/**'
             ]
         }),
+
         sourcemaps(),
-        babel(babelrc()),
+        babel(rc),
         globals()
     ].concat(process.env.UGLIFY === '1' ? [uglify({}, minify)] : [])
 }
@@ -41,33 +56,35 @@ const baseConfig = {
 const perfPlugins = baseConfig.plugins.concat([
     replace({
         'process.env.NODE_ENV': JSON.stringify('production')
-    }),
-    // uglify({}, minify)
+    })
 ])
 
 const examplesConfig = Object.assign({}, baseConfig, {
-    entry: 'src/examples/index.js',
-    targets: [
-        {dest: pkg['iife:main'], format: 'iife', moduleName: pkg.name.replace('-', '_').replace('-', '_')}
+    input: 'src/examples/index.js',
+    output: [
+        {file: pkg['iife:main'], format: 'iife', name: pkg.name.replace('-', '_').replace('-', '_')}
     ],
     plugins: baseConfig.plugins.concat([
         replace({
             'process.env.NODE_ENV': JSON.stringify('development')
         }),
         visualizer({filename: path.join(__dirname, 'docs', 'stat.html') })
+
     ])
 })
 
 function toConfig(name) {
     return Object.assign({}, baseConfig, {
-        entry: `src/perf/${name}/index.js`,
-        targets: [
-            {dest: `docs/perf/${name}/bundle.js`, format: 'iife', moduleName: name.replace(/\-/g, '_')}
+        input: `src/perf/${name}/index.js`,
+        output: [
+            {file: `docs/perf/${name}/bundle.js`, format: 'iife', name: name.replace(/\-/g, '_')}
         ],
         plugins: perfPlugins
     })
 }
 
 export default [
-    examplesConfig,
-].concat(['preact', 'preact-mobx', 'preact-lom', 'preact-lom-rdi'].map(toConfig))
+     examplesConfig
+].concat([
+    'preact-raw', 'preact-mobx', 'preact-lom', 'preact-lom-rdi'
+].map(toConfig))

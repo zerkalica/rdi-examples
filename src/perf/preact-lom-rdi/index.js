@@ -2,7 +2,7 @@
 
 import './setup'
 
-import {render} from 'preact'
+import {render} from '../../adapters/preact'
 
 import {TodoPerfView} from './todomvc'
 
