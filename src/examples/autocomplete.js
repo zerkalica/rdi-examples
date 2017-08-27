@@ -1,21 +1,15 @@
 // @flow
 
-import {mem} from 'lom_atom'
+import {props, mem} from 'lom_atom'
 
 interface IAutocompleteProps {
     initialValue: string;
 }
 
-class AutocompleteProps implements IAutocompleteProps {
-    initialValue: string
-}
-
 class AutocompleteService {
     @mem nameToSearch: string
 
-    static deps = [AutocompleteProps]
-
-    constructor({initialValue}: AutocompleteProps) {
+    @props set props({initialValue}: IAutocompleteProps) {
         this.nameToSearch = initialValue
     }
 
@@ -66,9 +60,7 @@ function AutocompleteResultsView(
 
 export function AutocompleteView(
     _: IAutocompleteProps,
-    {service}: {
-        service: AutocompleteService;
-    }
+    service: AutocompleteService
 ) {
     return <div>
         <div>
@@ -79,8 +71,7 @@ export function AutocompleteView(
         <AutocompleteResultsView searchResults={service.searchResults} />
     </div>
 }
-AutocompleteView.deps = [{service: AutocompleteService}]
-AutocompleteView.props = AutocompleteProps
+AutocompleteView.deps = [AutocompleteService]
 
 export function autocompleteMocks(
     rawStorage: Storage

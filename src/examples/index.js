@@ -69,7 +69,7 @@ function AppView(
             break
 
         default:
-            throw new Error('Unknown page')
+            page = <div>Unknown page</div>
     }
 
     return <div style={{dislay: 'flex', justifyContent: 'center'}}>

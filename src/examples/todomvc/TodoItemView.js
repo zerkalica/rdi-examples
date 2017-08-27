@@ -1,6 +1,6 @@
 // @flow
 
-import {action, mem} from 'lom_atom'
+import {action, props, mem} from 'lom_atom'
 import type {ResultOf, NamesOf} from 'lom_atom'
 import type {ITodo} from './TodoService'
 
@@ -11,25 +11,15 @@ interface ITodoProps {
     +todo: ITodo;
 }
 
-class TodoItemProps implements ITodoProps {
-    +todo: ITodo
-}
-
 class TodoItemStore {
     @mem todoBeingEdited: ?ITodo = null
     @mem editText = ''
 
-    _props: ITodoProps
-
-    static deps = [TodoItemProps]
-
-    constructor(props: TodoItemProps) {
-        this._props = props
-    }
+    @props props: ITodoProps
 
     beginEdit = () => {
-        this.todoBeingEdited = this._props.todo
-        this.editText = this._props.todo.title
+        this.todoBeingEdited = this.props.todo
+        this.editText = this.props.todo.title
     }
 
     @action
@@ -52,7 +42,7 @@ class TodoItemStore {
     handleSubmit = (event: Event) => {
         const val = this.editText.trim()
         if (val) {
-            this._props.todo.title = val
+            this.props.todo.title = val
             this.editText = ''
         } else {
             this.handleDestroy()
@@ -62,7 +52,7 @@ class TodoItemStore {
 
     handleKeyDown = (event: Event) => {
         if (event.which === ESCAPE_KEY) {
-            this.editText = this._props.todo.title
+            this.editText = this.props.todo.title
             this.todoBeingEdited = null
         } else if (event.which === ENTER_KEY) {
             this.handleSubmit(event)
@@ -70,12 +60,12 @@ class TodoItemStore {
     }
 
     toggle = () => {
-        this._props.todo.toggle()
+        this.props.todo.toggle()
         this.todoBeingEdited = null
     }
 
     handleDestroy = () => {
-        this._props.todo.destroy()
+        this.props.todo.destroy()
         this.todoBeingEdited = null
     }
 }
@@ -235,4 +225,3 @@ export default function TodoItemView(
         </li>
 }
 TodoItemView.deps = [{itemStore: TodoItemStore, theme: TodoItemTheme}]
-TodoItemView.props = TodoItemProps

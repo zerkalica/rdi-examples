@@ -859,6 +859,14 @@ function mem() {
   };
 }
 
+function props(proto, name, descr) {
+  proto.constructor.__lom_prop = name;
+
+  if (!descr.value && !descr.set) {
+    descr.writable = true;
+  }
+}
+
 mem.Wait = AtomWait;
 mem.key = memkey;
 mem.detached = detached;
@@ -911,7 +919,7 @@ var FakeSheet = function () {
     this.classes = {};
   }
 
-  FakeSheet.prototype.update = function update(name, props) {
+  FakeSheet.prototype.update = function update(name, props$$1) {
     return this;
   };
 
@@ -965,6 +973,8 @@ function empty() {}
 
 var Injector = function () {
   function Injector(items, sheetProcessor, parent, displayName) {
+    this._resolved = false;
+    this._listeners = undefined;
     this.parent = parent;
     this.displayName = displayName || 'Injector';
     this._sheetManager = sheetProcessor instanceof SheetManager ? sheetProcessor : new SheetManager(sheetProcessor, this);
@@ -1019,6 +1029,7 @@ var Injector = function () {
 
   Injector.prototype.destroy = function destroy() {
     this.parent = undefined;
+    this._listeners = undefined;
     this._sheetManager = undefined;
   };
 
@@ -1082,40 +1093,53 @@ var Injector = function () {
     }
   };
 
-  Injector.prototype.invokeWithProps = function invokeWithProps(key, props) {
+  Injector.prototype.invokeWithProps = function invokeWithProps(key, props$$1, propsChanged) {
     if (key.deps === undefined) {
-      return key(props);
+      return key(props$$1);
     }
 
     var args = this.resolve(key.deps);
 
+    if (propsChanged === true) {
+      var listeners = this._listeners;
+
+      if (listeners !== undefined) {
+        for (var i = 0; i < listeners.length; i++) {
+          var listener = listeners[i];
+          listener[listener.constructor.__lom_prop] = props$$1;
+        }
+      }
+    }
+
+    this._resolved = true;
+
     switch (args.length) {
       case 0:
-        return key(props);
+        return key(props$$1);
 
       case 1:
-        return key(props, args[0]);
+        return key(props$$1, args[0]);
 
       case 2:
-        return key(props, args[0], args[1]);
+        return key(props$$1, args[0], args[1]);
 
       case 3:
-        return key(props, args[0], args[1], args[2]);
+        return key(props$$1, args[0], args[1], args[2]);
 
       case 4:
-        return key(props, args[0], args[1], args[2], args[3]);
+        return key(props$$1, args[0], args[1], args[2], args[3]);
 
       case 5:
-        return key(props, args[0], args[1], args[2], args[3], args[4]);
+        return key(props$$1, args[0], args[1], args[2], args[3], args[4]);
 
       case 6:
-        return key(props, args[0], args[1], args[2], args[3], args[4], args[5]);
+        return key(props$$1, args[0], args[1], args[2], args[3], args[4], args[5]);
 
       case 7:
-        return key(props, args[0], args[1], args[2], args[3], args[4], args[5], args[6]);
+        return key(props$$1, args[0], args[1], args[2], args[3], args[4], args[5], args[6]);
 
       default:
-        return key.apply(undefined, [props].concat(args));
+        return key.apply(undefined, [props$$1].concat(args));
     }
   };
 
@@ -1128,6 +1152,8 @@ var Injector = function () {
     var map = this._map;
 
     if (argDeps !== undefined) {
+      var resolved = this._resolved;
+
       for (var i = 0, l = argDeps.length; i < l; i++) {
         var argDep = argDeps[i];
 
@@ -1137,12 +1163,32 @@ var Injector = function () {
           for (var prop in argDep) {
             // eslint-disable-line
             var key = argDep[prop];
-            obj[prop] = key.theme === undefined ? this.value(key) : this._sheetManager.sheet(key).classes;
+            var dep = key.theme === undefined ? this.value(key) : this._sheetManager.sheet(key).classes;
+
+            if (resolved === false && key.__lom_prop !== undefined) {
+              if (this._listeners === undefined) {
+                this._listeners = [];
+              }
+
+              this._listeners.push(dep);
+            }
+
+            obj[prop] = dep;
           }
 
           result.push(obj);
         } else {
-          result.push(argDep.theme === undefined ? this.value(argDep) : this._sheetManager.sheet(argDep).classes);
+          var _dep = argDep.theme === undefined ? this.value(argDep) : this._sheetManager.sheet(argDep).classes;
+
+          if (resolved === false && argDep.__lom_prop !== undefined) {
+            if (this._listeners === undefined) {
+              this._listeners = [];
+            }
+
+            this._listeners.push(_dep);
+          }
+
+          result.push(_dep);
         }
       }
     }
@@ -1152,20 +1198,6 @@ var Injector = function () {
 
   return Injector;
 }();
-
-var _class;
-
-var _descriptor;
-
-function _initDefineProp(target, property, descriptor, context) {
-  if (!descriptor) return;
-  Object.defineProperty(target, property, {
-    enumerable: descriptor.enumerable,
-    configurable: descriptor.configurable,
-    writable: descriptor.writable,
-    value: descriptor.initializer ? descriptor.initializer.call(context) : void 0
-  });
-}
 
 function _applyDecoratedDescriptor(target, property, decorators, descriptor, context) {
   var desc = {};
@@ -1265,57 +1297,28 @@ function createCreateElement(atomize, createElement) {
   };
 }
 
-var wrapperProxyDescr = {
-  get: function get$$1(t, name) {
-    return t.writableProps[name];
-  },
-  ownKeys: function ownKeys(t) {
-    return Object.keys(t.writableProps.valueOf());
-  }
-};
-var PropsWrapper = (_class = function PropsWrapper(props) {
-  _initDefineProp(this, "writableProps", _descriptor, this);
-
-  this.writableProps = props;
-  this.props = new Proxy(this, wrapperProxyDescr);
-}, _descriptor = _applyDecoratedDescriptor(_class.prototype, "writableProps", [mem], {
-  enumerable: true,
-  initializer: null
-}), _class);
-
 function createReactWrapper(BaseComponent, defaultFromError) {
-  var _class3;
+  var _class;
 
   var rootInjector = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : new Injector();
   var useContext = arguments[3];
-  var AtomizedComponent = (_class3 = function (_BaseComponent) {
+  var AtomizedComponent = (_class = function (_BaseComponent) {
     inheritsLoose(AtomizedComponent, _BaseComponent);
 
-    function AtomizedComponent(props, reactContext) {
+    function AtomizedComponent(props$$1, reactContext) {
       var _this;
 
-      _this = _BaseComponent.call(this, props, reactContext) || this;
+      _this = _BaseComponent.call(this, props$$1, reactContext) || this;
       _this._propsChanged = true;
       _this._el = undefined;
       var render = _this.constructor.render;
-      var injector = props.__lom_ctx || rootInjector;
-      _this._keys = Object.keys(props);
-      var propsKey = render.props;
-
-      if (props && propsKey !== undefined) {
-        injector._map.set(propsKey, props);
-
-        _this._propsWrapper = new PropsWrapper(props);
-        _this._injector = (props.__lom_ctx || rootInjector).copy([[propsKey, _this._propsWrapper.props]], _this.constructor.displayName);
-      } else {
-        _this._propsWrapper = undefined;
-        _this._injector = (props.__lom_ctx || rootInjector).copy(undefined, _this.constructor.displayName);
-      }
-
+      var injector = props$$1.__lom_ctx || rootInjector;
+      _this._keys = Object.keys(props$$1);
+      _this._injector = (props$$1.__lom_ctx || rootInjector).copy(undefined, _this.constructor.displayName);
       return _this;
     }
 
-    AtomizedComponent.prototype.shouldComponentUpdate = function shouldComponentUpdate(props) {
+    AtomizedComponent.prototype.shouldComponentUpdate = function shouldComponentUpdate(props$$1) {
       var keys = this._keys;
       var oldProps = this.props;
 
@@ -1323,21 +1326,13 @@ function createReactWrapper(BaseComponent, defaultFromError) {
         // eslint-disable-line
         var k = keys[i];
 
-        if (oldProps[k] !== props[k]) {
+        if (oldProps[k] !== props$$1[k]) {
           this._propsChanged = true;
-
-          if (this._propsWrapper !== undefined) {
-            this._propsWrapper.writableProps = props;
-          }
-
           return true;
         }
       }
 
       return false; // this._propsChanged = shouldUpdate(this.props, props)
-      // if (this._propsChanged && this._propsWrapper !== undefined) {
-      //     this._propsWrapper.writableProps = props
-      // }
       // return this._propsChanged
     };
 
@@ -1349,7 +1344,6 @@ function createReactWrapper(BaseComponent, defaultFromError) {
       this._el = undefined;
       this.props = undefined;
       this._injector = undefined;
-      this._propsWrapper = undefined;
     };
 
     AtomizedComponent.prototype.r = function r(element, force$$1) {
@@ -1359,7 +1353,7 @@ function createReactWrapper(BaseComponent, defaultFromError) {
       parentContext = this._injector;
 
       try {
-        data = parentContext.invokeWithProps(render, this.props);
+        data = parentContext.invokeWithProps(render, this.props, force$$1);
       } catch (error) {
         data = parentContext.invokeWithProps(render.onError || defaultFromError, {
           error: error
@@ -1383,14 +1377,14 @@ function createReactWrapper(BaseComponent, defaultFromError) {
     };
 
     return AtomizedComponent;
-  }(BaseComponent), _applyDecoratedDescriptor(_class3.prototype, "r", [detached], Object.getOwnPropertyDescriptor(_class3.prototype, "r"), _class3.prototype), _class3);
+  }(BaseComponent), _applyDecoratedDescriptor(_class.prototype, "r", [detached], Object.getOwnPropertyDescriptor(_class.prototype, "r"), _class.prototype), _class);
   return function reactWrapper(render) {
     if (render.__lom !== undefined) {
       return render.__lom;
     }
 
-    var WrappedComponent = function WrappedComponent(props, context) {
-      AtomizedComponent.call(this, props, context);
+    var WrappedComponent = function WrappedComponent(props$$1, context) {
+      AtomizedComponent.call(this, props$$1, context);
     };
 
     WrappedComponent.render = render;
@@ -2369,7 +2363,7 @@ function render(vnode, parent, merge) {
   return diff(merge, vnode, {}, false, parent, false);
 }
 
-var _class$1;
+var _class;
 
 function _applyDecoratedDescriptor$1$1(target, property, decorators, descriptor, context) {
   var desc = {};
@@ -2427,7 +2421,7 @@ var AbstractLocationStore = function () {
 
   return AbstractLocationStore;
 }();
-var BrowserLocationStore = (_class$1 = function (_AbstractLocationStor) {
+var BrowserLocationStore = (_class = function (_AbstractLocationStor) {
   inheritsLoose$2(BrowserLocationStore, _AbstractLocationStor);
 
   function BrowserLocationStore(location, history) {
@@ -2456,7 +2450,7 @@ var BrowserLocationStore = (_class$1 = function (_AbstractLocationStor) {
   };
 
   return BrowserLocationStore;
-}(AbstractLocationStore), (_applyDecoratedDescriptor$1$1(_class$1.prototype, "location", [memkey], Object.getOwnPropertyDescriptor(_class$1.prototype, "location"), _class$1.prototype)), _class$1);
+}(AbstractLocationStore), (_applyDecoratedDescriptor$1$1(_class.prototype, "location", [memkey], Object.getOwnPropertyDescriptor(_class.prototype, "location"), _class.prototype)), _class);
 
 function ErrorableView(_ref) {
   var error = _ref.error;
@@ -2622,7 +2616,7 @@ var TodoService = (_class2$1 = function () {
   return TodoService;
 }(), (_applyDecoratedDescriptor$2(_class2$1.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class2$1.prototype, "todos"), _class2$1.prototype), _applyDecoratedDescriptor$2(_class2$1.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class2$1.prototype, "todos"), _class2$1.prototype), _applyDecoratedDescriptor$2(_class2$1.prototype, "activeTodoCount", [mem], Object.getOwnPropertyDescriptor(_class2$1.prototype, "activeTodoCount"), _class2$1.prototype), _applyDecoratedDescriptor$2(_class2$1.prototype, "addTodo", [action], Object.getOwnPropertyDescriptor(_class2$1.prototype, "addTodo"), _class2$1.prototype), _applyDecoratedDescriptor$2(_class2$1.prototype, "saveTodo", [action], Object.getOwnPropertyDescriptor(_class2$1.prototype, "saveTodo"), _class2$1.prototype), _applyDecoratedDescriptor$2(_class2$1.prototype, "remove", [action], Object.getOwnPropertyDescriptor(_class2$1.prototype, "remove"), _class2$1.prototype), _applyDecoratedDescriptor$2(_class2$1.prototype, "toggleAll", [action], Object.getOwnPropertyDescriptor(_class2$1.prototype, "toggleAll"), _class2$1.prototype), _applyDecoratedDescriptor$2(_class2$1.prototype, "clearCompleted", [action], Object.getOwnPropertyDescriptor(_class2$1.prototype, "clearCompleted"), _class2$1.prototype)), _class2$1);
 
-var _class$2;
+var _class$1;
 var _class2$2;
 var _temp;
 
@@ -2660,7 +2654,7 @@ var TODO_FILTER = {
   COMPLETE: 'complete',
   ACTIVE: 'active'
 };
-var TodoFilterService = (_class$2 = (_temp = _class2$2 = function () {
+var TodoFilterService = (_class$1 = (_temp = _class2$2 = function () {
   function TodoFilterService(TodoService$$1, locationStore) {
     this._todoService = TodoService$$1;
     this._locationStore = locationStore;
@@ -2699,14 +2693,13 @@ var TodoFilterService = (_class$2 = (_temp = _class2$2 = function () {
     }
   }]);
   return TodoFilterService;
-}(), _class2$2.deps = [TodoService, AbstractLocationStore], _temp), (_applyDecoratedDescriptor$3(_class$2.prototype, "filteredTodos", [mem], Object.getOwnPropertyDescriptor(_class$2.prototype, "filteredTodos"), _class$2.prototype)), _class$2);
+}(), _class2$2.deps = [TodoService, AbstractLocationStore], _temp), (_applyDecoratedDescriptor$3(_class$1.prototype, "filteredTodos", [mem], Object.getOwnPropertyDescriptor(_class$1.prototype, "filteredTodos"), _class$1.prototype)), _class$1);
 
-var _class2$3;
-var _descriptor$1;
-var _class3;
-var _temp$1;
+var _class$2;
+var _descriptor;
+var _descriptor2;
 
-function _initDefineProp$1(target, property, descriptor, context) {
+function _initDefineProp(target, property, descriptor, context) {
   if (!descriptor) return;
   Object.defineProperty(target, property, {
     enumerable: descriptor.enumerable,
@@ -2745,14 +2738,14 @@ function _applyDecoratedDescriptor$4(target, property, decorators, descriptor, c
   return desc;
 }
 
-var TodoHeaderProps = function TodoHeaderProps() {};
-
 var ENTER_KEY = 13;
-var TodoToAdd = (_class2$3 = (_temp$1 = _class3 = function () {
-  function TodoToAdd(props) {
+var TodoToAdd = (_class$2 = function () {
+  function TodoToAdd() {
     var _this = this;
 
-    _initDefineProp$1(this, "title", _descriptor$1, this);
+    _initDefineProp(this, "title", _descriptor, this);
+
+    _initDefineProp(this, "_props", _descriptor2, this);
 
     this.onKeyDown = function (e) {
       if (e.keyCode === ENTER_KEY && _this.title) {
@@ -2767,8 +2760,6 @@ var TodoToAdd = (_class2$3 = (_temp$1 = _class3 = function () {
         }
       }
     };
-
-    this._props = props;
   }
 
   TodoToAdd.prototype.onInput = function onInput(_ref) {
@@ -2777,13 +2768,15 @@ var TodoToAdd = (_class2$3 = (_temp$1 = _class3 = function () {
   };
 
   return TodoToAdd;
-}(), _class3.deps = [TodoHeaderProps], _temp$1), (_descriptor$1 = _applyDecoratedDescriptor$4(_class2$3.prototype, "title", [mem], {
+}(), (_descriptor = _applyDecoratedDescriptor$4(_class$2.prototype, "title", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return '';
   }
-}), _applyDecoratedDescriptor$4(_class2$3.prototype, "onInput", [action], Object.getOwnPropertyDescriptor(_class2$3.prototype, "onInput"), _class2$3.prototype)), _class2$3);
-
+}), _descriptor2 = _applyDecoratedDescriptor$4(_class$2.prototype, "_props", [props], {
+  enumerable: true,
+  initializer: null
+}), _applyDecoratedDescriptor$4(_class$2.prototype, "onInput", [action], Object.getOwnPropertyDescriptor(_class$2.prototype, "onInput"), _class$2.prototype)), _class$2);
 function TodoHeaderView(_, _ref2) {
   var todoToAdd = _ref2.todoToAdd;
   return lom_h("header", {
@@ -2797,11 +2790,9 @@ function TodoHeaderView(_, _ref2) {
     autoFocus: true
   }));
 }
-
 TodoHeaderView.deps = [{
   todoToAdd: TodoToAdd
 }];
-TodoHeaderView.props = TodoHeaderProps;
 
 var ALL_TODOS = 'all';
 var ACTIVE_TODOS = 'active';
@@ -2839,13 +2830,12 @@ function TodoFooterView(_ref) {
   }, "Clear completed") : null);
 }
 
-var _class2$4;
-var _descriptor$2;
-var _descriptor2;
-var _class3$1;
-var _temp$2;
+var _class$3;
+var _descriptor$1;
+var _descriptor2$1;
+var _descriptor3;
 
-function _initDefineProp$2(target, property, descriptor, context) {
+function _initDefineProp$1(target, property, descriptor, context) {
   if (!descriptor) return;
   Object.defineProperty(target, property, {
     enumerable: descriptor.enumerable,
@@ -2886,16 +2876,15 @@ function _applyDecoratedDescriptor$5(target, property, decorators, descriptor, c
 
 var ESCAPE_KEY = 27;
 var ENTER_KEY$1 = 13;
-
-var TodoItemProps = function TodoItemProps() {};
-
-var TodoItemService = (_class2$4 = (_temp$2 = _class3$1 = function () {
-  function TodoItemService(props) {
+var TodoItemService = (_class$3 = function () {
+  function TodoItemService() {
     var _this = this;
 
-    _initDefineProp$2(this, "editingId", _descriptor$2, this);
+    _initDefineProp$1(this, "editingId", _descriptor$1, this);
 
-    _initDefineProp$2(this, "editText", _descriptor2, this);
+    _initDefineProp$1(this, "editText", _descriptor2$1, this);
+
+    _initDefineProp$1(this, "_props", _descriptor3, this);
 
     this.beginEdit = function () {
       _this.editText = _this._props.todo.title;
@@ -2928,8 +2917,6 @@ var TodoItemService = (_class2$4 = (_temp$2 = _class3$1 = function () {
         _this.submit();
       }
     };
-
-    this._props = props;
   }
 
   TodoItemService.prototype.setEditText = function setEditText(e) {
@@ -2937,18 +2924,20 @@ var TodoItemService = (_class2$4 = (_temp$2 = _class3$1 = function () {
   };
 
   return TodoItemService;
-}(), _class3$1.deps = [TodoItemProps], _temp$2), (_descriptor$2 = _applyDecoratedDescriptor$5(_class2$4.prototype, "editingId", [mem], {
+}(), (_descriptor$1 = _applyDecoratedDescriptor$5(_class$3.prototype, "editingId", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return null;
   }
-}), _descriptor2 = _applyDecoratedDescriptor$5(_class2$4.prototype, "editText", [mem], {
+}), _descriptor2$1 = _applyDecoratedDescriptor$5(_class$3.prototype, "editText", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return '';
   }
-}), _applyDecoratedDescriptor$5(_class2$4.prototype, "setEditText", [action], Object.getOwnPropertyDescriptor(_class2$4.prototype, "setEditText"), _class2$4.prototype)), _class2$4);
-
+}), _descriptor3 = _applyDecoratedDescriptor$5(_class$3.prototype, "_props", [props], {
+  enumerable: true,
+  initializer: null
+}), _applyDecoratedDescriptor$5(_class$3.prototype, "setEditText", [action], Object.getOwnPropertyDescriptor(_class$3.prototype, "setEditText"), _class$3.prototype)), _class$3);
 function TodoItemView(_ref, todoItemService) {
   var todo = _ref.todo;
   var editing = todoItemService.editingId === todo.id;
@@ -2975,9 +2964,7 @@ function TodoItemView(_ref, todoItemService) {
     onKeyDown: todoItemService.onKey
   }) : null);
 }
-
 TodoItemView.deps = [TodoItemService];
-TodoItemView.props = TodoItemProps;
 
 function TodoPerfView(_, _ref) {
   var todoService = _ref.todoService,

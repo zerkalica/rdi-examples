@@ -1,26 +1,16 @@
 // @flow
 import atomize from '../atomize'
-import {action, mem} from 'lom_atom'
+import {action, mem, props} from 'lom_atom'
 
 interface ITodoHeaderProps {
     addTodo(title: string): void;
-}
-
-class TodoHeaderProps implements ITodoHeaderProps {
-    addTodo: (title: string) => void;
 }
 
 const ENTER_KEY = 13
 
 class TodoToAdd {
     @mem title: string = ''
-    _props: ITodoHeaderProps
-
-    static deps = [TodoHeaderProps]
-
-    constructor(props: TodoHeaderProps) {
-        this._props = props
-    }
+    @props _props: ITodoHeaderProps
 
     @action
     onInput({target}: Event) {
@@ -39,7 +29,7 @@ class TodoToAdd {
     }
 }
 
-function TodoHeaderView(
+export default function TodoHeaderView(
     _: ITodoHeaderProps,
     {todoToAdd}: {
         todoToAdd: TodoToAdd;
@@ -58,6 +48,3 @@ function TodoHeaderView(
     </header>
 }
 TodoHeaderView.deps = [{todoToAdd: TodoToAdd}]
-TodoHeaderView.props = TodoHeaderProps
-
-export default (TodoHeaderView)

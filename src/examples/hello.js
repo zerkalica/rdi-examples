@@ -1,6 +1,6 @@
 // @flow
 
-import {mem, force} from 'lom_atom'
+import {mem, props, force} from 'lom_atom'
 import {ItemView, Locale} from './common'
 
 class Hello {
@@ -11,18 +11,13 @@ interface IHelloProps {
     name: string;
 }
 
-class HelloProps implements IHelloProps {
-    name: string
-}
-
 class HelloOptions {
+    @props _props: IHelloProps
+
     @mem get actionName(): string {
         return this._props.name + '-hello'
     }
     @mem set actionName(name: string) {}
-
-    static deps = [HelloProps]
-    _props: IHelloProps
 
     constructor(props: IHelloProps) {
         this._props = props
@@ -43,15 +38,14 @@ class SomeService {
 }
 
 type HelloState = {
-    locale: Locale;
-    options: HelloOptions;
-    service: SomeService;
-    hello: Hello;
 }
 
 export function HelloView(
     _: IHelloProps,
-    {hello, options, locale, service}: HelloState
+    locale: Locale,
+    options: HelloOptions,
+    service: SomeService,
+    hello: Hello
 ) {
     return <div>
         <h3>{options.actionName}, {hello.name}</h3>
@@ -81,5 +75,4 @@ export function HelloView(
     </div>
 }
 
-HelloView.deps = [{hello: Hello, options: HelloOptions, locale: Locale, service: SomeService}]
-HelloView.props = HelloProps
+HelloView.deps = [Locale, HelloOptions, SomeService, Hello]

@@ -75,11 +75,11 @@
     "jss-camel-case": "^5.0.0",
     "jss-global": "^2.0.0",
     "jss-nested": "^5.0.0",
-    "lom_atom": "^1.0.13",
+    "lom_atom": "^1.0.14",
     "mobx": "^3.2.2",
     "mobx-preact": "^0.3.1",
     "preact": "^8.2.4",
-    "reactive-di": "^4.0.8",
+    "reactive-di": "^4.0.9",
     "todomvc-common": "^1.0.3"
   }
 }

@@ -1,6 +1,6 @@
 // @flow
 
-import {mem, action} from 'lom_atom'
+import {mem, action, props} from 'lom_atom'
 import type {ITodo} from './TodoService'
 
 import atomize from '../atomize'
@@ -12,21 +12,11 @@ interface ITodoItemProps {
     todo: ITodo;
 }
 
-class TodoItemProps implements ITodoItemProps {
-    todo: ITodo
-}
-
 export class TodoItemService {
     @mem editingId: ?string = null
     @mem editText: string = ''
 
-    _props: ITodoItemProps
-
-    static deps = [TodoItemProps]
-
-    constructor(props: TodoItemProps) {
-        this._props = props
-    }
+    @props _props: ITodoItemProps
 
     beginEdit = () => {
         this.editText = this._props.todo.title
@@ -68,7 +58,7 @@ interface ITodoItemContext {
     todoItemService: TodoItemService;
 }
 
-function TodoItemView(
+export default function TodoItemView(
     {todo}: ITodoItemProps,
     todoItemService: TodoItemService
 ) {
@@ -100,6 +90,3 @@ function TodoItemView(
     </li>
 }
 TodoItemView.deps = [TodoItemService]
-TodoItemView.props = TodoItemProps
-
-export default TodoItemView

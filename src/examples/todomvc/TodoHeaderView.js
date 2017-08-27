@@ -1,17 +1,13 @@
 // @flow
 
-import {action, mem} from 'lom_atom'
+import {action, props, mem} from 'lom_atom'
 import type {NamesOf} from 'lom_atom'
 
 interface IStore {
     addTodo(title: string): void;
 }
 
-interface ITodoHeaderViewProps {
-    todoService: IStore
-}
-
-class TodoHeaderViewProps implements ITodoHeaderViewProps {
+interface ITodoHeaderProps {
     todoService: IStore
 }
 
@@ -19,9 +15,7 @@ class TodoToAdd {
     @mem title: string = ''
     _todoService: IStore
 
-    static deps = [TodoHeaderViewProps]
-
-    constructor({todoService}: TodoHeaderViewProps) {
+    @props set props({todoService}: ITodoHeaderProps) {
         this._todoService = todoService
     }
 
@@ -63,7 +57,7 @@ function TodoHeaderTheme() {
 TodoHeaderTheme.theme = true
 
 export default function TodoHeaderView(
-    _: ITodoHeaderViewProps,
+    _: ITodoHeaderProps,
     {todoToAdd, theme}: {
         theme: NamesOf<typeof TodoHeaderTheme>;
         todoToAdd: TodoToAdd;
@@ -81,4 +75,3 @@ export default function TodoHeaderView(
     </header>
 }
 TodoHeaderView.deps = [{todoToAdd: TodoToAdd, theme: TodoHeaderTheme}]
-TodoHeaderView.props = TodoHeaderViewProps
