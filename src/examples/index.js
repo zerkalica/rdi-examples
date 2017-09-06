@@ -1,6 +1,6 @@
 // @flow
 
-import './setupReact'
+import injector from './setupReact'
 
 import {mem, force} from 'lom_atom'
 
@@ -38,6 +38,12 @@ class Store {
     }
 
     @mem name = 'vvv'
+
+    @mem state: ?Object = null
+
+    showState = () => {
+        this.state = {...injector._state}
+    }
 }
 
 interface AppProps {
@@ -87,6 +93,11 @@ function AppView(
             <h1>{store.page}</h1>
             {page}
         </div>
+        <button onClick={store.showState}>Show state</button>
+        {store.state
+            ? <pre>{JSON.stringify(store.state, null, '  ')}</pre>
+            : null
+        }
         <ItemView>
             <ItemView.Key>APPName:</ItemView.Key>
             <ItemView.Value><input value={store.name} onInput={({target}: Event) => {

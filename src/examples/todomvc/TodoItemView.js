@@ -1,8 +1,9 @@
 // @flow
 
-import {action, props, mem} from 'lom_atom'
+import {serializable, action, props, mem} from 'lom_atom'
 import type {ResultOf, NamesOf} from 'lom_atom'
 import type {ITodo} from './TodoService'
+import TodoService from './TodoService'
 
 const ESCAPE_KEY = 27
 const ENTER_KEY = 13
@@ -12,14 +13,15 @@ interface ITodoProps {
 }
 
 class TodoItemStore {
-    @mem todoBeingEdited: ?ITodo = null
+    @serializable @mem todoBeingEditedId: ?string = null
     @mem editText = ''
 
     @props props: ITodoProps
 
     beginEdit = () => {
-        this.todoBeingEdited = this.props.todo
-        this.editText = this.props.todo.title
+        const {todo} = this.props
+        this.todoBeingEditedId = todo.id
+        this.editText = todo.title
     }
 
     @action
@@ -47,13 +49,13 @@ class TodoItemStore {
         } else {
             this.handleDestroy()
         }
-        this.todoBeingEdited = null
+        this.todoBeingEditedId = null
     }
 
     handleKeyDown = (event: Event) => {
         if (event.which === ESCAPE_KEY) {
             this.editText = this.props.todo.title
-            this.todoBeingEdited = null
+            this.todoBeingEditedId = null
         } else if (event.which === ENTER_KEY) {
             this.handleSubmit(event)
         }
@@ -61,12 +63,12 @@ class TodoItemStore {
 
     toggle = () => {
         this.props.todo.toggle()
-        this.todoBeingEdited = null
+        this.todoBeingEditedId = null
     }
 
     handleDestroy = () => {
         this.props.todo.destroy()
-        this.todoBeingEdited = null
+        this.todoBeingEditedId = null
     }
 }
 
@@ -190,19 +192,21 @@ TodoItemTheme.theme = true
 
 export default function TodoItemView(
     {todo}: ITodoProps,
-    {itemStore, theme}: {
+    {itemStore, theme, service}: {
+        service: TodoService;
         theme: NamesOf<typeof TodoItemTheme>;
         itemStore: TodoItemStore;
     }
 ) {
-    return itemStore.todoBeingEdited === todo
+    const info = service.todoExtInfo(todo.id)
+    return itemStore.todoBeingEditedId === todo.id
         ? <li class={theme.editing}>
             <input
                 id="edit"
                 ref={itemStore.setEditInputRef}
                 class={theme.edit}
                 value={itemStore.editText}
-                onBlur={itemStore.handleSubmit}
+                // onBlur={itemStore.handleSubmit}
                 onInput={itemStore.setText}
                 onKeyDown={itemStore.handleKeyDown}
             />
@@ -219,9 +223,9 @@ export default function TodoItemView(
                 class={todo.completed ? theme.viewLabelCompleted : theme.viewLabelRegular}
                 id="beginEdit"
                 onDblClick={itemStore.beginEdit}>
-                {todo.title}
+                {todo.title}, desc: {info.description}
             </label>
             <button class={theme.destroy} id="destroy" onClick={itemStore.handleDestroy} />
         </li>
 }
-TodoItemView.deps = [{itemStore: TodoItemStore, theme: TodoItemTheme}]
+TodoItemView.deps = [{itemStore: TodoItemStore, theme: TodoItemTheme, service: TodoService}]

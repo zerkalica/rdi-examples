@@ -31,6 +31,7 @@ export default function todoMocks(
     rawStorage: Storage
 ) {
     const storage = new BrowserLocalStorage(rawStorage, 'lom_todomvc')
+    const infos = new BrowserLocalStorage(rawStorage, 'lom_todomvc_info')
     const defaultTodos = [
         {
             id: 't1',
@@ -55,6 +56,16 @@ export default function todoMocks(
                     storage.set(newTodos)
                 }
                 return newTodos.sort(sortByDate)
+            }
+        },
+        {
+            method: 'GET',
+            matcher: new RegExp('/api/todo/(.*)/info'),
+            response(url: string, params: RequestOptions) { // eslint-disable-line
+                const data = infos.get() || []
+                const id = url.match(new RegExp('/api/todo/(.+)/info'))[1]
+                const i = data.find((inf) => inf.id === id)
+                return {id, description: i ? i.description : 'desc'}
             }
         },
         {
@@ -126,13 +137,15 @@ export default function todoMocks(
             response(url: string, params: RequestOptions) { // eslint-disable-line
                 const todos = storage.get()
                 const body = getBody(params.body)
+                const id = uuid()
+
                 const newTodo = {
                     ...body,
-                    id: uuid()
+                    id
                 }
                 todos.push(newTodo)
                 storage.set(todos)
-
+                infos.set((infos.get() || []).concat([{id, description: 'desc#' + id}]))
                 return newTodo
             }
         }

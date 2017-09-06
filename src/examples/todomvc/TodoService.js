@@ -1,11 +1,11 @@
 // @flow
 import {uuid} from '../common-todomvc'
-import {action, mem} from 'lom_atom'
+import {action, serializable, mem, memkey} from 'lom_atom'
 
 interface ITodoBase {
+    id: string;
     completed: boolean;
     title: string;
-    id: string;
 }
 
 export interface ITodo extends ITodoBase {
@@ -58,13 +58,32 @@ class TodoModel implements ITodo {
     }
 }
 
+interface ITodoExtInfo {
+    description: string;
+}
+
 export default class TodoService {
     @mem opCount = 0
 
     get isOperationRunning(): boolean {
         return this.opCount !== 0
     }
+    @serializable
+    @memkey todoExtInfo(id: string, info?: ITodoExtInfo | Error): ITodoExtInfo {
+        if (info !== undefined) return info
+        fetch(`/api/todo/${id}/info`, {method: 'GET'})
+            .then(toJson)
+            .then((info: ITodoExtInfo) => {
+                this.todoExtInfo(id, info)
+            })
+            .catch((error: Error) => {
+                this.todoExtInfo(id, error)
+            })
 
+        throw new mem.Wait()
+    }
+
+    @serializable
     @mem get todos(): ITodo[] {
         fetch('/api/todos', {
             method: 'GET'

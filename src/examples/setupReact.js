@@ -40,14 +40,26 @@ const jss = createJss({
     ]
 })
 
+
+const defaultState = {}
+
+const injector = new Injector(
+    [
+        [AbstractLocationStore, new BrowserLocationStore(location, history)]
+    ],
+    jss,
+    defaultState
+)
+
+
 const lomCreateElement = createCreateElement(
     createReactWrapper(
         Component,
         ErrorableView,
-        new Injector([
-            [AbstractLocationStore, new BrowserLocationStore(location, history)]
-        ], jss)
+        injector
     ),
     h
 )
 global['lom_h'] = lomCreateElement
+
+export default injector
