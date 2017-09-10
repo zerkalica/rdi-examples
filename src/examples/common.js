@@ -24,7 +24,6 @@ function KeyView(
 ) {
     return <div class={theme.key}>{children}</div>
 }
-KeyView.deps = [{theme: KeyValueTheme}]
 
 function ValueView(
     {children}: {children?: any},
@@ -32,7 +31,6 @@ function ValueView(
 ) {
     return <div class={theme.value}>{children}</div>
 }
-ValueView.deps = [{theme: KeyValueTheme}]
 
 export function ItemView(
     {children}: {children?: any},
@@ -40,7 +38,6 @@ export function ItemView(
 ) {
     return <div class={theme.item}>{children}</div>
 }
-ItemView.deps = [{theme: KeyValueTheme}]
 ItemView.Key = KeyView
 ItemView.Value = ValueView
 

@@ -7,6 +7,7 @@
   ],
   "plugins": [
     "transform-decorators",
+    "transform-metadata",
     ["transform-class-properties", {"loose": true}],
     ["transform-react-jsx", {"pragma": "lom_h"}]
   ]

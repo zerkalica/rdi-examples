@@ -18,8 +18,6 @@ export default class TodoFilterService {
     _todoService: TodoService
     _locationStore: AbstractLocationStore
 
-    static deps = [TodoService, AbstractLocationStore]
-
     constructor(todoService: TodoService, locationStore: AbstractLocationStore) {
         this._todoService = todoService
         this._locationStore = locationStore

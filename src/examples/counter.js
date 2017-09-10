@@ -1,10 +1,14 @@
 // @flow
 
 import {mem, force} from 'lom_atom'
+import {cloneComponent} from 'reactive-di'
 
 class Counter {
     @force $: Counter
-
+    lang = {
+        add: 'Add',
+        error: 'Gen error'
+    }
     @mem get value(): number {
         setTimeout(() => {
             this.value = 1
@@ -21,16 +25,44 @@ class Counter {
     }
 }
 
-export function CounterView(
+function CounterMessageView({value}: {value: number}) {
+    return <div>
+        Count: {value}
+    </div>
+}
+
+function BaseCounterView(
     _: {},
     counter: Counter
 ) {
     return <div>
-        <div>
-            Count: {counter.value}
-        </div>
-        <button onClick={() => { counter.value++ }}>Add</button>
-        <button onClick={() => { counter.$.value = ('someStr': any) }}>Gen error</button>
+        <CounterMessageView value={counter.value}/>
+        <button onClick={() => { counter.value++ }}>{counter.lang.add}</button>
+        <button onClick={() => { counter.$.value = ('someStr': any) }}>{counter.lang.error}</button>
     </div>
 }
-CounterView.deps = [Counter]
+
+class ClonedCounter extends Counter {
+    lang = {
+        add: 'cloned Add',
+        error: 'cloned Gen error'
+    }
+}
+
+function ClonedCounterMessageView({value}: {value: number}) {
+    return <div>
+        cloned Count: {value}
+    </div>
+}
+
+const ClonedCounterView = cloneComponent(BaseCounterView, [
+    [Counter, ClonedCounter],
+    [CounterMessageView, ClonedCounterMessageView]
+], 'ClonedCounterView')
+
+export function CounterView() {
+    return <div>
+        <BaseCounterView/>
+        <ClonedCounterView/>
+    </div>
+}

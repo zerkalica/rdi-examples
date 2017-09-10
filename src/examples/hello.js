@@ -12,22 +12,16 @@ interface IHelloProps {
 }
 
 class HelloOptions {
-    @props _props: IHelloProps
+    @mem @props _props: IHelloProps
 
     @mem get actionName(): string {
         return this._props.name + '-hello'
     }
     @mem set actionName(name: string) {}
-
-    constructor(props: IHelloProps) {
-        this._props = props
-    }
 }
 
 class SomeService {
     _opts: HelloOptions
-    static deps = [HelloOptions]
-
     constructor(opts: HelloOptions) {
         this._opts = opts
     }
@@ -42,10 +36,12 @@ type HelloState = {
 
 export function HelloView(
     _: IHelloProps,
-    locale: Locale,
-    options: HelloOptions,
-    service: SomeService,
-    hello: Hello
+    {locale, options, service, hello}: {
+        locale: Locale,
+        options: HelloOptions,
+        service: SomeService,
+        hello: Hello
+    }
 ) {
     return <div>
         <h3>{options.actionName}, {hello.name}</h3>
@@ -74,5 +70,3 @@ export function HelloView(
         </ItemView>
     </div>
 }
-
-HelloView.deps = [Locale, HelloOptions, SomeService, Hello]

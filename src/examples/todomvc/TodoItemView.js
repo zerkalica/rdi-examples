@@ -206,7 +206,7 @@ export default function TodoItemView(
                 ref={itemStore.setEditInputRef}
                 class={theme.edit}
                 value={itemStore.editText}
-                // onBlur={itemStore.handleSubmit}
+                onBlur={itemStore.handleSubmit}
                 onInput={itemStore.setText}
                 onKeyDown={itemStore.handleKeyDown}
             />
@@ -228,4 +228,3 @@ export default function TodoItemView(
             <button class={theme.destroy} id="destroy" onClick={itemStore.handleDestroy} />
         </li>
 }
-TodoItemView.deps = [{itemStore: TodoItemStore, theme: TodoItemTheme, service: TodoService}]

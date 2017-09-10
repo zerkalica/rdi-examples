@@ -150,4 +150,3 @@ export default function TodoFooterView(
         }
     </footer>
 }
-TodoFooterView.deps = [{theme: TodoFooterTheme}]

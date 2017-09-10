@@ -89,4 +89,3 @@ export default function TodoMainView(
         </ul>
     </section>
 }
-TodoMainView.deps = [{theme: TodoMainTheme}]

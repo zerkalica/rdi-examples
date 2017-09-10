@@ -74,4 +74,3 @@ export default function TodoHeaderView(
         />
     </header>
 }
-TodoHeaderView.deps = [{todoToAdd: TodoToAdd, theme: TodoHeaderTheme}]

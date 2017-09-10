@@ -1,3 +1,4 @@
+(function(l, i, v, e) { v = l.createElement(i); v.async = 1; v.src = '//' + (location.host || 'localhost').split(':')[0] + ':35729/livereload.js?snipver=1'; e = l.getElementsByTagName(i)[0]; e.parentNode.insertBefore(v, e)})(document, 'script');
 (function () {
 'use strict';
 
@@ -13,7 +14,118 @@ var _typeof$1 = typeof Symbol === "function" && typeof Symbol.iterator === "symb
 
 
 
+var asyncGenerator = function () {
+  function AwaitValue(value) {
+    this.value = value;
+  }
 
+  function AsyncGenerator(gen) {
+    var front, back;
+
+    function send(key, arg) {
+      return new Promise(function (resolve, reject) {
+        var request = {
+          key: key,
+          arg: arg,
+          resolve: resolve,
+          reject: reject,
+          next: null
+        };
+
+        if (back) {
+          back = back.next = request;
+        } else {
+          front = back = request;
+          resume(key, arg);
+        }
+      });
+    }
+
+    function resume(key, arg) {
+      try {
+        var result = gen[key](arg);
+        var value = result.value;
+
+        if (value instanceof AwaitValue) {
+          Promise.resolve(value.value).then(function (arg) {
+            resume("next", arg);
+          }, function (arg) {
+            resume("throw", arg);
+          });
+        } else {
+          settle(result.done ? "return" : "normal", result.value);
+        }
+      } catch (err) {
+        settle("throw", err);
+      }
+    }
+
+    function settle(type, value) {
+      switch (type) {
+        case "return":
+          front.resolve({
+            value: value,
+            done: true
+          });
+          break;
+
+        case "throw":
+          front.reject(value);
+          break;
+
+        default:
+          front.resolve({
+            value: value,
+            done: false
+          });
+          break;
+      }
+
+      front = front.next;
+
+      if (front) {
+        resume(front.key, front.arg);
+      } else {
+        back = null;
+      }
+    }
+
+    this._invoke = send;
+
+    if (typeof gen.return !== "function") {
+      this.return = undefined;
+    }
+  }
+
+  if (typeof Symbol === "function" && Symbol.asyncIterator) {
+    AsyncGenerator.prototype[Symbol.asyncIterator] = function () {
+      return this;
+    };
+  }
+
+  AsyncGenerator.prototype.next = function (arg) {
+    return this._invoke("next", arg);
+  };
+
+  AsyncGenerator.prototype.throw = function (arg) {
+    return this._invoke("throw", arg);
+  };
+
+  AsyncGenerator.prototype.return = function (arg) {
+    return this._invoke("return", arg);
+  };
+
+  return {
+    wrap: function (fn) {
+      return function () {
+        return new AsyncGenerator(fn.apply(this, arguments));
+      };
+    },
+    await: function (value) {
+      return new AwaitValue(value);
+    }
+  };
+}();
 
 
 
@@ -117,6 +229,7 @@ var inheritsLoose = function inheritsLoose(subClass, superClass) {
   subClass.__proto__ = superClass;
 };
 
+inheritsLoose._r = [2];
 var throwOnAccess = {
   get: function get$$1(target) {
     throw target.valueOf();
@@ -129,6 +242,8 @@ var throwOnAccess = {
 function createMock(error) {
   return new Proxy(error, throwOnAccess);
 }
+
+createMock._r = [2];
 
 function defaultNormalize(next, prev) {
   if (next === prev) return next;
@@ -145,6 +260,8 @@ function defaultNormalize(next, prev) {
 
   return next;
 }
+
+defaultNormalize._r = [2];
 
 var AtomWait = function (_Error) {
   inheritsLoose(AtomWait, _Error);
@@ -167,19 +284,27 @@ function checkSlave(slave) {
   slave.check();
 }
 
+checkSlave._r = [2];
+
 function obsoleteSlave(slave) {
   slave.obsolete();
 }
 
+obsoleteSlave._r = [2];
+
 function disleadThis(master) {
   master.dislead(this);
 }
+
+disleadThis._r = [2];
 
 function actualizeMaster(master) {
   if (this.status === ATOM_STATUS_CHECKING) {
     master.actualize();
   }
 }
+
+actualizeMaster._r = [2];
 
 var Atom = function () {
   function Atom(field, host, context, key, normalize, isComponent, ptr) {
@@ -440,6 +565,8 @@ function reap(atom, key, reaping) {
   }
 }
 
+reap._r = [2];
+
 function getKeyFromObj(params) {
   var keys = Object.keys(params).sort();
   var result = '';
@@ -453,6 +580,7 @@ function getKeyFromObj(params) {
   return result;
 }
 
+getKeyFromObj._r = [2];
 var lastId = 0;
 
 function getKey(params) {
@@ -471,6 +599,8 @@ function getKey(params) {
 
   return _typeof(params) === 'object' ? getKeyFromObj(params) : JSON.stringify(params);
 }
+
+getKey._r = [2];
 
 var BaseLogger = function () {
   function BaseLogger() {}
@@ -817,6 +947,8 @@ function memMethod(proto, name, descr, normalize, isComponent) {
   };
 }
 
+memMethod._r = [2];
+
 function createGetSetHandler(get$$1, set$$1) {
   return function getSetHandler(next) {
     if (next === undefined) {
@@ -828,12 +960,15 @@ function createGetSetHandler(get$$1, set$$1) {
   };
 }
 
+createGetSetHandler._r = [2];
+
 function createValueHandler(initializer) {
   return function valueHandler(next) {
     return next === undefined && initializer ? initializer.call(this) : next;
   };
 }
 
+createValueHandler._r = [2];
 var isForced = false;
 
 function memProp(proto, name, descr, normalize) {
@@ -868,6 +1003,8 @@ function memProp(proto, name, descr, normalize) {
   };
 }
 
+memProp._r = [2];
+
 function memKeyMethod(proto, name, descr, normalize) {
   var handler = descr.value;
 
@@ -891,6 +1028,8 @@ function memKeyMethod(proto, name, descr, normalize) {
   };
 }
 
+memKeyMethod._r = [2];
+
 function memkey() {
   if (arguments.length === 3) {
     return memKeyMethod(arguments[0], arguments[1], arguments[2]);
@@ -902,6 +1041,7 @@ function memkey() {
   };
 }
 
+memkey._r = [2];
 var forceProxyOpts = {
   get: function get$$1(t, name) {
     // is property or get/set magic ?
@@ -939,6 +1079,8 @@ function forceGet() {
   return new Proxy(this, forceProxyOpts);
 }
 
+forceGet._r = [2];
+
 function force(proto, name, descr) {
   return {
     enumerable: descr.enumerable,
@@ -947,9 +1089,13 @@ function force(proto, name, descr) {
   };
 }
 
+force._r = [2];
+
 function detached(proto, name, descr) {
   return memMethod(proto, name, descr, undefined, true);
 }
+
+detached._r = [2];
 
 function createActionMethod(t, hk, context) {
   function action() {
@@ -993,6 +1139,8 @@ function createActionMethod(t, hk, context) {
   return action;
 }
 
+createActionMethod._r = [2];
+
 function createActionFn(fn, name, context) {
   function action() {
     var result = void 0;
@@ -1035,6 +1183,8 @@ function createActionFn(fn, name, context) {
   return action;
 }
 
+createActionFn._r = [2];
+
 function actionMethod(proto, field, descr, context) {
   var hk = field + "$";
 
@@ -1064,6 +1214,8 @@ function actionMethod(proto, field, descr, context) {
   };
 }
 
+actionMethod._r = [2];
+
 function action() {
   if (arguments.length === 3) {
     return actionMethod(arguments[0], arguments[1], arguments[2], defaultContext);
@@ -1071,6 +1223,8 @@ function action() {
 
   return createActionFn(arguments[0], arguments[1], defaultContext);
 }
+
+action._r = [2];
 
 function mem() {
   if (arguments.length === 3) {
@@ -1083,6 +1237,8 @@ function mem() {
   };
 }
 
+mem._r = [2];
+
 function props(proto, name, descr) {
   proto.constructor.__lom_prop = name;
 
@@ -1090,6 +1246,8 @@ function props(proto, name, descr) {
     descr.writable = true;
   }
 }
+
+props._r = [2];
 
 function serializable(proto, name, descr) {
   if (!proto.__lom_state) {
@@ -1099,6 +1257,7 @@ function serializable(proto, name, descr) {
   proto.__lom_state[name] = null;
 }
 
+serializable._r = [2];
 mem.Wait = AtomWait;
 mem.key = memkey;
 mem.detached = detached;
@@ -1114,6 +1273,8 @@ var inheritsLoose$2 = function inheritsLoose(subClass, superClass) {
   subClass.prototype.constructor = subClass;
   subClass.__proto__ = superClass;
 };
+
+inheritsLoose$2._r = [2];
 
 var _class2$1;
 
@@ -1145,6 +1306,8 @@ function _applyDecoratedDescriptor$1(target, property, decorators, descriptor, c
 
   return desc;
 }
+
+_applyDecoratedDescriptor$1._r = [2];
 
 var FakeSheet = function () {
   function FakeSheet() {
@@ -1202,9 +1365,10 @@ var SheetManager = (_class2$1 = function () {
 }(), _applyDecoratedDescriptor$1(_class2$1.prototype, "sheet", [memkey], Object.getOwnPropertyDescriptor(_class2$1.prototype, "sheet"), _class2$1.prototype), _class2$1);
 
 var Injector = function () {
-  function Injector(items, sheetProcessor, state, parent, displayName, instance) {
+  function Injector(items, sheetProcessor, state, parent, displayName, instance, aliases) {
     this._resolved = false;
     this._listeners = undefined;
+    this._aliases = aliases;
     this._instance = instance || 0;
     this._state = state || null;
     this.parent = parent;
@@ -1234,7 +1398,9 @@ var Injector = function () {
     this._sticked = sticked;
   }
 
-  Injector.prototype.value = function value(key) {
+  Injector.prototype.value = function value(rawKey) {
+    var key = this._aliases === undefined ? rawKey : this._aliases.get(rawKey) || rawKey;
+
     var value = this._cache.get(key);
 
     if (value === undefined) {
@@ -1285,7 +1451,7 @@ var Injector = function () {
   };
 
   Injector.prototype._fastNew = function _fastNew(key) {
-    var a = this.resolve(key.deps);
+    var a = this.resolve(key.deps || (key._r === undefined ? undefined : key._r[1]));
 
     switch (a.length) {
       case 0:
@@ -1315,7 +1481,7 @@ var Injector = function () {
   };
 
   Injector.prototype.invoke = function invoke(key) {
-    var a = this.resolve(key.deps);
+    var a = this.resolve(key.deps || (key._r === undefined ? undefined : key._r[1]));
 
     switch (a.length) {
       case 0:
@@ -1345,15 +1511,22 @@ var Injector = function () {
   };
 
   Injector.prototype.alias = function alias(key) {
-    return this._cache.get(key) || key;
+    if (this._aliases === undefined) return key;
+
+    var newKey = this._aliases.get(key);
+
+    if (newKey === undefined) return key;
+    return newKey;
   };
 
   Injector.prototype.invokeWithProps = function invokeWithProps(key, props$$1, propsChanged) {
-    if (key.deps === undefined) {
+    var deps = key.deps || (key._r === undefined ? undefined : key._r[1]);
+
+    if (deps === undefined) {
       return key(props$$1);
     }
 
-    var a = this.resolve(key.deps);
+    var a = this.resolve(deps);
 
     if (propsChanged === true) {
       var listeners = this._listeners;
@@ -1398,14 +1571,12 @@ var Injector = function () {
     }
   };
 
-  Injector.prototype.copy = function copy(items, displayName, instance) {
-    return new Injector(items, this._sheetManager, this._state, this, this.displayName + '.' + displayName, instance);
+  Injector.prototype.copy = function copy(items, displayName, instance, aliases) {
+    return new Injector(items, this._sheetManager, this._state, this, this.displayName + '.' + displayName, instance, aliases);
   };
 
   Injector.prototype.resolve = function resolve(argDeps) {
     var result = [];
-    var map = this._cache;
-
     if (argDeps !== undefined) {
       var resolved = this._resolved;
 
@@ -1483,6 +1654,7 @@ function _applyDecoratedDescriptor$1$1(target, property, decorators, descriptor,
   return desc;
 }
 
+_applyDecoratedDescriptor$1$1._r = [2];
 var parentContext = undefined;
 
 function createCreateElement(atomize, createElement) {
@@ -1493,6 +1665,12 @@ function createCreateElement(atomize, createElement) {
     var isAtomic = typeof el === 'function' && el.constructor.render === undefined;
 
     if (isAtomic) {
+      if (parentContext !== undefined) {
+        newEl = parentContext.alias(el);
+        if (newEl === null) return null;
+        if (newEl !== undefined) el = newEl;
+      }
+
       if (el.__lom === undefined) {
         el.__lom = atomize(el);
       }
@@ -1552,6 +1730,8 @@ function createCreateElement(atomize, createElement) {
   };
 }
 
+createCreateElement._r = [2];
+
 function createReactWrapper(BaseComponent, defaultFromError) {
   var _class;
 
@@ -1568,20 +1748,10 @@ function createReactWrapper(BaseComponent, defaultFromError) {
       _this._keys = Object.keys(props$$1);
       var cns = _this.constructor;
       var parentInjector = props$$1.__lom_ctx || rootInjector;
-
-      var render = parentInjector._cache.get(cns.render);
-
-      if (render === null) {
-        _this._el = null;
-        _this._keys = undefined;
-        _this._render = undefined;
-      } else {
-        _this._render = render === undefined ? cns.render : render;
-        var injectorName = cns.displayName + (cns.instance ? '[' + cns.instance + ']' : '');
-        _this._injector = parentInjector.copy(_this._render.provides, injectorName, cns.instance);
-        cns.instance++;
-      }
-
+      _this._render = cns.render;
+      var injectorName = cns.displayName + (cns.instance ? '[' + cns.instance + ']' : '');
+      _this._injector = parentInjector.copy(undefined, injectorName, cns.instance, _this._render.aliases);
+      cns.instance++;
       return _this;
     }
 
@@ -1655,14 +1825,11 @@ function createReactWrapper(BaseComponent, defaultFromError) {
     return AtomizedComponent;
   }(BaseComponent), _applyDecoratedDescriptor$1$1(_class.prototype, "r", [detached], Object.getOwnPropertyDescriptor(_class.prototype, "r"), _class.prototype), _class);
   return function reactWrapper(render) {
-    if (render.__lom !== undefined) {
-      return render.__lom;
-    }
-
     var WrappedComponent = function WrappedComponent(props$$1, context) {
       AtomizedComponent.call(this, props$$1, context);
     };
 
+    WrappedComponent._r = [2];
     WrappedComponent.instance = 0;
     WrappedComponent.render = render;
     WrappedComponent.displayName = render.displayName || render.name;
@@ -1672,6 +1839,64 @@ function createReactWrapper(BaseComponent, defaultFromError) {
   };
 }
 
+createReactWrapper._r = [2];
+
+function dn(fn) {
+  if (!fn) return 'null';
+
+  if (_typeof$2(fn) === 'object') {
+    var cons = fn.constructor;
+    return cons.displayName || cons.name;
+  }
+
+  if (typeof fn === 'function') {
+    return fn.displayName || fn.name;
+  }
+
+  return String(fn);
+}
+
+dn._r = [2];
+
+function provideMap(item) {
+  return "[" + dn(item[0]) + ", " + dn(item[1]) + "]";
+}
+
+provideMap._r = [2];
+
+function cloneComponent(fn, aliases, name) {
+  var cloned = function cloned() {
+    switch (arguments.length) {
+      case 1:
+        return fn(arguments[0]);
+
+      case 2:
+        return fn(arguments[0], arguments[1]);
+
+      case 3:
+        return fn(arguments[0], arguments[1], arguments[2]);
+
+      case 4:
+        return fn(arguments[0], arguments[1], arguments[2], arguments[3]);
+
+      case 5:
+        return fn(arguments[0], arguments[1], arguments[2], arguments[3], arguments[4]);
+
+      default:
+        return fn.apply(null, arguments);
+    }
+  };
+
+  cloned._r = [2];
+  cloned.deps = fn.deps;
+  cloned._r = fn._r;
+  cloned.aliases = aliases !== undefined ? new Map(aliases) : undefined;
+  cloned.displayName = name || "cloneComponent(" + dn(fn) + ", [" + aliases.map(provideMap).join(', ') + "])";
+  return cloned;
+}
+
+cloneComponent._r = [2];
+
 /** Virtual DOM Node */
 function VNode() {}
 /** Global options
@@ -1680,6 +1905,7 @@ function VNode() {}
  */
 
 
+VNode._r = [2];
 var options = {
   /** If `true`, `prop` changes trigger synchronous component updates.
    *	@name syncComponentUpdates
@@ -1765,6 +1991,8 @@ function h(nodeName, attributes) {
  */
 
 
+h._r = [2];
+
 function extend(obj, props) {
   for (var i in props) {
     obj[i] = props[i];
@@ -1777,6 +2005,7 @@ function extend(obj, props) {
  */
 
 
+extend._r = [2];
 var defer = typeof Promise == 'function' ? Promise.resolve().then.bind(Promise.resolve()) : setTimeout;
 
 function cloneElement(vnode, props) {
@@ -1784,6 +2013,7 @@ function cloneElement(vnode, props) {
 } // DOM properties that should NOT have "px" added when numeric
 
 
+cloneElement._r = [2];
 var IS_NON_DIMENSIONAL = /acit|ex(?:s|g|n|p|$)|rph|ows|mnc|ntw|ine[ch]|zoo|^ord/i;
 /** Managed queue of dirty components to be re-rendered */
 
@@ -1794,6 +2024,8 @@ function enqueueRender(component) {
     (options.debounceRendering || defer)(rerender);
   }
 }
+
+enqueueRender._r = [2];
 
 function rerender() {
   var p,
@@ -1810,6 +2042,8 @@ function rerender() {
  *	@private
  */
 
+
+rerender._r = [2];
 
 function isSameNodeType(node, vnode, hydrating) {
   if (typeof vnode === 'string' || typeof vnode === 'number') {
@@ -1828,6 +2062,8 @@ function isSameNodeType(node, vnode, hydrating) {
  */
 
 
+isSameNodeType._r = [2];
+
 function isNamedNode(node, nodeName) {
   return node.normalizedNodeName === nodeName || node.nodeName.toLowerCase() === nodeName.toLowerCase();
 }
@@ -1839,6 +2075,8 @@ function isNamedNode(node, nodeName) {
  * @returns {Object} props
  */
 
+
+isNamedNode._r = [2];
 
 function getNodeProps(vnode) {
   var props = extend({}, vnode.attributes);
@@ -1862,6 +2100,8 @@ function getNodeProps(vnode) {
  */
 
 
+getNodeProps._r = [2];
+
 function createNode(nodeName, isSvg) {
   var node = isSvg ? document.createElementNS('http://www.w3.org/2000/svg', nodeName) : document.createElement(nodeName);
   node.normalizedNodeName = nodeName;
@@ -1871,6 +2111,8 @@ function createNode(nodeName, isSvg) {
  *	@param {Element} node		The node to remove
  */
 
+
+createNode._r = [2];
 
 function removeNode(node) {
   var parentNode = node.parentNode;
@@ -1886,6 +2128,8 @@ function removeNode(node) {
  *	@private
  */
 
+
+removeNode._r = [2];
 
 function setAccessor(node, name, old, value, isSvg) {
   if (name === 'className') name = 'class';
@@ -1943,6 +2187,8 @@ function setAccessor(node, name, old, value, isSvg) {
  */
 
 
+setAccessor._r = [2];
+
 function setProperty(node, name, value) {
   try {
     node[name] = value;
@@ -1953,12 +2199,15 @@ function setProperty(node, name, value) {
  */
 
 
+setProperty._r = [2];
+
 function eventProxy(e) {
   return this._listeners[e.type](options.event && options.event(e) || e);
 }
 /** Queue of components that have been mounted and are awaiting componentDidMount */
 
 
+eventProxy._r = [2];
 var mounts = [];
 /** Diff recursion count, used to track the end of the diff cycle. */
 
@@ -1987,6 +2236,8 @@ function flushMounts() {
  */
 
 
+flushMounts._r = [2];
+
 function diff(dom, vnode, context, mountAll, parent, componentRoot) {
   // diffLevel having been 0 here indicates initial entry into the diff (not a subdiff)
   if (!diffLevel++) {
@@ -2010,6 +2261,8 @@ function diff(dom, vnode, context, mountAll, parent, componentRoot) {
 }
 /** Internals of `diff()`, separated to allow bypassing diffLevel / mount flushing. */
 
+
+diff._r = [2];
 
 function idiff(dom, vnode, context, mountAll, componentRoot) {
   var out = dom,
@@ -2105,6 +2358,8 @@ function idiff(dom, vnode, context, mountAll, componentRoot) {
  */
 
 
+idiff._r = [2];
+
 function innerDiffNode(dom, vchildren, context, mountAll, isHydrating) {
   var originalChildren = dom.childNodes,
       children = [],
@@ -2195,6 +2450,8 @@ function innerDiffNode(dom, vchildren, context, mountAll, isHydrating) {
  */
 
 
+innerDiffNode._r = [2];
+
 function recollectNodeTree(node, unmountOnly) {
   var component = node._component;
 
@@ -2219,6 +2476,8 @@ function recollectNodeTree(node, unmountOnly) {
  */
 
 
+recollectNodeTree._r = [2];
+
 function removeChildren(node) {
   node = node.lastChild;
 
@@ -2234,6 +2493,8 @@ function removeChildren(node) {
  *	@param {Object} old			Current/previous attributes (from previous VNode or element's prop cache)
  */
 
+
+removeChildren._r = [2];
 
 function diffAttributes(dom, attrs, old) {
   var name; // remove attributes no longer present on the vnode by setting them to undefined
@@ -2257,6 +2518,7 @@ function diffAttributes(dom, attrs, old) {
  */
 
 
+diffAttributes._r = [2];
 var components = {};
 /** Reclaim a component for later re-use by the recycler. */
 
@@ -2266,6 +2528,8 @@ function collectComponent(component) {
 }
 /** Create a component. Normalizes differences between PFC's and classful Components. */
 
+
+collectComponent._r = [2];
 
 function createComponent(Ctor, props, context) {
   var list = components[Ctor.name],
@@ -2295,6 +2559,8 @@ function createComponent(Ctor, props, context) {
 /** The `.render()` method for a PFC backing instance. */
 
 
+createComponent._r = [2];
+
 function doRender(props, state, context) {
   return this.constructor(props, context);
 }
@@ -2305,6 +2571,8 @@ function doRender(props, state, context) {
  *	@param {boolean} [opts.render=true]			If `false`, no render will be triggered.
  */
 
+
+doRender._r = [2];
 
 function setComponentProps(component, props, opts, context, mountAll) {
   if (component._disable) return;
@@ -2344,6 +2612,8 @@ function setComponentProps(component, props, opts, context, mountAll) {
  *	@private
  */
 
+
+setComponentProps._r = [2];
 
 function renderComponent(component, opts, mountAll, isChild) {
   if (component._disable) return;
@@ -2486,6 +2756,8 @@ function renderComponent(component, opts, mountAll, isChild) {
  */
 
 
+renderComponent._r = [2];
+
 function buildComponentFromVNode(dom, vnode, context, mountAll) {
   var c = dom && dom._component,
       originalComponent = c,
@@ -2532,6 +2804,8 @@ function buildComponentFromVNode(dom, vnode, context, mountAll) {
  */
 
 
+buildComponentFromVNode._r = [2];
+
 function unmountComponent(component) {
   if (options.beforeUnmount) options.beforeUnmount(component);
   var base = component.base;
@@ -2566,6 +2840,8 @@ function unmountComponent(component) {
  */
 
 
+unmountComponent._r = [2];
+
 function Component(props, context) {
   this._dirty = true;
   /** @public
@@ -2585,6 +2861,7 @@ function Component(props, context) {
   this.state = this.state || {};
 }
 
+Component._r = [2];
 extend(Component.prototype, {
   /** Returns a `boolean` indicating if the component should re-render when receiving the given `props` and `state`.
    *	@param {object} nextProps
@@ -2645,6 +2922,7 @@ function render(vnode, parent, merge) {
   return diff(merge, vnode, {}, false, parent, false);
 }
 
+render._r = [2];
 var preact = {
   h: h,
   createElement: h,
@@ -2943,6 +3221,8 @@ var devtools = createCommonjsModule(function (module, exports) {
       /** Notify devtools that a component has been updated with new props/state. */
 
 
+      componentAdded._r = [2];
+
       var componentUpdated = function componentUpdated(component) {
         var prevRenderedChildren = [];
         visitNonCompositeChildren(instanceMap.get(component), function (childInst) {
@@ -2975,6 +3255,8 @@ var devtools = createCommonjsModule(function (module, exports) {
       /** Notify devtools that a component has been unmounted from the DOM. */
 
 
+      componentUpdated._r = [2];
+
       var componentRemoved = function componentRemoved(component) {
         var instance = updateReactComponent(component);
         visitNonCompositeChildren(function (childInst) {
@@ -2989,6 +3271,7 @@ var devtools = createCommonjsModule(function (module, exports) {
         }
       };
 
+      componentRemoved._r = [2];
       return {
         componentAdded: componentAdded,
         componentUpdated: componentUpdated,
@@ -3145,6 +3428,7 @@ var getDynamicStyles = createCommonjsModule(function (module, exports) {
     return extract(styles);
   };
 });
+unwrapExports(getDynamicStyles);
 
 var SheetsRegistry_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -3260,133 +3544,20 @@ var SheetsRegistry_1 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = SheetsRegistry;
 });
+unwrapExports(SheetsRegistry_1);
 
-// shim for using process in browser
-// based off https://github.com/defunctzombie/node-process/blob/master/browser.js
-function defaultSetTimout() {
-  throw new Error('setTimeout has not been defined');
+// v8 likes predictible objects
+
+function Item(fun, array) {
+  this.fun = fun;
+  this.array = array;
 }
 
-function defaultClearTimeout() {
-  throw new Error('clearTimeout has not been defined');
-}
+Item._r = [2];
 
-var cachedSetTimeout = defaultSetTimout;
-var cachedClearTimeout = defaultClearTimeout;
-
-if (typeof global$1.setTimeout === 'function') {
-  cachedSetTimeout = setTimeout;
-}
-
-if (typeof global$1.clearTimeout === 'function') {
-  cachedClearTimeout = clearTimeout;
-}
-
-function runTimeout(fun) {
-  if (cachedSetTimeout === setTimeout) {
-    //normal enviroments in sane situations
-    return setTimeout(fun, 0);
-  } // if setTimeout wasn't available but was latter defined
-
-
-  if ((cachedSetTimeout === defaultSetTimout || !cachedSetTimeout) && setTimeout) {
-    cachedSetTimeout = setTimeout;
-    return setTimeout(fun, 0);
-  }
-
-  try {
-    // when when somebody has screwed with setTimeout but no I.E. maddness
-    return cachedSetTimeout(fun, 0);
-  } catch (e) {
-    try {
-      // When we are in I.E. but the script has been evaled so I.E. doesn't trust the global object when called normally
-      return cachedSetTimeout.call(null, fun, 0);
-    } catch (e) {
-      // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error
-      return cachedSetTimeout.call(this, fun, 0);
-    }
-  }
-}
-
-function runClearTimeout(marker) {
-  if (cachedClearTimeout === clearTimeout) {
-    //normal enviroments in sane situations
-    return clearTimeout(marker);
-  } // if clearTimeout wasn't available but was latter defined
-
-
-  if ((cachedClearTimeout === defaultClearTimeout || !cachedClearTimeout) && clearTimeout) {
-    cachedClearTimeout = clearTimeout;
-    return clearTimeout(marker);
-  }
-
-  try {
-    // when when somebody has screwed with setTimeout but no I.E. maddness
-    return cachedClearTimeout(marker);
-  } catch (e) {
-    try {
-      // When we are in I.E. but the script has been evaled so I.E. doesn't  trust the global object when called normally
-      return cachedClearTimeout.call(null, marker);
-    } catch (e) {
-      // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error.
-      // Some versions of I.E. have different rules for clearTimeout vs setTimeout
-      return cachedClearTimeout.call(this, marker);
-    }
-  }
-}
-
-var queue = [];
-var draining = false;
-var currentQueue;
-var queueIndex = -1;
-
-function cleanUpNextTick() {
-  if (!draining || !currentQueue) {
-    return;
-  }
-
-  draining = false;
-
-  if (currentQueue.length) {
-    queue = currentQueue.concat(queue);
-  } else {
-    queueIndex = -1;
-  }
-
-  if (queue.length) {
-    drainQueue();
-  }
-}
-
-function drainQueue() {
-  if (draining) {
-    return;
-  }
-
-  var timeout = runTimeout(cleanUpNextTick);
-  draining = true;
-  var len = queue.length;
-
-  while (len) {
-    currentQueue = queue;
-    queue = [];
-
-    while (++queueIndex < len) {
-      if (currentQueue) {
-        currentQueue[queueIndex].run();
-      }
-    }
-
-    queueIndex = -1;
-    len = queue.length;
-  }
-
-  currentQueue = null;
-  draining = false;
-  runClearTimeout(timeout);
-}
-
- // v8 likes predictible objects
+Item.prototype.run = function () {
+  this.fun.apply(null, this.array);
+};
 
 
 
@@ -3412,13 +3583,17 @@ function drainQueue() {
 
  // from https://github.com/kumavis/browser-process-hrtime/blob/master/index.js
 
-var performance = global$1.performance || {};
-
-var performanceNow = performance.now || performance.mozNow || performance.msNow || performance.oNow || performance.webkitNow || function () {
-  return new Date().getTime();
-}; // generate timestamp or delta
 // see http://nodejs.org/api/process.html#process_process_hrtime
 
+/**
+ * Copyright 2014-2015, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ */
+'use strict';
 /**
  * Similar to invariant but only logs a warning if the condition is not met.
  * This can be used to log issues in development environments in critical
@@ -3427,6 +3602,8 @@ var performanceNow = performance.now || performance.mozNow || performance.msNow 
  */
 
 var warning = function warning() {};
+
+warning._r = [2];
 
 {
   warning = function warning(condition, format, args) {
@@ -3571,6 +3748,7 @@ var SheetsManager_1 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = SheetsManager;
 });
+unwrapExports(SheetsManager_1);
 
 var toCssValue_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -3591,6 +3769,8 @@ var toCssValue_1 = createCommonjsModule(function (module, exports) {
    */
 
 
+  joinWithSpace._r = [2];
+
   function toCssValue(value) {
     if (!Array.isArray(value)) return value; // Support space separated values.
 
@@ -3601,6 +3781,7 @@ var toCssValue_1 = createCommonjsModule(function (module, exports) {
     return value.join(', ');
   }
 });
+unwrapExports(toCssValue_1);
 
 var toCss_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -3693,6 +3874,7 @@ var toCss_1 = createCommonjsModule(function (module, exports) {
     return result;
   }
 });
+unwrapExports(toCss_1);
 
 var StyleRule_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -3893,6 +4075,7 @@ var StyleRule_1 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = StyleRule;
 });
+unwrapExports(StyleRule_1);
 
 var cloneStyle_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -3934,6 +4117,7 @@ var cloneStyle_1 = createCommonjsModule(function (module, exports) {
     return newStyle;
   }
 });
+unwrapExports(cloneStyle_1);
 
 var createRule_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -3975,6 +4159,7 @@ var createRule_1 = createCommonjsModule(function (module, exports) {
     return new _StyleRule2['default'](name, declCopy, options);
   }
 });
+unwrapExports(createRule_1);
 
 var updateRule = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -3997,6 +4182,7 @@ var updateRule = createCommonjsModule(function (module, exports) {
     }
   };
 });
+unwrapExports(updateRule);
 
 var linkRule_1 = createCommonjsModule(function (module, exports) {
   "use strict";
@@ -4014,6 +4200,7 @@ var linkRule_1 = createCommonjsModule(function (module, exports) {
     if (rule.rules && cssRule.cssRules) rule.rules.link(cssRule.cssRules);
   }
 });
+unwrapExports(linkRule_1);
 
 var RuleList_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -4246,6 +4433,7 @@ var RuleList_1 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = RuleList;
 });
+unwrapExports(RuleList_1);
 
 var sheets = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -4271,6 +4459,7 @@ var sheets = createCommonjsModule(function (module, exports) {
 
   exports['default'] = new _SheetsRegistry2['default']();
 });
+unwrapExports(sheets);
 
 var StyleSheet_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -4524,6 +4713,7 @@ var StyleSheet_1 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = StyleSheet;
 });
+unwrapExports(StyleSheet_1);
 
 var PluginsRegistry_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -4669,6 +4859,7 @@ var PluginsRegistry_1 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = PluginsRegistry;
 });
+unwrapExports(PluginsRegistry_1);
 
 var SimpleRule_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -4740,6 +4931,7 @@ var SimpleRule_1 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = SimpleRule;
 });
+unwrapExports(SimpleRule_1);
 
 var KeyframesRule_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -4841,6 +5033,7 @@ var KeyframesRule_1 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = KeyframesRule;
 });
+unwrapExports(KeyframesRule_1);
 
 var ConditionalRule_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -4967,6 +5160,7 @@ var ConditionalRule_1 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = ConditionalRule;
 });
+unwrapExports(ConditionalRule_1);
 
 var FontFaceRule_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -5045,6 +5239,7 @@ var FontFaceRule_1 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = FontFaceRule;
 });
+unwrapExports(FontFaceRule_1);
 
 var ViewportRule_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -5112,6 +5307,7 @@ var ViewportRule_1 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = ViewportRule;
 });
+unwrapExports(ViewportRule_1);
 
 var rules = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -5159,11 +5355,13 @@ var rules = createCommonjsModule(function (module, exports) {
       return re.test(name) ? new classes[key](name, decl, options) : null;
     };
 
+    onCreateRule._r = [2];
     return {
       onCreateRule: onCreateRule
     };
   });
 });
+unwrapExports(rules);
 
 var createGenerateClassName = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -5189,6 +5387,7 @@ var createGenerateClassName = createCommonjsModule(function (module, exports) {
     };
   };
 });
+unwrapExports(createGenerateClassName);
 
 var _typeof$3 = typeof Symbol === "function" && _typeof$1(Symbol.iterator) === "symbol" ? function (obj) {
   return _typeof$1(obj);
@@ -5556,6 +5755,7 @@ var DomRenderer_1 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = DomRenderer;
 });
+unwrapExports(DomRenderer_1);
 
 var VirtualRenderer_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -5648,6 +5848,7 @@ var VirtualRenderer_1 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = VirtualRenderer;
 });
+unwrapExports(VirtualRenderer_1);
 
 var _isInBrowser = ( module$1 && isBrowser ) || module$1;
 
@@ -5684,6 +5885,7 @@ var findRenderer_1 = createCommonjsModule(function (module, exports) {
     return useVirtual ? _VirtualRenderer2['default'] : _DomRenderer2['default'];
   }
 });
+unwrapExports(findRenderer_1);
 
 var Jss_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -5870,8 +6072,9 @@ var Jss_1 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = Jss;
 });
+unwrapExports(Jss_1);
 
-var lib$1 = createCommonjsModule(function (module, exports) {
+var lib = createCommonjsModule(function (module, exports) {
   'use strict';
 
   Object.defineProperty(exports, "__esModule", {
@@ -5931,9 +6134,10 @@ var lib$1 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = create();
 });
-var lib_1 = lib$1.create;
+unwrapExports(lib);
+var lib_1 = lib.create;
 
-var lib$2 = createCommonjsModule(function (module, exports) {
+var lib$1 = createCommonjsModule(function (module, exports) {
   "use strict";
 
   Object.defineProperty(exports, "__esModule", {
@@ -5997,9 +6201,9 @@ var lib$2 = createCommonjsModule(function (module, exports) {
     };
   }
 });
-var jssCamel = unwrapExports(lib$2);
+var jssCamel = unwrapExports(lib$1);
 
-var lib$3 = createCommonjsModule(function (module, exports) {
+var lib$2 = createCommonjsModule(function (module, exports) {
   'use strict';
 
   Object.defineProperty(exports, "__esModule", {
@@ -6056,7 +6260,7 @@ var lib$3 = createCommonjsModule(function (module, exports) {
       this.type = 'global';
       this.key = key;
       this.options = options;
-      this.rules = new lib$1.RuleList(_extends({}, options, {
+      this.rules = new lib.RuleList(_extends({}, options, {
         parent: this
       }));
 
@@ -6219,9 +6423,9 @@ var lib$3 = createCommonjsModule(function (module, exports) {
     };
   }
 });
-var jssGlobal = unwrapExports(lib$3);
+var jssGlobal = unwrapExports(lib$2);
 
-var lib$4 = createCommonjsModule(function (module, exports) {
+var lib$3 = createCommonjsModule(function (module, exports) {
   'use strict';
 
   Object.defineProperty(exports, "__esModule", {
@@ -6291,6 +6495,8 @@ var lib$4 = createCommonjsModule(function (module, exports) {
     var hasAnd = function hasAnd(str) {
       return str.indexOf('&') !== -1;
     };
+
+    hasAnd._r = [2];
 
     function replaceParentRefs(nestedProp, parentProp) {
       var parentSelectors = parentProp.split(separatorRegExp);
@@ -6362,7 +6568,7 @@ var lib$4 = createCommonjsModule(function (module, exports) {
     };
   }
 });
-var jssNested = unwrapExports(lib$4);
+var jssNested = unwrapExports(lib$3);
 
 var _class$1;
 
@@ -6410,11 +6616,14 @@ function uuid() {
 
   return uuid;
 }
+uuid._r = [2];
 
 var AbstractLocationStore = function () {
   function AbstractLocationStore() {}
 
-  AbstractLocationStore.prototype.location = function location(key, value, force$$1) {
+  var _proto = AbstractLocationStore.prototype;
+
+  _proto.location = function location(key, value, force$$1) {
     throw new Error('implement');
   };
 
@@ -6427,17 +6636,21 @@ var BrowserLocationStore = (_class$1 = function (_AbstractLocationStor) {
     var _this;
 
     _this = _AbstractLocationStor.call(this) || this;
+    _this._location = void 0;
+    _this._history = void 0;
     _this._ns = 'lom_app';
     _this._location = location;
     _this._history = history;
     return _this;
   }
 
-  BrowserLocationStore.prototype._params = function _params() {
+  var _proto2 = BrowserLocationStore.prototype;
+
+  _proto2._params = function _params() {
     return new URLSearchParams(this._location.search);
   };
 
-  BrowserLocationStore.prototype.location = function location(key, value, force$$1) {
+  _proto2.location = function location(key, value, force$$1) {
     var params = this._params();
 
     if (value === undefined) return params.get(key);
@@ -6450,12 +6663,14 @@ var BrowserLocationStore = (_class$1 = function (_AbstractLocationStor) {
 
   return BrowserLocationStore;
 }(AbstractLocationStore), (_applyDecoratedDescriptor$2(_class$1.prototype, "location", [memkey], Object.getOwnPropertyDescriptor(_class$1.prototype, "location"), _class$1.prototype)), _class$1);
+BrowserLocationStore._r = [0, [Location, History]];
 
 function ErrorableView(_ref) {
   var error = _ref.error;
   return lom_h("div", null, error instanceof mem.Wait ? lom_h("div", null, "Loading...") : lom_h("div", null, lom_h("h3", null, "Fatal error !"), lom_h("div", null, error.message), lom_h("pre", null, error.stack.toString())));
 }
 
+ErrorableView._r = [1];
 var jss = lib_1({
   plugins: [jssNested(), jssCamel(), jssGlobal()]
 });
@@ -6509,6 +6724,11 @@ function _applyDecoratedDescriptor$3(target, property, decorators, descriptor, c
 var Counter = (_class$2 = function () {
   function Counter() {
     _initDefineProp$1(this, "$", _descriptor$1, this);
+
+    this.lang = {
+      add: 'Add',
+      error: 'Gen error'
+    };
   }
 
   createClass$1(Counter, [{
@@ -6532,18 +6752,60 @@ var Counter = (_class$2 = function () {
   enumerable: true,
   initializer: null
 }), _applyDecoratedDescriptor$3(_class$2.prototype, "value", [mem], Object.getOwnPropertyDescriptor(_class$2.prototype, "value"), _class$2.prototype), _applyDecoratedDescriptor$3(_class$2.prototype, "value", [mem], Object.getOwnPropertyDescriptor(_class$2.prototype, "value"), _class$2.prototype)), _class$2);
-function CounterView(_, counter) {
-  return lom_h("div", null, lom_h("div", null, "Count: ", counter.value), lom_h("button", {
+
+function CounterMessageView(_ref) {
+  var value = _ref.value;
+  return lom_h("div", null, "Count: ", value);
+}
+
+CounterMessageView._r = [1];
+
+function BaseCounterView(_, counter) {
+  return lom_h("div", null, lom_h(CounterMessageView, {
+    value: counter.value
+  }), lom_h("button", {
     onClick: function onClick() {
       counter.value++;
     }
-  }, "Add"), lom_h("button", {
+  }, counter.lang.add), lom_h("button", {
     onClick: function onClick() {
       counter.$.value = 'someStr';
     }
-  }, "Gen error"));
+  }, counter.lang.error));
 }
-CounterView.deps = [Counter];
+
+BaseCounterView._r = [1, [Counter]];
+
+var ClonedCounter = function (_Counter) {
+  inheritsLoose$1(ClonedCounter, _Counter);
+
+  function ClonedCounter() {
+    var _temp, _this2;
+
+    for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
+      args[_key] = arguments[_key];
+    }
+
+    return (_temp = _this2 = _Counter.call.apply(_Counter, [this].concat(args)) || this, _this2.lang = {
+      add: 'cloned Add',
+      error: 'cloned Gen error'
+    }, _temp) || _this2;
+  }
+
+  return ClonedCounter;
+}(Counter);
+
+function ClonedCounterMessageView(_ref2) {
+  var value = _ref2.value;
+  return lom_h("div", null, "cloned Count: ", value);
+}
+
+ClonedCounterMessageView._r = [1];
+var ClonedCounterView = cloneComponent(BaseCounterView, [[Counter, ClonedCounter], [CounterMessageView, ClonedCounterMessageView]], 'ClonedCounterView');
+function CounterView() {
+  return lom_h("div", null, lom_h(BaseCounterView, null), lom_h(ClonedCounterView, null));
+}
+CounterView._r = [1];
 
 var globToRegexp = function globToRegexp(glob, opts) {
   if (typeof glob !== 'string') {
@@ -6676,6 +6938,8 @@ var globToRegexp = function globToRegexp(glob, opts) {
   return new RegExp(reStr, flags);
 };
 
+globToRegexp._r = [2];
+
 var isarray = Array.isArray || function (arr) {
   return Object.prototype.toString.call(arr) == '[object Array]';
 };
@@ -6783,6 +7047,8 @@ function parse(str, options) {
  */
 
 
+parse._r = [2];
+
 function compile(str, options) {
   return tokensToFunction(parse(str, options));
 }
@@ -6793,6 +7059,8 @@ function compile(str, options) {
  * @return {string}
  */
 
+
+compile._r = [2];
 
 function encodeURIComponentPretty(str) {
   return encodeURI(str).replace(/[\/?#]/g, function (c) {
@@ -6807,6 +7075,8 @@ function encodeURIComponentPretty(str) {
  */
 
 
+encodeURIComponentPretty._r = [2];
+
 function encodeAsterisk(str) {
   return encodeURI(str).replace(/[?#]/g, function (c) {
     return '%' + c.charCodeAt(0).toString(16).toUpperCase();
@@ -6816,6 +7086,8 @@ function encodeAsterisk(str) {
  * Expose a method for transforming tokens into the path function.
  */
 
+
+encodeAsterisk._r = [2];
 
 function tokensToFunction(tokens) {
   // Compile all the tokens into regexps.
@@ -6903,6 +7175,8 @@ function tokensToFunction(tokens) {
  */
 
 
+tokensToFunction._r = [2];
+
 function escapeString(str) {
   return str.replace(/([.+*?=^!:${}()[\]|\/\\])/g, '\\$1');
 }
@@ -6913,6 +7187,8 @@ function escapeString(str) {
  * @return {string}
  */
 
+
+escapeString._r = [2];
 
 function escapeGroup(group) {
   return group.replace(/([=!:$\/()])/g, '\\$1');
@@ -6926,6 +7202,8 @@ function escapeGroup(group) {
  */
 
 
+escapeGroup._r = [2];
+
 function attachKeys(re, keys) {
   re.keys = keys;
   return re;
@@ -6938,6 +7216,8 @@ function attachKeys(re, keys) {
  */
 
 
+attachKeys._r = [2];
+
 function flags(options) {
   return options.sensitive ? '' : 'i';
 }
@@ -6949,6 +7229,8 @@ function flags(options) {
  * @return {!RegExp}
  */
 
+
+flags._r = [2];
 
 function regexpToRegexp(path, keys) {
   // Use a negative lookahead to match only capturing groups.
@@ -6981,6 +7263,8 @@ function regexpToRegexp(path, keys) {
  */
 
 
+regexpToRegexp._r = [2];
+
 function arrayToRegexp(path, keys, options) {
   var parts = [];
 
@@ -7001,6 +7285,8 @@ function arrayToRegexp(path, keys, options) {
  */
 
 
+arrayToRegexp._r = [2];
+
 function stringToRegexp(path, keys, options) {
   return tokensToRegExp(parse(path, options), keys, options);
 }
@@ -7013,6 +7299,8 @@ function stringToRegexp(path, keys, options) {
  * @return {!RegExp}
  */
 
+
+stringToRegexp._r = [2];
 
 function tokensToRegExp(tokens, keys, options) {
   if (!isarray(keys)) {
@@ -7089,6 +7377,8 @@ function tokensToRegExp(tokens, keys, options) {
  */
 
 
+tokensToRegExp._r = [2];
+
 function pathToRegexp(path, keys, options) {
   if (!isarray(keys)) {
     options =
@@ -7120,10 +7410,13 @@ function pathToRegexp(path, keys, options) {
   keys, options);
 }
 
+pathToRegexp._r = [2];
 pathToRegexp_1.parse = parse_1;
 pathToRegexp_1.compile = compile_1;
 pathToRegexp_1.tokensToFunction = tokensToFunction_1;
 pathToRegexp_1.tokensToRegExp = tokensToRegExp_1;
+
+'use strict';
 
 var _extends$2 = Object.assign || function (target) {
   for (var i = 1; i < arguments.length; i++) {
@@ -7192,6 +7485,8 @@ function getHeaderMatcher(expectedHeaders, HeadersConstructor) {
   };
 }
 
+getHeaderMatcher._r = [2];
+
 function areHeadersEqual(currentHeader, expectedHeader) {
   var key = expectedHeader.key;
   var val = expectedHeader.val;
@@ -7210,6 +7505,8 @@ function areHeadersEqual(currentHeader, expectedHeader) {
 
   return true;
 }
+
+areHeadersEqual._r = [2];
 
 function normalizeRequest(url, options, Request) {
   if (Request.prototype.isPrototypeOf(url)) {
@@ -7232,6 +7529,8 @@ function normalizeRequest(url, options, Request) {
     };
   }
 }
+
+normalizeRequest._r = [2];
 
 var compileRoute = function compileRoute(route, Request, HeadersConstructor) {
   route = _extends$2({}, route);
@@ -7311,6 +7610,8 @@ var compileRoute = function compileRoute(route, Request, HeadersConstructor) {
     return matchHeaders(req.headers) && matchMethod(req.method) && matchUrl(req.url, options);
   };
 
+  matcher._r = [2];
+
   if (route.times) {
     (function () {
       var timesLeft = route.times;
@@ -7334,6 +7635,10 @@ var compileRoute = function compileRoute(route, Request, HeadersConstructor) {
 
   return route;
 };
+
+compileRoute._r = [2];
+
+'use strict';
 
 var _typeof$4 = typeof Symbol === "function" && _typeof$1(Symbol.iterator) === "symbol" ? function (obj) {
   return _typeof$1(obj);
@@ -7363,6 +7668,8 @@ var FetchMock = function FetchMock() {
   this._holdingPromises = [];
   this.bindMethods();
 };
+
+FetchMock._r = [2];
 
 FetchMock.prototype.bindMethods = function () {
   this.fetchMock = FetchMock.prototype.fetchMock.bind(this);
@@ -7724,6 +8031,8 @@ FetchMock.prototype.sandbox = function (Promise) {
     return boundMock.apply(null, arguments);
   };
 
+  proxy._r = [2];
+
   var functionInstance = _extends$1(proxy, // Ensures that the entire returned object is a callable function
   FetchMock.prototype, // all prototype methods
   instance // instance data
@@ -7754,6 +8063,8 @@ FetchMock.prototype.sandbox = function (Promise) {
   };
 });
 var fetchMock$1 = FetchMock;
+
+'use strict';
 
 var statusTextMap = {
   '100': 'Continue',
@@ -7821,6 +8132,8 @@ var statusTextMap = {
 };
 var statusText = statusTextMap;
 
+'use strict';
+
 var theGlobal = typeof window !== 'undefined' ? window : self;
 fetchMock$1.global = theGlobal;
 fetchMock$1.statusTextMap = statusText;
@@ -7877,6 +8190,7 @@ function KeyValueTheme() {
   };
 }
 
+KeyValueTheme._r = [2];
 KeyValueTheme.theme = true;
 
 function KeyView(_ref, _ref2) {
@@ -7887,9 +8201,9 @@ function KeyView(_ref, _ref2) {
   }, children);
 }
 
-KeyView.deps = [{
+KeyView._r = [1, [{
   theme: KeyValueTheme
-}];
+}]];
 
 function ValueView(_ref3, _ref4) {
   var children = _ref3.children;
@@ -7899,9 +8213,9 @@ function ValueView(_ref3, _ref4) {
   }, children);
 }
 
-ValueView.deps = [{
+ValueView._r = [1, [{
   theme: KeyValueTheme
-}];
+}]];
 function ItemView(_ref5, _ref6) {
   var children = _ref5.children;
   var theme = _ref6.theme;
@@ -7909,9 +8223,9 @@ function ItemView(_ref5, _ref6) {
     "class": theme.item
   }, children);
 }
-ItemView.deps = [{
+ItemView._r = [1, [{
   theme: KeyValueTheme
-}];
+}]];
 ItemView.Key = KeyView;
 ItemView.Value = ValueView;
 var Locale = (_class$4 = function () {
@@ -7929,37 +8243,44 @@ var Locale = (_class$4 = function () {
   }]);
 
   function Locale(lang) {
+    this._defaultLang = void 0;
     this._defaultLang = lang;
   }
 
   return Locale;
 }(), (_applyDecoratedDescriptor$5(_class$4.prototype, "lang", [mem], Object.getOwnPropertyDescriptor(_class$4.prototype, "lang"), _class$4.prototype), _applyDecoratedDescriptor$5(_class$4.prototype, "lang", [mem], Object.getOwnPropertyDescriptor(_class$4.prototype, "lang"), _class$4.prototype)), _class$4);
+Locale._r = [0, [String]];
 var BrowserLocalStorage = function () {
   function BrowserLocalStorage(storage, key) {
+    this._storage = void 0;
+    this._key = void 0;
     this._storage = storage;
     this._key = key;
   }
 
-  BrowserLocalStorage.prototype.get = function get$$1() {
+  var _proto = BrowserLocalStorage.prototype;
+
+  _proto.get = function get$$1() {
     var value = this._storage.getItem(this._key);
 
     return !value ? null : JSON.parse(value || '');
   };
 
-  BrowserLocalStorage.prototype.set = function set$$1(value) {
+  _proto.set = function set$$1(value) {
     this._storage.setItem(this._key, JSON.stringify(value));
   };
 
-  BrowserLocalStorage.prototype.clear = function clear() {
+  _proto.clear = function clear() {
     this._storage.removeItem(this._key);
   };
 
-  BrowserLocalStorage.prototype.clearAll = function clearAll() {
+  _proto.clearAll = function clearAll() {
     this._storage.clear();
   };
 
   return BrowserLocalStorage;
 }();
+BrowserLocalStorage._r = [0, [Storage, String]];
 
 function delayed(v, delay) {
   return function resp(url, params) {
@@ -7971,6 +8292,7 @@ function delayed(v, delay) {
   };
 }
 
+delayed._r = [2, ["V", Number]];
 function mockFetch(storage) {
   var delay = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 500;
   var mocks = arguments[2];
@@ -7982,13 +8304,12 @@ function mockFetch(storage) {
     });
   });
 }
+mockFetch._r = [2, [Storage]];
 
 var _class$3;
 var _descriptor$2;
 var _class3;
 var _descriptor2$1;
-var _class5;
-var _temp$1;
 
 function _initDefineProp$2(target, property, descriptor, context) {
   if (!descriptor) return;
@@ -8038,6 +8359,10 @@ var Hello = (_class$3 = function Hello() {
   }
 })), _class$3);
 var HelloOptions = (_class3 = function () {
+  function HelloOptions() {
+    _initDefineProp$2(this, "_props", _descriptor2$1, this);
+  }
+
   createClass$1(HelloOptions, [{
     key: "actionName",
     get: function get$$1() {
@@ -8045,49 +8370,59 @@ var HelloOptions = (_class3 = function () {
     },
     set: function set$$1(name) {}
   }]);
-
-  function HelloOptions(props$$1) {
-    _initDefineProp$2(this, "_props", _descriptor2$1, this);
-
-    this._props = props$$1;
-  }
-
   return HelloOptions;
-}(), (_descriptor2$1 = _applyDecoratedDescriptor$4(_class3.prototype, "_props", [props], {
+}(), (_descriptor2$1 = _applyDecoratedDescriptor$4(_class3.prototype, "_props", [mem, props], {
   enumerable: true,
   initializer: null
 }), _applyDecoratedDescriptor$4(_class3.prototype, "actionName", [mem], Object.getOwnPropertyDescriptor(_class3.prototype, "actionName"), _class3.prototype), _applyDecoratedDescriptor$4(_class3.prototype, "actionName", [mem], Object.getOwnPropertyDescriptor(_class3.prototype, "actionName"), _class3.prototype)), _class3);
-var SomeService = (_temp$1 = _class5 = function () {
+
+var SomeService = function () {
   function SomeService(opts) {
+    this._opts = void 0;
     this._opts = opts;
   }
 
-  SomeService.prototype.value = function value() {
+  var _proto = SomeService.prototype;
+
+  _proto.value = function value() {
     return this._opts.actionName + '-srv';
   };
 
   return SomeService;
-}(), _class5.deps = [HelloOptions], _temp$1);
-function HelloView(_, locale, options, service, hello) {
+}();
+
+SomeService._r = [0, [HelloOptions]];
+function HelloView(_, _ref) {
+  var locale = _ref.locale,
+      options = _ref.options,
+      service = _ref.service,
+      hello = _ref.hello;
   return lom_h("div", null, lom_h("h3", null, options.actionName, ", ", hello.name), lom_h(ItemView, null, lom_h(ItemView.Key, null, "Lang:"), lom_h(ItemView.Value, null, locale.lang)), lom_h(ItemView, null, lom_h(ItemView.Key, null, "Srv:"), lom_h(ItemView.Value, null, service.value())), lom_h(ItemView, null, lom_h(ItemView.Key, null, "Name:"), lom_h(ItemView.Value, null, lom_h("input", {
     value: hello.name,
-    onInput: function onInput(_ref) {
-      var target = _ref.target;
+    onInput: function onInput(_ref2) {
+      var target = _ref2.target;
       hello.name = target.value;
     }
   }))), lom_h(ItemView, null, lom_h(ItemView.Key, null, "Action:"), lom_h(ItemView.Value, null, lom_h("input", {
     value: options.actionName,
-    onInput: function onInput(_ref2) {
-      var target = _ref2.target;
+    onInput: function onInput(_ref3) {
+      var target = _ref3.target;
       options.actionName = target.value;
     }
   }))));
 }
-HelloView.deps = [Locale, HelloOptions, SomeService, Hello];
+HelloView._r = [1, [{
+  locale: Locale,
+  options: HelloOptions,
+  service: SomeService,
+  hello: Hello
+}]];
 
 function getBody(body) {
   return typeof body === 'string' ? JSON.parse(body) : body || {};
 }
+
+getBody._r = [2];
 
 function sortByDate(el1, el2) {
   if (!el2.created || el1.created) {
@@ -8105,6 +8440,15 @@ function sortByDate(el1, el2) {
   return 0;
 }
 
+sortByDate._r = [2, [{
+  id: String,
+  title: String,
+  completed: Boolean
+}, {
+  id: String,
+  title: String,
+  completed: Boolean
+}]];
 function todoMocks(rawStorage) {
   var storage = new BrowserLocalStorage(rawStorage, 'lom_todomvc');
   var infos = new BrowserLocalStorage(rawStorage, 'lom_todomvc_info');
@@ -8228,6 +8572,7 @@ function todoMocks(rawStorage) {
     }
   }];
 }
+todoMocks._r = [2, [Storage]];
 
 var _class2$2;
 var _descriptor$3;
@@ -8275,27 +8620,35 @@ function toJson(r) {
   return r.json();
 }
 
+toJson._r = [2, [Response]];
+
 var TodoModel = function () {
   function TodoModel() {
     var todo = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
     var store = arguments[1];
+    this.completed = void 0;
+    this._title = void 0;
+    this.id = void 0;
+    this._store = void 0;
     this._title = todo.title || '';
     this.id = todo.id || uuid();
     this.completed = todo.completed || false;
     this._store = store;
   }
 
-  TodoModel.prototype.destroy = function destroy() {
+  var _proto = TodoModel.prototype;
+
+  _proto.destroy = function destroy() {
     this._store.remove(this.id);
   };
 
-  TodoModel.prototype.toggle = function toggle() {
+  _proto.toggle = function toggle() {
     this.completed = !this.completed;
 
     this._store.saveTodo(this.toJSON());
   };
 
-  TodoModel.prototype.toJSON = function toJSON() {
+  _proto.toJSON = function toJSON() {
     return {
       completed: this.completed,
       title: this._title,
@@ -8317,15 +8670,18 @@ var TodoModel = function () {
   return TodoModel;
 }();
 
+TodoModel._r = [0, [TodoService]];
 var TodoService = (_class2$2 = function () {
   function TodoService() {
     _initDefineProp$3(this, "opCount", _descriptor$3, this);
   }
 
-  TodoService.prototype.todoExtInfo = function todoExtInfo(id, info) {
+  var _proto2 = TodoService.prototype;
+
+  _proto2.todoExtInfo = function todoExtInfo(id, info) {
     var _this = this;
 
-    if (info !== undefined) return info;
+    if (info !== undefined && !(info instanceof Error)) return info;
     fetch("/api/todo/" + id + "/info", {
       method: 'GET'
     }).then(toJson).then(function (info) {
@@ -8336,7 +8692,7 @@ var TodoService = (_class2$2 = function () {
     throw new mem.Wait();
   };
 
-  TodoService.prototype._handlePromise = function _handlePromise(p) {
+  _proto2._handlePromise = function _handlePromise(p) {
     var _this2 = this;
 
     this.opCount++;
@@ -8348,7 +8704,7 @@ var TodoService = (_class2$2 = function () {
     });
   };
 
-  TodoService.prototype.addTodo = function addTodo(title) {
+  _proto2.addTodo = function addTodo(title) {
     var _this3 = this;
 
     var todo = new TodoModel({
@@ -8366,7 +8722,7 @@ var TodoService = (_class2$2 = function () {
     }));
   };
 
-  TodoService.prototype.saveTodo = function saveTodo(todo) {
+  _proto2.saveTodo = function saveTodo(todo) {
     var _this4 = this;
 
     this.todos = this.todos.map(function (t) {
@@ -8383,7 +8739,7 @@ var TodoService = (_class2$2 = function () {
     }));
   };
 
-  TodoService.prototype.remove = function remove(id) {
+  _proto2.remove = function remove(id) {
     this.todos = this.todos.filter(function (todo) {
       return todo.id !== id;
     });
@@ -8393,7 +8749,7 @@ var TodoService = (_class2$2 = function () {
     }));
   };
 
-  TodoService.prototype.toggleAll = function toggleAll() {
+  _proto2.toggleAll = function toggleAll() {
     var _this5 = this;
 
     this.todos = this.todos.map(function (todo) {
@@ -8414,7 +8770,7 @@ var TodoService = (_class2$2 = function () {
     }));
   };
 
-  TodoService.prototype.clearCompleted = function clearCompleted() {
+  _proto2.clearCompleted = function clearCompleted() {
     var newTodos = [];
     var delIds = [];
 
@@ -8480,8 +8836,6 @@ var TodoService = (_class2$2 = function () {
 }), _applyDecoratedDescriptor$6(_class2$2.prototype, "todoExtInfo", [serializable, memkey], Object.getOwnPropertyDescriptor(_class2$2.prototype, "todoExtInfo"), _class2$2.prototype), _applyDecoratedDescriptor$6(_class2$2.prototype, "todos", [serializable, mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "todos"), _class2$2.prototype), _applyDecoratedDescriptor$6(_class2$2.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "todos"), _class2$2.prototype), _applyDecoratedDescriptor$6(_class2$2.prototype, "activeTodoCount", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "activeTodoCount"), _class2$2.prototype), _applyDecoratedDescriptor$6(_class2$2.prototype, "remove", [action], Object.getOwnPropertyDescriptor(_class2$2.prototype, "remove"), _class2$2.prototype), _applyDecoratedDescriptor$6(_class2$2.prototype, "toggleAll", [action], Object.getOwnPropertyDescriptor(_class2$2.prototype, "toggleAll"), _class2$2.prototype)), _class2$2);
 
 var _class$5;
-var _class2$3;
-var _temp$2;
 
 function _applyDecoratedDescriptor$7(target, property, decorators, descriptor, context) {
   var desc = {};
@@ -8517,8 +8871,10 @@ var TODO_FILTER = {
   COMPLETE: 'complete',
   ACTIVE: 'active'
 };
-var TodoFilterService = (_class$5 = (_temp$2 = _class2$3 = function () {
+var TodoFilterService = (_class$5 = function () {
   function TodoFilterService(todoService, locationStore) {
+    this._todoService = void 0;
+    this._locationStore = void 0;
     this._todoService = todoService;
     this._locationStore = locationStore;
   }
@@ -8556,7 +8912,8 @@ var TodoFilterService = (_class$5 = (_temp$2 = _class2$3 = function () {
     }
   }]);
   return TodoFilterService;
-}(), _class2$3.deps = [TodoService, AbstractLocationStore], _temp$2), (_applyDecoratedDescriptor$7(_class$5.prototype, "filteredTodos", [mem], Object.getOwnPropertyDescriptor(_class$5.prototype, "filteredTodos"), _class$5.prototype)), _class$5);
+}(), (_applyDecoratedDescriptor$7(_class$5.prototype, "filteredTodos", [mem], Object.getOwnPropertyDescriptor(_class$5.prototype, "filteredTodos"), _class$5.prototype)), _class$5);
+TodoFilterService._r = [0, [TodoService, AbstractLocationStore]];
 
 var _class$6;
 var _descriptor$4;
@@ -8606,6 +8963,8 @@ var TodoToAdd = (_class$6 = function () {
 
     _initDefineProp$4(this, "title", _descriptor$4, this);
 
+    this._todoService = void 0;
+
     this.onKeyDown = function (e) {
       if (e.keyCode === 13 && _this.title) {
         _this._todoService.addTodo(_this.title);
@@ -8615,7 +8974,9 @@ var TodoToAdd = (_class$6 = function () {
     };
   }
 
-  TodoToAdd.prototype.onInput = function onInput(_ref) {
+  var _proto = TodoToAdd.prototype;
+
+  _proto.onInput = function onInput(_ref) {
     var target = _ref.target;
     this.title = target.value;
   };
@@ -8654,6 +9015,7 @@ function TodoHeaderTheme() {
   };
 }
 
+TodoHeaderTheme._r = [2];
 TodoHeaderTheme.theme = true;
 function TodoHeaderView(_, _ref3) {
   var todoToAdd = _ref3.todoToAdd,
@@ -8667,10 +9029,10 @@ function TodoHeaderView(_, _ref3) {
     autoFocus: true
   }));
 }
-TodoHeaderView.deps = [{
-  todoToAdd: TodoToAdd,
-  theme: TodoHeaderTheme
-}];
+TodoHeaderView._r = [1, [{
+  theme: TodoHeaderTheme,
+  todoToAdd: TodoToAdd
+}]];
 
 var _class$7;
 var _descriptor$5;
@@ -8782,7 +9144,9 @@ var TodoItemStore = (_class$7 = function () {
     };
   }
 
-  TodoItemStore.prototype.setText = function setText(_ref) {
+  var _proto = TodoItemStore.prototype;
+
+  _proto.setText = function setText(_ref) {
     var target = _ref.target;
     this.editText = target.value;
   };
@@ -8906,6 +9270,7 @@ function TodoItemTheme() {
   };
 }
 
+TodoItemTheme._r = [2];
 TodoItemTheme.theme = true;
 function TodoItemView(_ref2, _ref3) {
   var todo = _ref2.todo;
@@ -8919,8 +9284,8 @@ function TodoItemView(_ref2, _ref3) {
     id: "edit",
     ref: itemStore.setEditInputRef,
     "class": theme.edit,
-    value: itemStore.editText // onBlur={itemStore.handleSubmit}
-    ,
+    value: itemStore.editText,
+    onBlur: itemStore.handleSubmit,
     onInput: itemStore.setText,
     onKeyDown: itemStore.handleKeyDown
   })) : lom_h("li", {
@@ -8941,11 +9306,11 @@ function TodoItemView(_ref2, _ref3) {
     onClick: itemStore.handleDestroy
   }));
 }
-TodoItemView.deps = [{
-  itemStore: TodoItemStore,
+TodoItemView._r = [1, [{
+  service: TodoService,
   theme: TodoItemTheme,
-  service: TodoService
-}];
+  itemStore: TodoItemStore
+}]];
 
 function TodoMainTheme() {
   var toggleAll = {
@@ -8996,6 +9361,7 @@ function TodoMainTheme() {
   };
 }
 
+TodoMainTheme._r = [2];
 TodoMainTheme.theme = true;
 function TodoMainView(_ref, _ref2) {
   var todoService = _ref.todoService,
@@ -9022,9 +9388,9 @@ function TodoMainView(_ref, _ref2) {
     });
   })));
 }
-TodoMainView.deps = [{
+TodoMainView._r = [1, [{
   theme: TodoMainTheme
-}];
+}]];
 
 var links = [{
   id: TODO_FILTER.ALL,
@@ -9043,6 +9409,8 @@ function createHandler(todoFilterService, id) {
     todoFilterService.filter = id;
   };
 }
+
+createHandler._r = [2, [TodoFilterService, "V"]];
 
 function TodoFooterTheme() {
   var linkBase = {
@@ -9113,6 +9481,7 @@ function TodoFooterTheme() {
   };
 }
 
+TodoFooterTheme._r = [2];
 TodoFooterTheme.theme = true;
 function TodoFooterView(_ref, _ref2) {
   var todoService = _ref.todoService,
@@ -9147,9 +9516,9 @@ function TodoFooterView(_ref, _ref2) {
     }
   }, "Clear completed"));
 }
-TodoFooterView.deps = [{
+TodoFooterView._r = [1, [{
   theme: TodoFooterTheme
-}];
+}]];
 
 function TodoAppTheme() {
   return {
@@ -9184,6 +9553,7 @@ function TodoAppTheme() {
   };
 }
 
+TodoAppTheme._r = [2];
 TodoAppTheme.theme = true;
 function TodoApp(_ref, _ref2) {
   objectDestructuringEmpty(_ref);
@@ -9206,11 +9576,11 @@ function TodoApp(_ref, _ref2) {
     todoFilterService: todoFilterService
   })));
 }
-TodoApp.deps = [{
+TodoApp._r = [1, [{
   todoService: TodoService,
   todoFilterService: TodoFilterService,
   theme: TodoAppTheme
-}];
+}]];
 
 var _class$8;
 var _descriptor$6;
@@ -9267,7 +9637,9 @@ var AutocompleteService = (_class$8 = function () {
     };
   }
 
-  AutocompleteService.prototype._destroy = function _destroy() {
+  var _proto = AutocompleteService.prototype;
+
+  _proto._destroy = function _destroy() {
     clearTimeout(this._handler);
   };
 
@@ -9312,6 +9684,7 @@ function AutocompleteResultsView(_ref2) {
   }));
 }
 
+AutocompleteResultsView._r = [1];
 function AutocompleteView(_, service) {
   return lom_h("div", null, lom_h("div", null, "Filter:", lom_h("input", {
     value: service.nameToSearch,
@@ -9320,7 +9693,7 @@ function AutocompleteView(_, service) {
     searchResults: service.searchResults
   }));
 }
-AutocompleteView.deps = [AutocompleteService];
+AutocompleteView._r = [1, [AutocompleteService]];
 function autocompleteMocks(rawStorage) {
   var fixture = ['John Doe', 'Vasia Pupkin'];
   return [{
@@ -9336,6 +9709,7 @@ function autocompleteMocks(rawStorage) {
     }
   }];
 }
+autocompleteMocks._r = [2, [Storage]];
 
 var _class;
 var _descriptor;
@@ -9387,6 +9761,7 @@ var Store = (_class = (_temp = _class2 = function () {
   function Store(locationStore) {
     var _this = this;
 
+    this._locationStore = void 0;
     this.pages = ['hello', 'counter', 'error', 'todomvc', 'autocomplete'];
 
     _initDefineProp(this, "name", _descriptor, this);
@@ -9421,9 +9796,9 @@ var Store = (_class = (_temp = _class2 = function () {
     return null;
   }
 })), _class);
+Store._r = [0, [AbstractLocationStore]];
 
 function AppView(_ref, _ref2) {
-  var lang = _ref.lang;
   var store = _ref2.store;
   var page = void 0;
 
@@ -9489,6 +9864,9 @@ function AppView(_ref, _ref2) {
   }))));
 }
 
+AppView._r = [1, [{
+  store: Store
+}]];
 AppView.deps = [{
   locale: Locale,
   store: Store

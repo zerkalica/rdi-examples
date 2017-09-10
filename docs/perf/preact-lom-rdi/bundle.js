@@ -13,7 +13,118 @@ var _typeof$2 = typeof Symbol === "function" && typeof Symbol.iterator === "symb
 
 
 
+var asyncGenerator = function () {
+  function AwaitValue(value) {
+    this.value = value;
+  }
 
+  function AsyncGenerator(gen) {
+    var front, back;
+
+    function send(key, arg) {
+      return new Promise(function (resolve, reject) {
+        var request = {
+          key: key,
+          arg: arg,
+          resolve: resolve,
+          reject: reject,
+          next: null
+        };
+
+        if (back) {
+          back = back.next = request;
+        } else {
+          front = back = request;
+          resume(key, arg);
+        }
+      });
+    }
+
+    function resume(key, arg) {
+      try {
+        var result = gen[key](arg);
+        var value = result.value;
+
+        if (value instanceof AwaitValue) {
+          Promise.resolve(value.value).then(function (arg) {
+            resume("next", arg);
+          }, function (arg) {
+            resume("throw", arg);
+          });
+        } else {
+          settle(result.done ? "return" : "normal", result.value);
+        }
+      } catch (err) {
+        settle("throw", err);
+      }
+    }
+
+    function settle(type, value) {
+      switch (type) {
+        case "return":
+          front.resolve({
+            value: value,
+            done: true
+          });
+          break;
+
+        case "throw":
+          front.reject(value);
+          break;
+
+        default:
+          front.resolve({
+            value: value,
+            done: false
+          });
+          break;
+      }
+
+      front = front.next;
+
+      if (front) {
+        resume(front.key, front.arg);
+      } else {
+        back = null;
+      }
+    }
+
+    this._invoke = send;
+
+    if (typeof gen.return !== "function") {
+      this.return = undefined;
+    }
+  }
+
+  if (typeof Symbol === "function" && Symbol.asyncIterator) {
+    AsyncGenerator.prototype[Symbol.asyncIterator] = function () {
+      return this;
+    };
+  }
+
+  AsyncGenerator.prototype.next = function (arg) {
+    return this._invoke("next", arg);
+  };
+
+  AsyncGenerator.prototype.throw = function (arg) {
+    return this._invoke("throw", arg);
+  };
+
+  AsyncGenerator.prototype.return = function (arg) {
+    return this._invoke("return", arg);
+  };
+
+  return {
+    wrap: function (fn) {
+      return function () {
+        return new AsyncGenerator(fn.apply(this, arguments));
+      };
+    },
+    await: function (value) {
+      return new AwaitValue(value);
+    }
+  };
+}();
 
 
 
@@ -93,6 +204,7 @@ var inheritsLoose$1 = function inheritsLoose(subClass, superClass) {
   subClass.__proto__ = superClass;
 };
 
+inheritsLoose$1._r = [2];
 var throwOnAccess = {
   get: function get$$1(target) {
     throw target.valueOf();
@@ -105,6 +217,8 @@ var throwOnAccess = {
 function createMock(error) {
   return new Proxy(error, throwOnAccess);
 }
+
+createMock._r = [2];
 
 function defaultNormalize(next, prev) {
   if (next === prev) return next;
@@ -121,6 +235,8 @@ function defaultNormalize(next, prev) {
 
   return next;
 }
+
+defaultNormalize._r = [2];
 
 var AtomWait = function (_Error) {
   inheritsLoose$1(AtomWait, _Error);
@@ -143,19 +259,27 @@ function checkSlave(slave) {
   slave.check();
 }
 
+checkSlave._r = [2];
+
 function obsoleteSlave(slave) {
   slave.obsolete();
 }
 
+obsoleteSlave._r = [2];
+
 function disleadThis(master) {
   master.dislead(this);
 }
+
+disleadThis._r = [2];
 
 function actualizeMaster(master) {
   if (this.status === ATOM_STATUS_CHECKING) {
     master.actualize();
   }
 }
+
+actualizeMaster._r = [2];
 
 var Atom = function () {
   function Atom(field, host, context, key, normalize, isComponent, ptr) {
@@ -416,6 +540,8 @@ function reap(atom, key, reaping) {
   }
 }
 
+reap._r = [2];
+
 function getKeyFromObj(params) {
   var keys = Object.keys(params).sort();
   var result = '';
@@ -429,6 +555,7 @@ function getKeyFromObj(params) {
   return result;
 }
 
+getKeyFromObj._r = [2];
 var lastId = 0;
 
 function getKey(params) {
@@ -447,6 +574,8 @@ function getKey(params) {
 
   return _typeof$1(params) === 'object' ? getKeyFromObj(params) : JSON.stringify(params);
 }
+
+getKey._r = [2];
 
 var BaseLogger = function () {
   function BaseLogger() {}
@@ -793,6 +922,8 @@ function memMethod(proto, name, descr, normalize, isComponent) {
   };
 }
 
+memMethod._r = [2];
+
 function createGetSetHandler(get$$1, set$$1) {
   return function getSetHandler(next) {
     if (next === undefined) {
@@ -804,12 +935,15 @@ function createGetSetHandler(get$$1, set$$1) {
   };
 }
 
+createGetSetHandler._r = [2];
+
 function createValueHandler(initializer) {
   return function valueHandler(next) {
     return next === undefined && initializer ? initializer.call(this) : next;
   };
 }
 
+createValueHandler._r = [2];
 var isForced = false;
 
 function memProp(proto, name, descr, normalize) {
@@ -844,6 +978,8 @@ function memProp(proto, name, descr, normalize) {
   };
 }
 
+memProp._r = [2];
+
 function memKeyMethod(proto, name, descr, normalize) {
   var handler = descr.value;
 
@@ -867,6 +1003,8 @@ function memKeyMethod(proto, name, descr, normalize) {
   };
 }
 
+memKeyMethod._r = [2];
+
 function memkey() {
   if (arguments.length === 3) {
     return memKeyMethod(arguments[0], arguments[1], arguments[2]);
@@ -878,9 +1016,12 @@ function memkey() {
   };
 }
 
+memkey._r = [2];
 function detached(proto, name, descr) {
   return memMethod(proto, name, descr, undefined, true);
 }
+
+detached._r = [2];
 
 function createActionMethod(t, hk, context) {
   function action() {
@@ -924,6 +1065,8 @@ function createActionMethod(t, hk, context) {
   return action;
 }
 
+createActionMethod._r = [2];
+
 function createActionFn(fn, name, context) {
   function action() {
     var result = void 0;
@@ -966,6 +1109,8 @@ function createActionFn(fn, name, context) {
   return action;
 }
 
+createActionFn._r = [2];
+
 function actionMethod(proto, field, descr, context) {
   var hk = field + "$";
 
@@ -995,6 +1140,8 @@ function actionMethod(proto, field, descr, context) {
   };
 }
 
+actionMethod._r = [2];
+
 function action() {
   if (arguments.length === 3) {
     return actionMethod(arguments[0], arguments[1], arguments[2], defaultContext);
@@ -1002,6 +1149,8 @@ function action() {
 
   return createActionFn(arguments[0], arguments[1], defaultContext);
 }
+
+action._r = [2];
 
 function mem() {
   if (arguments.length === 3) {
@@ -1014,6 +1163,8 @@ function mem() {
   };
 }
 
+mem._r = [2];
+
 function props(proto, name, descr) {
   proto.constructor.__lom_prop = name;
 
@@ -1021,6 +1172,8 @@ function props(proto, name, descr) {
     descr.writable = true;
   }
 }
+
+props._r = [2];
 
 mem.Wait = AtomWait;
 mem.key = memkey;
@@ -1037,6 +1190,8 @@ var inheritsLoose = function inheritsLoose(subClass, superClass) {
   subClass.prototype.constructor = subClass;
   subClass.__proto__ = superClass;
 };
+
+inheritsLoose._r = [2];
 
 var _class2;
 
@@ -1068,6 +1223,8 @@ function _applyDecoratedDescriptor$1(target, property, decorators, descriptor, c
 
   return desc;
 }
+
+_applyDecoratedDescriptor$1._r = [2];
 
 var FakeSheet = function () {
   function FakeSheet() {
@@ -1125,9 +1282,10 @@ var SheetManager = (_class2 = function () {
 }(), _applyDecoratedDescriptor$1(_class2.prototype, "sheet", [memkey], Object.getOwnPropertyDescriptor(_class2.prototype, "sheet"), _class2.prototype), _class2);
 
 var Injector = function () {
-  function Injector(items, sheetProcessor, state, parent, displayName, instance) {
+  function Injector(items, sheetProcessor, state, parent, displayName, instance, aliases) {
     this._resolved = false;
     this._listeners = undefined;
+    this._aliases = aliases;
     this._instance = instance || 0;
     this._state = state || null;
     this.parent = parent;
@@ -1157,7 +1315,9 @@ var Injector = function () {
     this._sticked = sticked;
   }
 
-  Injector.prototype.value = function value(key) {
+  Injector.prototype.value = function value(rawKey) {
+    var key = this._aliases === undefined ? rawKey : this._aliases.get(rawKey) || rawKey;
+
     var value = this._cache.get(key);
 
     if (value === undefined) {
@@ -1208,7 +1368,7 @@ var Injector = function () {
   };
 
   Injector.prototype._fastNew = function _fastNew(key) {
-    var a = this.resolve(key.deps);
+    var a = this.resolve(key.deps || (key._r === undefined ? undefined : key._r[1]));
 
     switch (a.length) {
       case 0:
@@ -1238,7 +1398,7 @@ var Injector = function () {
   };
 
   Injector.prototype.invoke = function invoke(key) {
-    var a = this.resolve(key.deps);
+    var a = this.resolve(key.deps || (key._r === undefined ? undefined : key._r[1]));
 
     switch (a.length) {
       case 0:
@@ -1268,15 +1428,22 @@ var Injector = function () {
   };
 
   Injector.prototype.alias = function alias(key) {
-    return this._cache.get(key) || key;
+    if (this._aliases === undefined) return key;
+
+    var newKey = this._aliases.get(key);
+
+    if (newKey === undefined) return key;
+    return newKey;
   };
 
   Injector.prototype.invokeWithProps = function invokeWithProps(key, props$$1, propsChanged) {
-    if (key.deps === undefined) {
+    var deps = key.deps || (key._r === undefined ? undefined : key._r[1]);
+
+    if (deps === undefined) {
       return key(props$$1);
     }
 
-    var a = this.resolve(key.deps);
+    var a = this.resolve(deps);
 
     if (propsChanged === true) {
       var listeners = this._listeners;
@@ -1321,14 +1488,12 @@ var Injector = function () {
     }
   };
 
-  Injector.prototype.copy = function copy(items, displayName, instance) {
-    return new Injector(items, this._sheetManager, this._state, this, this.displayName + '.' + displayName, instance);
+  Injector.prototype.copy = function copy(items, displayName, instance, aliases) {
+    return new Injector(items, this._sheetManager, this._state, this, this.displayName + '.' + displayName, instance, aliases);
   };
 
   Injector.prototype.resolve = function resolve(argDeps) {
     var result = [];
-    var map = this._cache;
-
     if (argDeps !== undefined) {
       var resolved = this._resolved;
 
@@ -1406,6 +1571,7 @@ function _applyDecoratedDescriptor(target, property, decorators, descriptor, con
   return desc;
 }
 
+_applyDecoratedDescriptor._r = [2];
 var parentContext = undefined;
 
 function createCreateElement(atomize, createElement) {
@@ -1416,6 +1582,12 @@ function createCreateElement(atomize, createElement) {
     var isAtomic = typeof el === 'function' && el.constructor.render === undefined;
 
     if (isAtomic) {
+      if (parentContext !== undefined) {
+        newEl = parentContext.alias(el);
+        if (newEl === null) return null;
+        if (newEl !== undefined) el = newEl;
+      }
+
       if (el.__lom === undefined) {
         el.__lom = atomize(el);
       }
@@ -1475,6 +1647,8 @@ function createCreateElement(atomize, createElement) {
   };
 }
 
+createCreateElement._r = [2];
+
 function createReactWrapper(BaseComponent, defaultFromError) {
   var _class;
 
@@ -1491,20 +1665,10 @@ function createReactWrapper(BaseComponent, defaultFromError) {
       _this._keys = Object.keys(props$$1);
       var cns = _this.constructor;
       var parentInjector = props$$1.__lom_ctx || rootInjector;
-
-      var render = parentInjector._cache.get(cns.render);
-
-      if (render === null) {
-        _this._el = null;
-        _this._keys = undefined;
-        _this._render = undefined;
-      } else {
-        _this._render = render === undefined ? cns.render : render;
-        var injectorName = cns.displayName + (cns.instance ? '[' + cns.instance + ']' : '');
-        _this._injector = parentInjector.copy(_this._render.provides, injectorName, cns.instance);
-        cns.instance++;
-      }
-
+      _this._render = cns.render;
+      var injectorName = cns.displayName + (cns.instance ? '[' + cns.instance + ']' : '');
+      _this._injector = parentInjector.copy(undefined, injectorName, cns.instance, _this._render.aliases);
+      cns.instance++;
       return _this;
     }
 
@@ -1578,14 +1742,11 @@ function createReactWrapper(BaseComponent, defaultFromError) {
     return AtomizedComponent;
   }(BaseComponent), _applyDecoratedDescriptor(_class.prototype, "r", [detached], Object.getOwnPropertyDescriptor(_class.prototype, "r"), _class.prototype), _class);
   return function reactWrapper(render) {
-    if (render.__lom !== undefined) {
-      return render.__lom;
-    }
-
     var WrappedComponent = function WrappedComponent(props$$1, context) {
       AtomizedComponent.call(this, props$$1, context);
     };
 
+    WrappedComponent._r = [2];
     WrappedComponent.instance = 0;
     WrappedComponent.render = render;
     WrappedComponent.displayName = render.displayName || render.name;
@@ -1595,6 +1756,8 @@ function createReactWrapper(BaseComponent, defaultFromError) {
   };
 }
 
+createReactWrapper._r = [2];
+
 /** Virtual DOM Node */
 function VNode() {}
 /** Global options
@@ -1603,6 +1766,7 @@ function VNode() {}
  */
 
 
+VNode._r = [2];
 var options = {
   /** If `true`, `prop` changes trigger synchronous component updates.
    *	@name syncComponentUpdates
@@ -1688,6 +1852,8 @@ function h(nodeName, attributes) {
  */
 
 
+h._r = [2];
+
 function extend(obj, props) {
   for (var i in props) {
     obj[i] = props[i];
@@ -1700,6 +1866,7 @@ function extend(obj, props) {
  */
 
 
+extend._r = [2];
 var defer = typeof Promise == 'function' ? Promise.resolve().then.bind(Promise.resolve()) : setTimeout;
 
 var IS_NON_DIMENSIONAL = /acit|ex(?:s|g|n|p|$)|rph|ows|mnc|ntw|ine[ch]|zoo|^ord/i;
@@ -1712,6 +1879,8 @@ function enqueueRender(component) {
     (options.debounceRendering || defer)(rerender);
   }
 }
+
+enqueueRender._r = [2];
 
 function rerender() {
   var p,
@@ -1728,6 +1897,8 @@ function rerender() {
  *	@private
  */
 
+
+rerender._r = [2];
 
 function isSameNodeType(node, vnode, hydrating) {
   if (typeof vnode === 'string' || typeof vnode === 'number') {
@@ -1746,6 +1917,8 @@ function isSameNodeType(node, vnode, hydrating) {
  */
 
 
+isSameNodeType._r = [2];
+
 function isNamedNode(node, nodeName) {
   return node.normalizedNodeName === nodeName || node.nodeName.toLowerCase() === nodeName.toLowerCase();
 }
@@ -1757,6 +1930,8 @@ function isNamedNode(node, nodeName) {
  * @returns {Object} props
  */
 
+
+isNamedNode._r = [2];
 
 function getNodeProps(vnode) {
   var props = extend({}, vnode.attributes);
@@ -1780,6 +1955,8 @@ function getNodeProps(vnode) {
  */
 
 
+getNodeProps._r = [2];
+
 function createNode(nodeName, isSvg) {
   var node = isSvg ? document.createElementNS('http://www.w3.org/2000/svg', nodeName) : document.createElement(nodeName);
   node.normalizedNodeName = nodeName;
@@ -1789,6 +1966,8 @@ function createNode(nodeName, isSvg) {
  *	@param {Element} node		The node to remove
  */
 
+
+createNode._r = [2];
 
 function removeNode(node) {
   var parentNode = node.parentNode;
@@ -1804,6 +1983,8 @@ function removeNode(node) {
  *	@private
  */
 
+
+removeNode._r = [2];
 
 function setAccessor(node, name, old, value, isSvg) {
   if (name === 'className') name = 'class';
@@ -1861,6 +2042,8 @@ function setAccessor(node, name, old, value, isSvg) {
  */
 
 
+setAccessor._r = [2];
+
 function setProperty(node, name, value) {
   try {
     node[name] = value;
@@ -1871,12 +2054,15 @@ function setProperty(node, name, value) {
  */
 
 
+setProperty._r = [2];
+
 function eventProxy(e) {
   return this._listeners[e.type](options.event && options.event(e) || e);
 }
 /** Queue of components that have been mounted and are awaiting componentDidMount */
 
 
+eventProxy._r = [2];
 var mounts = [];
 /** Diff recursion count, used to track the end of the diff cycle. */
 
@@ -1905,6 +2091,8 @@ function flushMounts() {
  */
 
 
+flushMounts._r = [2];
+
 function diff(dom, vnode, context, mountAll, parent, componentRoot) {
   // diffLevel having been 0 here indicates initial entry into the diff (not a subdiff)
   if (!diffLevel++) {
@@ -1928,6 +2116,8 @@ function diff(dom, vnode, context, mountAll, parent, componentRoot) {
 }
 /** Internals of `diff()`, separated to allow bypassing diffLevel / mount flushing. */
 
+
+diff._r = [2];
 
 function idiff(dom, vnode, context, mountAll, componentRoot) {
   var out = dom,
@@ -2023,6 +2213,8 @@ function idiff(dom, vnode, context, mountAll, componentRoot) {
  */
 
 
+idiff._r = [2];
+
 function innerDiffNode(dom, vchildren, context, mountAll, isHydrating) {
   var originalChildren = dom.childNodes,
       children = [],
@@ -2113,6 +2305,8 @@ function innerDiffNode(dom, vchildren, context, mountAll, isHydrating) {
  */
 
 
+innerDiffNode._r = [2];
+
 function recollectNodeTree(node, unmountOnly) {
   var component = node._component;
 
@@ -2137,6 +2331,8 @@ function recollectNodeTree(node, unmountOnly) {
  */
 
 
+recollectNodeTree._r = [2];
+
 function removeChildren(node) {
   node = node.lastChild;
 
@@ -2152,6 +2348,8 @@ function removeChildren(node) {
  *	@param {Object} old			Current/previous attributes (from previous VNode or element's prop cache)
  */
 
+
+removeChildren._r = [2];
 
 function diffAttributes(dom, attrs, old) {
   var name; // remove attributes no longer present on the vnode by setting them to undefined
@@ -2175,6 +2373,7 @@ function diffAttributes(dom, attrs, old) {
  */
 
 
+diffAttributes._r = [2];
 var components = {};
 /** Reclaim a component for later re-use by the recycler. */
 
@@ -2184,6 +2383,8 @@ function collectComponent(component) {
 }
 /** Create a component. Normalizes differences between PFC's and classful Components. */
 
+
+collectComponent._r = [2];
 
 function createComponent(Ctor, props, context) {
   var list = components[Ctor.name],
@@ -2213,6 +2414,8 @@ function createComponent(Ctor, props, context) {
 /** The `.render()` method for a PFC backing instance. */
 
 
+createComponent._r = [2];
+
 function doRender(props, state, context) {
   return this.constructor(props, context);
 }
@@ -2223,6 +2426,8 @@ function doRender(props, state, context) {
  *	@param {boolean} [opts.render=true]			If `false`, no render will be triggered.
  */
 
+
+doRender._r = [2];
 
 function setComponentProps(component, props, opts, context, mountAll) {
   if (component._disable) return;
@@ -2262,6 +2467,8 @@ function setComponentProps(component, props, opts, context, mountAll) {
  *	@private
  */
 
+
+setComponentProps._r = [2];
 
 function renderComponent(component, opts, mountAll, isChild) {
   if (component._disable) return;
@@ -2404,6 +2611,8 @@ function renderComponent(component, opts, mountAll, isChild) {
  */
 
 
+renderComponent._r = [2];
+
 function buildComponentFromVNode(dom, vnode, context, mountAll) {
   var c = dom && dom._component,
       originalComponent = c,
@@ -2450,6 +2659,8 @@ function buildComponentFromVNode(dom, vnode, context, mountAll) {
  */
 
 
+buildComponentFromVNode._r = [2];
+
 function unmountComponent(component) {
   if (options.beforeUnmount) options.beforeUnmount(component);
   var base = component.base;
@@ -2484,6 +2695,8 @@ function unmountComponent(component) {
  */
 
 
+unmountComponent._r = [2];
+
 function Component(props, context) {
   this._dirty = true;
   /** @public
@@ -2503,6 +2716,7 @@ function Component(props, context) {
   this.state = this.state || {};
 }
 
+Component._r = [2];
 extend(Component.prototype, {
   /** Returns a `boolean` indicating if the component should re-render when receiving the given `props` and `state`.
    *	@param {object} nextProps
@@ -2563,6 +2777,8 @@ function render(vnode, parent, merge) {
   return diff(merge, vnode, {}, false, parent, false);
 }
 
+render._r = [2];
+
 var _class;
 
 function _applyDecoratedDescriptor$1$1(target, property, decorators, descriptor, context) {
@@ -2609,13 +2825,17 @@ function uuid() {
 
   return uuid;
 }
+uuid._r = [2];
 function pluralize(count, word) {
   return count === 1 ? word : word + 's';
 }
+pluralize._r = [2, [Number, String]];
 var AbstractLocationStore = function () {
   function AbstractLocationStore() {}
 
-  AbstractLocationStore.prototype.location = function location(key, value, force$$1) {
+  var _proto = AbstractLocationStore.prototype;
+
+  _proto.location = function location(key, value, force$$1) {
     throw new Error('implement');
   };
 
@@ -2628,17 +2848,21 @@ var BrowserLocationStore = (_class = function (_AbstractLocationStor) {
     var _this;
 
     _this = _AbstractLocationStor.call(this) || this;
+    _this._location = void 0;
+    _this._history = void 0;
     _this._ns = 'lom_app';
     _this._location = location;
     _this._history = history;
     return _this;
   }
 
-  BrowserLocationStore.prototype._params = function _params() {
+  var _proto2 = BrowserLocationStore.prototype;
+
+  _proto2._params = function _params() {
     return new URLSearchParams(this._location.search);
   };
 
-  BrowserLocationStore.prototype.location = function location(key, value, force$$1) {
+  _proto2.location = function location(key, value, force$$1) {
     var params = this._params();
 
     if (value === undefined) return params.get(key);
@@ -2651,12 +2875,14 @@ var BrowserLocationStore = (_class = function (_AbstractLocationStor) {
 
   return BrowserLocationStore;
 }(AbstractLocationStore), (_applyDecoratedDescriptor$1$1(_class.prototype, "location", [memkey], Object.getOwnPropertyDescriptor(_class.prototype, "location"), _class.prototype)), _class);
+BrowserLocationStore._r = [0, [Location, History]];
 
 function ErrorableView(_ref) {
   var error = _ref.error;
   return lom_h("div", null, error instanceof mem.Wait ? lom_h("div", null, "Loading...") : lom_h("div", null, lom_h("h3", null, "Fatal error !"), lom_h("div", null, error.message), lom_h("pre", null, error.stack.toString())));
 }
 
+ErrorableView._r = [1];
 var atomize = createReactWrapper(Component, ErrorableView, new Injector([[AbstractLocationStore, new BrowserLocationStore(location, history)]]));
 
 var lomCreateElement = createCreateElement(atomize, h);
@@ -2699,6 +2925,10 @@ var TodoModel = function () {
 
     var todo = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
     var store = arguments[1];
+    this.completed = void 0;
+    this._title = void 0;
+    this.id = void 0;
+    this._store = void 0;
 
     this.destroy = function () {
       _this._store.remove(_this.id);
@@ -2716,7 +2946,9 @@ var TodoModel = function () {
     this._store = store;
   }
 
-  TodoModel.prototype.toJSON = function toJSON() {
+  var _proto = TodoModel.prototype;
+
+  _proto.toJSON = function toJSON() {
     return {
       completed: this.completed,
       title: this._title,
@@ -2738,10 +2970,13 @@ var TodoModel = function () {
   return TodoModel;
 }();
 
+TodoModel._r = [0, [TodoService]];
 var TodoService = (_class2$1 = function () {
   function TodoService() {}
 
-  TodoService.prototype.addTodo = function addTodo(title) {
+  var _proto2 = TodoService.prototype;
+
+  _proto2.addTodo = function addTodo(title) {
     var todo = new TodoModel({
       title: title
     }, this);
@@ -2750,7 +2985,7 @@ var TodoService = (_class2$1 = function () {
     this.todos = newTodos;
   };
 
-  TodoService.prototype.saveTodo = function saveTodo(todo) {
+  _proto2.saveTodo = function saveTodo(todo) {
     var _this2 = this;
 
     this.todos = this.todos.map(function (t) {
@@ -2758,13 +2993,13 @@ var TodoService = (_class2$1 = function () {
     });
   };
 
-  TodoService.prototype.remove = function remove(id) {
+  _proto2.remove = function remove(id) {
     this.todos = this.todos.filter(function (todo) {
       return todo.id !== id;
     });
   };
 
-  TodoService.prototype.toggleAll = function toggleAll() {
+  _proto2.toggleAll = function toggleAll() {
     var _this3 = this;
 
     var completed = this.activeTodoCount > 0;
@@ -2777,7 +3012,7 @@ var TodoService = (_class2$1 = function () {
     });
   };
 
-  TodoService.prototype.clearCompleted = function clearCompleted() {
+  _proto2.clearCompleted = function clearCompleted() {
     var newTodos = [];
     var delIds = [];
 
@@ -2819,6 +3054,7 @@ var TodoService = (_class2$1 = function () {
 var _class$1;
 var _class2$2;
 var _temp;
+var _initialiseProps;
 
 function _applyDecoratedDescriptor$3(target, property, decorators, descriptor, context) {
   var desc = {};
@@ -2856,6 +3092,8 @@ var TODO_FILTER = {
 };
 var TodoFilterService = (_class$1 = (_temp = _class2$2 = function () {
   function TodoFilterService(TodoService$$1, locationStore) {
+    _initialiseProps.call(this);
+
     this._todoService = TodoService$$1;
     this._locationStore = locationStore;
   }
@@ -2893,7 +3131,11 @@ var TodoFilterService = (_class$1 = (_temp = _class2$2 = function () {
     }
   }]);
   return TodoFilterService;
-}(), _class2$2.deps = [TodoService, AbstractLocationStore], _temp), (_applyDecoratedDescriptor$3(_class$1.prototype, "filteredTodos", [mem], Object.getOwnPropertyDescriptor(_class$1.prototype, "filteredTodos"), _class$1.prototype)), _class$1);
+}(), _class2$2.deps = [TodoService, AbstractLocationStore], _initialiseProps = function _initialiseProps() {
+  this._todoService = void 0;
+  this._locationStore = void 0;
+}, _temp), (_applyDecoratedDescriptor$3(_class$1.prototype, "filteredTodos", [mem], Object.getOwnPropertyDescriptor(_class$1.prototype, "filteredTodos"), _class$1.prototype)), _class$1);
+TodoFilterService._r = [0, [TodoService, AbstractLocationStore]];
 
 var _class$2;
 var _descriptor;
@@ -2962,7 +3204,9 @@ var TodoToAdd = (_class$2 = function () {
     };
   }
 
-  TodoToAdd.prototype.onInput = function onInput(_ref) {
+  var _proto = TodoToAdd.prototype;
+
+  _proto.onInput = function onInput(_ref) {
     var target = _ref.target;
     this.title = target.value;
   };
@@ -2990,6 +3234,9 @@ function TodoHeaderView(_, _ref2) {
     autoFocus: true
   }));
 }
+TodoHeaderView._r = [1, [{
+  todoToAdd: TodoToAdd
+}]];
 TodoHeaderView.deps = [{
   todoToAdd: TodoToAdd
 }];
@@ -3029,6 +3276,8 @@ function TodoFooterView(_ref) {
     onClick: onClearCompleted
   }, "Clear completed") : null);
 }
+
+TodoFooterView._r = [1];
 
 var _class$3;
 var _descriptor$1;
@@ -3119,7 +3368,9 @@ var TodoItemService = (_class$3 = function () {
     };
   }
 
-  TodoItemService.prototype.setEditText = function setEditText(e) {
+  var _proto = TodoItemService.prototype;
+
+  _proto.setEditText = function setEditText(e) {
     this.editText = e.target.value;
   };
 
@@ -3164,6 +3415,7 @@ function TodoItemView(_ref, todoItemService) {
     onKeyDown: todoItemService.onKey
   }) : null);
 }
+TodoItemView._r = [1, [TodoItemService]];
 TodoItemView.deps = [TodoItemService];
 
 function TodoPerfView(_, _ref) {
@@ -3194,6 +3446,10 @@ function TodoPerfView(_, _ref) {
   }) : null);
 }
 
+TodoPerfView._r = [1, [{
+  todoService: TodoService,
+  todoFilterService: TodoFilterService
+}]];
 TodoPerfView.deps = [{
   todoService: TodoService,
   todoFilterService: TodoFilterService

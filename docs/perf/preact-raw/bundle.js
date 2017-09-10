@@ -13,7 +13,118 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
 
 
+var asyncGenerator = function () {
+  function AwaitValue(value) {
+    this.value = value;
+  }
 
+  function AsyncGenerator(gen) {
+    var front, back;
+
+    function send(key, arg) {
+      return new Promise(function (resolve, reject) {
+        var request = {
+          key: key,
+          arg: arg,
+          resolve: resolve,
+          reject: reject,
+          next: null
+        };
+
+        if (back) {
+          back = back.next = request;
+        } else {
+          front = back = request;
+          resume(key, arg);
+        }
+      });
+    }
+
+    function resume(key, arg) {
+      try {
+        var result = gen[key](arg);
+        var value = result.value;
+
+        if (value instanceof AwaitValue) {
+          Promise.resolve(value.value).then(function (arg) {
+            resume("next", arg);
+          }, function (arg) {
+            resume("throw", arg);
+          });
+        } else {
+          settle(result.done ? "return" : "normal", result.value);
+        }
+      } catch (err) {
+        settle("throw", err);
+      }
+    }
+
+    function settle(type, value) {
+      switch (type) {
+        case "return":
+          front.resolve({
+            value: value,
+            done: true
+          });
+          break;
+
+        case "throw":
+          front.reject(value);
+          break;
+
+        default:
+          front.resolve({
+            value: value,
+            done: false
+          });
+          break;
+      }
+
+      front = front.next;
+
+      if (front) {
+        resume(front.key, front.arg);
+      } else {
+        back = null;
+      }
+    }
+
+    this._invoke = send;
+
+    if (typeof gen.return !== "function") {
+      this.return = undefined;
+    }
+  }
+
+  if (typeof Symbol === "function" && Symbol.asyncIterator) {
+    AsyncGenerator.prototype[Symbol.asyncIterator] = function () {
+      return this;
+    };
+  }
+
+  AsyncGenerator.prototype.next = function (arg) {
+    return this._invoke("next", arg);
+  };
+
+  AsyncGenerator.prototype.throw = function (arg) {
+    return this._invoke("throw", arg);
+  };
+
+  AsyncGenerator.prototype.return = function (arg) {
+    return this._invoke("return", arg);
+  };
+
+  return {
+    wrap: function (fn) {
+      return function () {
+        return new AsyncGenerator(fn.apply(this, arguments));
+      };
+    },
+    await: function (value) {
+      return new AwaitValue(value);
+    }
+  };
+}();
 
 
 
@@ -63,6 +174,7 @@ function VNode() {}
  */
 
 
+VNode._r = [2];
 var options = {
   /** If `true`, `prop` changes trigger synchronous component updates.
    *	@name syncComponentUpdates
@@ -148,6 +260,8 @@ function h(nodeName, attributes) {
  */
 
 
+h._r = [2];
+
 function extend(obj, props) {
   for (var i in props) {
     obj[i] = props[i];
@@ -160,6 +274,7 @@ function extend(obj, props) {
  */
 
 
+extend._r = [2];
 var defer = typeof Promise == 'function' ? Promise.resolve().then.bind(Promise.resolve()) : setTimeout;
 
 var IS_NON_DIMENSIONAL = /acit|ex(?:s|g|n|p|$)|rph|ows|mnc|ntw|ine[ch]|zoo|^ord/i;
@@ -172,6 +287,8 @@ function enqueueRender(component) {
     (options.debounceRendering || defer)(rerender);
   }
 }
+
+enqueueRender._r = [2];
 
 function rerender() {
   var p,
@@ -188,6 +305,8 @@ function rerender() {
  *	@private
  */
 
+
+rerender._r = [2];
 
 function isSameNodeType(node, vnode, hydrating) {
   if (typeof vnode === 'string' || typeof vnode === 'number') {
@@ -206,6 +325,8 @@ function isSameNodeType(node, vnode, hydrating) {
  */
 
 
+isSameNodeType._r = [2];
+
 function isNamedNode(node, nodeName) {
   return node.normalizedNodeName === nodeName || node.nodeName.toLowerCase() === nodeName.toLowerCase();
 }
@@ -217,6 +338,8 @@ function isNamedNode(node, nodeName) {
  * @returns {Object} props
  */
 
+
+isNamedNode._r = [2];
 
 function getNodeProps(vnode) {
   var props = extend({}, vnode.attributes);
@@ -240,6 +363,8 @@ function getNodeProps(vnode) {
  */
 
 
+getNodeProps._r = [2];
+
 function createNode(nodeName, isSvg) {
   var node = isSvg ? document.createElementNS('http://www.w3.org/2000/svg', nodeName) : document.createElement(nodeName);
   node.normalizedNodeName = nodeName;
@@ -249,6 +374,8 @@ function createNode(nodeName, isSvg) {
  *	@param {Element} node		The node to remove
  */
 
+
+createNode._r = [2];
 
 function removeNode(node) {
   var parentNode = node.parentNode;
@@ -264,6 +391,8 @@ function removeNode(node) {
  *	@private
  */
 
+
+removeNode._r = [2];
 
 function setAccessor(node, name, old, value, isSvg) {
   if (name === 'className') name = 'class';
@@ -321,6 +450,8 @@ function setAccessor(node, name, old, value, isSvg) {
  */
 
 
+setAccessor._r = [2];
+
 function setProperty(node, name, value) {
   try {
     node[name] = value;
@@ -331,12 +462,15 @@ function setProperty(node, name, value) {
  */
 
 
+setProperty._r = [2];
+
 function eventProxy(e) {
   return this._listeners[e.type](options.event && options.event(e) || e);
 }
 /** Queue of components that have been mounted and are awaiting componentDidMount */
 
 
+eventProxy._r = [2];
 var mounts = [];
 /** Diff recursion count, used to track the end of the diff cycle. */
 
@@ -365,6 +499,8 @@ function flushMounts() {
  */
 
 
+flushMounts._r = [2];
+
 function diff(dom, vnode, context, mountAll, parent, componentRoot) {
   // diffLevel having been 0 here indicates initial entry into the diff (not a subdiff)
   if (!diffLevel++) {
@@ -388,6 +524,8 @@ function diff(dom, vnode, context, mountAll, parent, componentRoot) {
 }
 /** Internals of `diff()`, separated to allow bypassing diffLevel / mount flushing. */
 
+
+diff._r = [2];
 
 function idiff(dom, vnode, context, mountAll, componentRoot) {
   var out = dom,
@@ -483,6 +621,8 @@ function idiff(dom, vnode, context, mountAll, componentRoot) {
  */
 
 
+idiff._r = [2];
+
 function innerDiffNode(dom, vchildren, context, mountAll, isHydrating) {
   var originalChildren = dom.childNodes,
       children = [],
@@ -573,6 +713,8 @@ function innerDiffNode(dom, vchildren, context, mountAll, isHydrating) {
  */
 
 
+innerDiffNode._r = [2];
+
 function recollectNodeTree(node, unmountOnly) {
   var component = node._component;
 
@@ -597,6 +739,8 @@ function recollectNodeTree(node, unmountOnly) {
  */
 
 
+recollectNodeTree._r = [2];
+
 function removeChildren(node) {
   node = node.lastChild;
 
@@ -612,6 +756,8 @@ function removeChildren(node) {
  *	@param {Object} old			Current/previous attributes (from previous VNode or element's prop cache)
  */
 
+
+removeChildren._r = [2];
 
 function diffAttributes(dom, attrs, old) {
   var name; // remove attributes no longer present on the vnode by setting them to undefined
@@ -635,6 +781,7 @@ function diffAttributes(dom, attrs, old) {
  */
 
 
+diffAttributes._r = [2];
 var components = {};
 /** Reclaim a component for later re-use by the recycler. */
 
@@ -644,6 +791,8 @@ function collectComponent(component) {
 }
 /** Create a component. Normalizes differences between PFC's and classful Components. */
 
+
+collectComponent._r = [2];
 
 function createComponent(Ctor, props, context) {
   var list = components[Ctor.name],
@@ -673,6 +822,8 @@ function createComponent(Ctor, props, context) {
 /** The `.render()` method for a PFC backing instance. */
 
 
+createComponent._r = [2];
+
 function doRender(props, state, context) {
   return this.constructor(props, context);
 }
@@ -683,6 +834,8 @@ function doRender(props, state, context) {
  *	@param {boolean} [opts.render=true]			If `false`, no render will be triggered.
  */
 
+
+doRender._r = [2];
 
 function setComponentProps(component, props, opts, context, mountAll) {
   if (component._disable) return;
@@ -722,6 +875,8 @@ function setComponentProps(component, props, opts, context, mountAll) {
  *	@private
  */
 
+
+setComponentProps._r = [2];
 
 function renderComponent(component, opts, mountAll, isChild) {
   if (component._disable) return;
@@ -864,6 +1019,8 @@ function renderComponent(component, opts, mountAll, isChild) {
  */
 
 
+renderComponent._r = [2];
+
 function buildComponentFromVNode(dom, vnode, context, mountAll) {
   var c = dom && dom._component,
       originalComponent = c,
@@ -910,6 +1067,8 @@ function buildComponentFromVNode(dom, vnode, context, mountAll) {
  */
 
 
+buildComponentFromVNode._r = [2];
+
 function unmountComponent(component) {
   if (options.beforeUnmount) options.beforeUnmount(component);
   var base = component.base;
@@ -944,6 +1103,8 @@ function unmountComponent(component) {
  */
 
 
+unmountComponent._r = [2];
+
 function Component(props, context) {
   this._dirty = true;
   /** @public
@@ -963,6 +1124,7 @@ function Component(props, context) {
   this.state = this.state || {};
 }
 
+Component._r = [2];
 extend(Component.prototype, {
   /** Returns a `boolean` indicating if the component should re-render when receiving the given `props` and `state`.
    *	@param {object} nextProps
@@ -1023,6 +1185,8 @@ function render(vnode, parent, merge) {
   return diff(merge, vnode, {}, false, parent, false);
 }
 
+render._r = [2];
+
 function uuid() {
   var uuid = '';
 
@@ -1038,13 +1202,17 @@ function uuid() {
 
   return uuid;
 }
+uuid._r = [2];
 function pluralize(count, word) {
   return count === 1 ? word : word + 's';
 }
+pluralize._r = [2, [Number, String]];
 var AbstractLocationStore = function () {
   function AbstractLocationStore() {}
 
-  AbstractLocationStore.prototype.location = function location(key, value, force) {
+  var _proto = AbstractLocationStore.prototype;
+
+  _proto.location = function location(key, value, force) {
     throw new Error('implement');
   };
 
@@ -1057,17 +1225,21 @@ var BrowserLocationStore = function (_AbstractLocationStor) {
     var _this;
 
     _this = _AbstractLocationStor.call(this) || this;
+    _this._location = void 0;
+    _this._history = void 0;
     _this._ns = 'lom_app';
     _this._location = location;
     _this._history = history;
     return _this;
   }
 
-  BrowserLocationStore.prototype._params = function _params() {
+  var _proto2 = BrowserLocationStore.prototype;
+
+  _proto2._params = function _params() {
     return new URLSearchParams(this._location.search);
   };
 
-  BrowserLocationStore.prototype.location = function location(key, value, force) {
+  _proto2.location = function location(key, value, force) {
     var params = this._params();
 
     if (value === undefined) return params.get(key);
@@ -1080,6 +1252,7 @@ var BrowserLocationStore = function (_AbstractLocationStor) {
 
   return BrowserLocationStore;
 }(AbstractLocationStore);
+BrowserLocationStore._r = [0, [Location, History]];
 
 var TodoModel = function () {
   function TodoModel() {
@@ -1087,6 +1260,10 @@ var TodoModel = function () {
 
     var todo = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
     var store = arguments[1];
+    this.completed = void 0;
+    this._title = void 0;
+    this.id = void 0;
+    this._store = void 0;
 
     this.destroy = function () {
       _this._store.remove(_this.id);
@@ -1104,7 +1281,9 @@ var TodoModel = function () {
     this._store = store;
   }
 
-  TodoModel.prototype.toJSON = function toJSON() {
+  var _proto = TodoModel.prototype;
+
+  _proto.toJSON = function toJSON() {
     return {
       completed: this.completed,
       title: this._title,
@@ -1126,11 +1305,14 @@ var TodoModel = function () {
   return TodoModel;
 }();
 
+TodoModel._r = [0, [TodoService]];
+
 var TodoService = function () {
   function TodoService() {
     var _this2 = this;
 
     this.todos = [];
+    this.notify = void 0;
 
     this.toggleAll = function () {
       var completed = _this2.activeTodoCount > 0;
@@ -1165,7 +1347,9 @@ var TodoService = function () {
     };
   }
 
-  TodoService.prototype.addTodo = function addTodo(title) {
+  var _proto2 = TodoService.prototype;
+
+  _proto2.addTodo = function addTodo(title) {
     var todo = new TodoModel({
       title: title
     }, this);
@@ -1175,7 +1359,7 @@ var TodoService = function () {
     this.notify();
   };
 
-  TodoService.prototype.saveTodo = function saveTodo(todo) {
+  _proto2.saveTodo = function saveTodo(todo) {
     var _this3 = this;
 
     this.todos = this.todos.map(function (t, i) {
@@ -1184,7 +1368,7 @@ var TodoService = function () {
     this.notify();
   };
 
-  TodoService.prototype.remove = function remove(id) {
+  _proto2.remove = function remove(id) {
     this.todos = this.todos.filter(function (todo) {
       return todo.id !== id;
     });
@@ -1215,6 +1399,8 @@ var TODO_FILTER = {
 
 var TodoFilterService = function () {
   function TodoFilterService(todoService, locationStore) {
+    this._todoService = void 0;
+    this._locationStore = void 0;
     this._todoService = todoService;
     this._locationStore = locationStore;
   }
@@ -1255,6 +1441,8 @@ var TodoFilterService = function () {
   return TodoFilterService;
 }();
 
+TodoFilterService._r = [0, [TodoService, AbstractLocationStore]];
+
 var ENTER_KEY = 13;
 
 var TodoHeaderView = function (_Component) {
@@ -1293,7 +1481,9 @@ var TodoHeaderView = function (_Component) {
     }, _temp) || _this;
   }
 
-  TodoHeaderView.prototype.render = function render() {
+  var _proto = TodoHeaderView.prototype;
+
+  _proto.render = function render() {
     return lom_h("header", {
       id: "header"
     }, lom_h("h1", null, "todos"), lom_h("input", {
@@ -1343,6 +1533,7 @@ function TodoFooterView(_ref) {
     onClick: onClearCompleted
   }, "Clear completed") : null);
 }
+TodoFooterView._r = [1];
 
 var ESCAPE_KEY = 27;
 var ENTER_KEY$1 = 13;
@@ -1382,7 +1573,7 @@ var TodoItemView = function (_Component) {
       });
     }, _this.submit = function () {
       if (!_this.state.editingId) {
-        return _this;
+        return;
       }
 
       var editText = _this.state.editText;
@@ -1406,7 +1597,9 @@ var TodoItemView = function (_Component) {
     }, _temp) || _this;
   }
 
-  TodoItemView.prototype.render = function render() {
+  var _proto = TodoItemView.prototype;
+
+  _proto.render = function render() {
     var todo = this.props.todo;
     var editing = this.state.editingId === todo.id;
     return lom_h("li", {
@@ -1451,7 +1644,9 @@ var TodoPerfView = function (_Component) {
     return _this;
   }
 
-  TodoPerfView.prototype.render = function render() {
+  var _proto = TodoPerfView.prototype;
+
+  _proto.render = function render() {
     var _props = this.props,
         todoService = _props.todoService,
         todoFilterService = _props.todoFilterService;
@@ -1482,6 +1677,11 @@ var TodoPerfView = function (_Component) {
 
   return TodoPerfView;
 }(Component);
+
+TodoPerfView._r = [0, [{
+  todoService: TodoService,
+  todoFilterService: TodoFilterService
+}]];
 
 var todoService = new TodoService();
 var browserLocationStore = new BrowserLocationStore(location, history);

@@ -71,7 +71,6 @@ export function AutocompleteView(
         <AutocompleteResultsView searchResults={service.searchResults} />
     </div>
 }
-AutocompleteView.deps = [AutocompleteService]
 
 export function autocompleteMocks(
     rawStorage: Storage

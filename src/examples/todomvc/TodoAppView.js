@@ -65,5 +65,3 @@ export default function TodoApp(
         </div>
     </div>
 }
-
-TodoApp.deps = [{todoService: TodoService, todoFilterService: TodoFilterService, theme: TodoAppTheme}]

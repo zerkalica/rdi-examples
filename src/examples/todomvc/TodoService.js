@@ -70,7 +70,7 @@ export default class TodoService {
     }
     @serializable
     @memkey todoExtInfo(id: string, info?: ITodoExtInfo | Error): ITodoExtInfo {
-        if (info !== undefined) return info
+        if (info !== undefined && !(info instanceof Error)) return info
         fetch(`/api/todo/${id}/info`, {method: 'GET'})
             .then(toJson)
             .then((info: ITodoExtInfo) => {
