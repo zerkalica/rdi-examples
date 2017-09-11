@@ -1270,69 +1270,66 @@ var SheetManager = (_class2 = function () {
 
   return SheetManager;
 }(), _applyDecoratedDescriptor$1(_class2.prototype, "sheet", [memkey], Object.getOwnPropertyDescriptor(_class2.prototype, "sheet"), _class2.prototype), _class2);
+var depId = 0;
+
+var Alias = function Alias(dest) {
+  dest.__rdi_id = '' + ++depId;
+  this.dest = dest;
+};
+
+Alias._r = [2];
 
 var Injector = function () {
-  function Injector(items, sheetProcessor, state, parent, displayName, instance, aliases) {
+  function Injector(items, sheetProcessor, state, displayName, instance, cache) {
     this._resolved = false;
     this._listeners = undefined;
-    this._aliases = aliases;
     this._instance = instance || 0;
     this._state = state || null;
-    this.parent = parent;
     this.displayName = displayName || '$';
     this._sheetManager = sheetProcessor instanceof SheetManager ? sheetProcessor : new SheetManager(sheetProcessor, this);
-    var map = this._cache = new Map();
-    var sticked = undefined;
+    var map = this._cache = cache || Object.create(null);
 
     if (items !== undefined) {
       for (var i = 0; i < items.length; i++) {
         var item = items[i];
 
         if (item instanceof Array) {
-          map.set(item[0], item[1]);
-        } else if (typeof item === 'function') {
-          if (sticked === undefined) {
-            sticked = new Set();
+          var src = item[0];
+
+          if (typeof src === 'string') {
+            map[src] = item[1];
+          } else {
+            if (src.__rdi_id === undefined) {
+              src.__rdi_id = '' + ++depId;
+            }
+
+            var dest = item[1];
+            map[src.__rdi_id] = typeof dest === 'function' && !(dest instanceof Alias) ? new Alias(dest) : dest;
+          }
+        } else {
+          var _src = item.constructor;
+
+          if (_src.__rdi_id === undefined) {
+            _src.__rdi_id = '' + ++depId;
           }
 
-          sticked.add(item);
-        } else {
-          map.set(item.constructor, item);
+          map[_src.__rdi_id] = item;
         }
       }
     }
-
-    this._sticked = sticked;
   }
 
-  Injector.prototype.value = function value(rawKey) {
-    var key = this._aliases === undefined ? rawKey : this._aliases.get(rawKey) || rawKey;
+  Injector.prototype.value = function value(key) {
+    var id = key.__rdi_id;
 
-    var value = this._cache.get(key);
+    if (key.__rdi_id === undefined) {
+      id = key.__rdi_id = '' + ++depId;
+    }
+
+    var value = this._cache[id];
 
     if (value === undefined) {
-      if (this._sticked === undefined || !this._sticked.has(key)) {
-        var current = this.parent;
-
-        if (current !== undefined) {
-          do {
-            value = current._cache.get(key);
-
-            if (value !== undefined) {
-              this._cache.set(key, value);
-
-              return value;
-            }
-
-            current = current.parent;
-          } while (current !== undefined);
-        }
-      }
-
-      value = this._fastNew(key);
-
-      this._cache.set(key, value);
-
+      value = this._cache[id] = this._fastNew(key);
       var keyName = (key.displayName || key.name) + (this._instance > 0 ? '[' + this._instance + ']' : '');
       value.displayName = this.displayName + '.' + keyName;
       var state = this._state;
@@ -1344,6 +1341,8 @@ var Injector = function () {
 
         defaultContext.setState(value, state[keyName], true);
       }
+    } else if (value instanceof Alias) {
+      value = this._cache[id] = this.value(value.dest);
     }
 
     return value;
@@ -1352,7 +1351,6 @@ var Injector = function () {
   Injector.prototype.destroy = function destroy() {
     this._state = undefined;
     this._cache = undefined;
-    this.parent = undefined;
     this._listeners = undefined;
     this._sheetManager = undefined;
   };
@@ -1417,11 +1415,19 @@ var Injector = function () {
     }
   };
 
-  Injector.prototype.alias = function alias(key) {
-    if (this._aliases === undefined) return key;
+  Injector.prototype.alias = function alias(key, rawId) {
+    var id = rawId;
 
-    var newKey = this._aliases.get(key);
+    if (id === undefined) {
+      id = key.__rdi_id;
 
+      if (id === undefined) {
+        id = key.__rdi_id = '' + ++depId;
+      }
+    }
+
+    var newKey = this._cache[id];
+    if (newKey instanceof Alias) return newKey.dest;
     if (newKey === undefined) return key;
     return newKey;
   };
@@ -1478,8 +1484,8 @@ var Injector = function () {
     }
   };
 
-  Injector.prototype.copy = function copy(items, displayName, instance, aliases) {
-    return new Injector(items, this._sheetManager, this._state, this, this.displayName + '.' + displayName, instance, aliases);
+  Injector.prototype.copy = function copy(items, displayName, instance) {
+    return new Injector(items, this._sheetManager, this._state, this.displayName + '.' + displayName, instance, Object.create(this._cache));
   };
 
   Injector.prototype.resolve = function resolve(argDeps) {
@@ -1570,10 +1576,19 @@ function createCreateElement(atomize, createElement) {
     var attrs = arguments[1];
     var newEl = void 0;
     var isAtomic = typeof el === 'function' && el.constructor.render === undefined;
+    var id = attrs ? attrs.id : undefined;
 
     if (isAtomic) {
+      if (!attrs) {
+        attrs = {
+          __lom_ctx: parentContext
+        };
+      } else {
+        attrs.__lom_ctx = parentContext;
+      }
+
       if (parentContext !== undefined) {
-        newEl = parentContext.alias(el);
+        newEl = parentContext.alias(el, id);
         if (newEl === null) return null;
         if (newEl !== undefined) el = newEl;
       }
@@ -1583,16 +1598,13 @@ function createCreateElement(atomize, createElement) {
       }
 
       newEl = el.__lom;
-
-      if (!attrs) {
-        attrs = {
-          __lom_ctx: parentContext
-        };
-      } else {
-        // newEl.isKey = attrs.key !== undefined
-        attrs.__lom_ctx = parentContext;
-      }
     } else {
+      if (parentContext !== undefined && id) {
+        newEl = parentContext.alias(el, id);
+        if (newEl === null) return null;
+        if (newEl !== undefined) el = newEl;
+      }
+
       newEl = el;
     }
 
@@ -1657,7 +1669,7 @@ function createReactWrapper(BaseComponent, defaultFromError) {
       var parentInjector = props$$1.__lom_ctx || rootInjector;
       _this._render = cns.render;
       var injectorName = cns.displayName + (cns.instance ? '[' + cns.instance + ']' : '');
-      _this._injector = parentInjector.copy(undefined, injectorName, cns.instance, _this._render.aliases);
+      _this._injector = parentInjector.copy(_this._render.aliases, injectorName, cns.instance);
       cns.instance++;
       return _this;
     }

@@ -1363,69 +1363,66 @@ var SheetManager = (_class2$1 = function () {
 
   return SheetManager;
 }(), _applyDecoratedDescriptor$1(_class2$1.prototype, "sheet", [memkey], Object.getOwnPropertyDescriptor(_class2$1.prototype, "sheet"), _class2$1.prototype), _class2$1);
+var depId = 0;
+
+var Alias = function Alias(dest) {
+  dest.__rdi_id = '' + ++depId;
+  this.dest = dest;
+};
+
+Alias._r = [2];
 
 var Injector = function () {
-  function Injector(items, sheetProcessor, state, parent, displayName, instance, aliases) {
+  function Injector(items, sheetProcessor, state, displayName, instance, cache) {
     this._resolved = false;
     this._listeners = undefined;
-    this._aliases = aliases;
     this._instance = instance || 0;
     this._state = state || null;
-    this.parent = parent;
     this.displayName = displayName || '$';
     this._sheetManager = sheetProcessor instanceof SheetManager ? sheetProcessor : new SheetManager(sheetProcessor, this);
-    var map = this._cache = new Map();
-    var sticked = undefined;
+    var map = this._cache = cache || Object.create(null);
 
     if (items !== undefined) {
       for (var i = 0; i < items.length; i++) {
         var item = items[i];
 
         if (item instanceof Array) {
-          map.set(item[0], item[1]);
-        } else if (typeof item === 'function') {
-          if (sticked === undefined) {
-            sticked = new Set();
+          var src = item[0];
+
+          if (typeof src === 'string') {
+            map[src] = item[1];
+          } else {
+            if (src.__rdi_id === undefined) {
+              src.__rdi_id = '' + ++depId;
+            }
+
+            var dest = item[1];
+            map[src.__rdi_id] = typeof dest === 'function' && !(dest instanceof Alias) ? new Alias(dest) : dest;
+          }
+        } else {
+          var _src = item.constructor;
+
+          if (_src.__rdi_id === undefined) {
+            _src.__rdi_id = '' + ++depId;
           }
 
-          sticked.add(item);
-        } else {
-          map.set(item.constructor, item);
+          map[_src.__rdi_id] = item;
         }
       }
     }
-
-    this._sticked = sticked;
   }
 
-  Injector.prototype.value = function value(rawKey) {
-    var key = this._aliases === undefined ? rawKey : this._aliases.get(rawKey) || rawKey;
+  Injector.prototype.value = function value(key) {
+    var id = key.__rdi_id;
 
-    var value = this._cache.get(key);
+    if (key.__rdi_id === undefined) {
+      id = key.__rdi_id = '' + ++depId;
+    }
+
+    var value = this._cache[id];
 
     if (value === undefined) {
-      if (this._sticked === undefined || !this._sticked.has(key)) {
-        var current = this.parent;
-
-        if (current !== undefined) {
-          do {
-            value = current._cache.get(key);
-
-            if (value !== undefined) {
-              this._cache.set(key, value);
-
-              return value;
-            }
-
-            current = current.parent;
-          } while (current !== undefined);
-        }
-      }
-
-      value = this._fastNew(key);
-
-      this._cache.set(key, value);
-
+      value = this._cache[id] = this._fastNew(key);
       var keyName = (key.displayName || key.name) + (this._instance > 0 ? '[' + this._instance + ']' : '');
       value.displayName = this.displayName + '.' + keyName;
       var state = this._state;
@@ -1437,6 +1434,8 @@ var Injector = function () {
 
         defaultContext.setState(value, state[keyName], true);
       }
+    } else if (value instanceof Alias) {
+      value = this._cache[id] = this.value(value.dest);
     }
 
     return value;
@@ -1445,7 +1444,6 @@ var Injector = function () {
   Injector.prototype.destroy = function destroy() {
     this._state = undefined;
     this._cache = undefined;
-    this.parent = undefined;
     this._listeners = undefined;
     this._sheetManager = undefined;
   };
@@ -1510,11 +1508,19 @@ var Injector = function () {
     }
   };
 
-  Injector.prototype.alias = function alias(key) {
-    if (this._aliases === undefined) return key;
+  Injector.prototype.alias = function alias(key, rawId) {
+    var id = rawId;
 
-    var newKey = this._aliases.get(key);
+    if (id === undefined) {
+      id = key.__rdi_id;
 
+      if (id === undefined) {
+        id = key.__rdi_id = '' + ++depId;
+      }
+    }
+
+    var newKey = this._cache[id];
+    if (newKey instanceof Alias) return newKey.dest;
     if (newKey === undefined) return key;
     return newKey;
   };
@@ -1571,8 +1577,8 @@ var Injector = function () {
     }
   };
 
-  Injector.prototype.copy = function copy(items, displayName, instance, aliases) {
-    return new Injector(items, this._sheetManager, this._state, this, this.displayName + '.' + displayName, instance, aliases);
+  Injector.prototype.copy = function copy(items, displayName, instance) {
+    return new Injector(items, this._sheetManager, this._state, this.displayName + '.' + displayName, instance, Object.create(this._cache));
   };
 
   Injector.prototype.resolve = function resolve(argDeps) {
@@ -1663,10 +1669,19 @@ function createCreateElement(atomize, createElement) {
     var attrs = arguments[1];
     var newEl = void 0;
     var isAtomic = typeof el === 'function' && el.constructor.render === undefined;
+    var id = attrs ? attrs.id : undefined;
 
     if (isAtomic) {
+      if (!attrs) {
+        attrs = {
+          __lom_ctx: parentContext
+        };
+      } else {
+        attrs.__lom_ctx = parentContext;
+      }
+
       if (parentContext !== undefined) {
-        newEl = parentContext.alias(el);
+        newEl = parentContext.alias(el, id);
         if (newEl === null) return null;
         if (newEl !== undefined) el = newEl;
       }
@@ -1676,16 +1691,13 @@ function createCreateElement(atomize, createElement) {
       }
 
       newEl = el.__lom;
-
-      if (!attrs) {
-        attrs = {
-          __lom_ctx: parentContext
-        };
-      } else {
-        // newEl.isKey = attrs.key !== undefined
-        attrs.__lom_ctx = parentContext;
-      }
     } else {
+      if (parentContext !== undefined && id) {
+        newEl = parentContext.alias(el, id);
+        if (newEl === null) return null;
+        if (newEl !== undefined) el = newEl;
+      }
+
       newEl = el;
     }
 
@@ -1750,7 +1762,7 @@ function createReactWrapper(BaseComponent, defaultFromError) {
       var parentInjector = props$$1.__lom_ctx || rootInjector;
       _this._render = cns.render;
       var injectorName = cns.displayName + (cns.instance ? '[' + cns.instance + ']' : '');
-      _this._injector = parentInjector.copy(undefined, injectorName, cns.instance, _this._render.aliases);
+      _this._injector = parentInjector.copy(_this._render.aliases, injectorName, cns.instance);
       cns.instance++;
       return _this;
     }
@@ -1859,7 +1871,7 @@ function dn(fn) {
 dn._r = [2];
 
 function provideMap(item) {
-  return "[" + dn(item[0]) + ", " + dn(item[1]) + "]";
+  return item instanceof Array ? "[" + dn(item[0]) + ", " + dn(item[1]) + "]" : dn(item);
 }
 
 provideMap._r = [2];
@@ -1890,7 +1902,7 @@ function cloneComponent(fn, aliases, name) {
   cloned._r = [2];
   cloned.deps = fn.deps;
   cloned._r = fn._r;
-  cloned.aliases = aliases !== undefined ? new Map(aliases) : undefined;
+  cloned.aliases = fn.aliases ? fn.aliases.concat(aliases) : aliases;
   cloned.displayName = name || "cloneComponent(" + dn(fn) + ", [" + aliases.map(provideMap).join(', ') + "])";
   return cloned;
 }
@@ -3379,7 +3391,7 @@ var devtools = createCommonjsModule(function (module, exports) {
     }
 
     initDevTools();
-  }); 
+  }); //# sourceMappingURL=devtools.js.map
 
 });
 
@@ -3583,16 +3595,6 @@ Item.prototype.run = function () {
 
  // from https://github.com/kumavis/browser-process-hrtime/blob/master/index.js
 
-// see http://nodejs.org/api/process.html#process_process_hrtime
-
-/**
- * Copyright 2014-2015, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- */
 'use strict';
 /**
  * Similar to invariant but only logs a warning if the condition is not met.
@@ -6721,8 +6723,8 @@ function _applyDecoratedDescriptor$3(target, property, decorators, descriptor, c
   return desc;
 }
 
-var Counter = (_class$2 = function () {
-  function Counter() {
+var FirstCounterService = (_class$2 = function () {
+  function FirstCounterService() {
     _initDefineProp$1(this, "$", _descriptor$1, this);
 
     this.lang = {
@@ -6731,7 +6733,7 @@ var Counter = (_class$2 = function () {
     };
   }
 
-  createClass$1(Counter, [{
+  createClass$1(FirstCounterService, [{
     key: "value",
     get: function get$$1() {
       var _this = this;
@@ -6747,7 +6749,7 @@ var Counter = (_class$2 = function () {
       }
     }
   }]);
-  return Counter;
+  return FirstCounterService;
 }(), (_descriptor$1 = _applyDecoratedDescriptor$3(_class$2.prototype, "$", [force], {
   enumerable: true,
   initializer: null
@@ -6760,50 +6762,75 @@ function CounterMessageView(_ref) {
 
 CounterMessageView._r = [1];
 
-function BaseCounterView(_, counter) {
+function FirstCounterView(_, counter) {
   return lom_h("div", null, lom_h(CounterMessageView, {
     value: counter.value
   }), lom_h("button", {
+    id: "FirstCounterAdd",
     onClick: function onClick() {
       counter.value++;
     }
   }, counter.lang.add), lom_h("button", {
+    id: "FirstCounterGenError",
     onClick: function onClick() {
       counter.$.value = 'someStr';
     }
   }, counter.lang.error));
 }
 
-BaseCounterView._r = [1, [Counter]];
+FirstCounterView._r = [1, [FirstCounterService]];
 
-var ClonedCounter = function (_Counter) {
-  inheritsLoose$1(ClonedCounter, _Counter);
+var SecondCounterService = function (_FirstCounterService) {
+  inheritsLoose$1(SecondCounterService, _FirstCounterService);
 
-  function ClonedCounter() {
+  function SecondCounterService() {
     var _temp, _this2;
 
     for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
       args[_key] = arguments[_key];
     }
 
-    return (_temp = _this2 = _Counter.call.apply(_Counter, [this].concat(args)) || this, _this2.lang = {
+    return (_temp = _this2 = _FirstCounterService.call.apply(_FirstCounterService, [this].concat(args)) || this, _this2.lang = {
       add: 'cloned Add',
       error: 'cloned Gen error'
     }, _temp) || _this2;
   }
 
-  return ClonedCounter;
-}(Counter);
+  return SecondCounterService;
+}(FirstCounterService);
 
-function ClonedCounterMessageView(_ref2) {
+function SecondCounterMessageView(_ref2) {
   var value = _ref2.value;
-  return lom_h("div", null, "cloned Count: ", value);
+  return lom_h("div", null, "SecondCounter Count: ", value);
 }
 
-ClonedCounterMessageView._r = [1];
-var ClonedCounterView = cloneComponent(BaseCounterView, [[Counter, ClonedCounter], [CounterMessageView, ClonedCounterMessageView]], 'ClonedCounterView');
+SecondCounterMessageView._r = [1];
+
+function SecondCounterAddView(_ref3) {
+  var onClick = _ref3.onClick,
+      children = _ref3.children;
+  return lom_h("button", {
+    id: "SecondCounterAdd",
+    onClick: onClick
+  }, "SecondCounterAdd: ", children);
+}
+
+SecondCounterAddView._r = [1];
+var SecondCounterView = cloneComponent(FirstCounterView, [[FirstCounterService, SecondCounterService], [CounterMessageView, SecondCounterMessageView], ['FirstCounterAdd', SecondCounterAddView], ['FirstCounterGenError', null]], 'SecondCounterView');
+
+function ThirdCounterAddView(_ref4) {
+  var onClick = _ref4.onClick,
+      children = _ref4.children;
+  return lom_h("button", {
+    id: "ThirdCounterAdd",
+    onClick: onClick
+  }, "ThirdCounterAdd: ", children);
+}
+
+ThirdCounterAddView._r = [1];
+var ThirdCounterView = cloneComponent(SecondCounterView, [['FirstCounterAdd', ThirdCounterAddView]], 'ThirdCounterView');
 function CounterView() {
-  return lom_h("div", null, lom_h(BaseCounterView, null), lom_h(ClonedCounterView, null));
+  return lom_h("ul", null, lom_h("li", null, "FirstCounter: ", lom_h(FirstCounterView, null)), lom_h("li", null, "SecondCounter extends FirstCounter: ", lom_h(SecondCounterView, null)), lom_h("li", null, "ThirdCounter extends SecondCounter: ", lom_h(ThirdCounterView, null)));
 }
 CounterView._r = [1];
 
@@ -6943,10 +6970,6 @@ globToRegexp._r = [2];
 var isarray = Array.isArray || function (arr) {
   return Object.prototype.toString.call(arr) == '[object Array]';
 };
-
-/**
- * Expose `pathToRegexp`.
- */
 
 var pathToRegexp_1 = pathToRegexp;
 var parse_1 = parse;

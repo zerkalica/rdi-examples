@@ -3,8 +3,8 @@
 import {mem, force} from 'lom_atom'
 import {cloneComponent} from 'reactive-di'
 
-class Counter {
-    @force $: Counter
+class FirstCounterService {
+    @force $: FirstCounterService
     lang = {
         add: 'Add',
         error: 'Gen error'
@@ -31,38 +31,61 @@ function CounterMessageView({value}: {value: number}) {
     </div>
 }
 
-function BaseCounterView(
+function FirstCounterView(
     _: {},
-    counter: Counter
+    counter: FirstCounterService
 ) {
     return <div>
         <CounterMessageView value={counter.value}/>
-        <button onClick={() => { counter.value++ }}>{counter.lang.add}</button>
-        <button onClick={() => { counter.$.value = ('someStr': any) }}>{counter.lang.error}</button>
+        <button id="FirstCounterAddButton" onClick={() => { counter.value++ }}>{counter.lang.add}</button>
+        <button id="FirstCounterGenErrorButton" onClick={() => { counter.$.value = ('someStr': any) }}>{counter.lang.error}</button>
     </div>
 }
 
-class ClonedCounter extends Counter {
+class SecondCounterService extends FirstCounterService {
     lang = {
         add: 'cloned Add',
         error: 'cloned Gen error'
     }
 }
 
-function ClonedCounterMessageView({value}: {value: number}) {
+function SecondCounterMessageView({value}: {value: number}) {
     return <div>
-        cloned Count: {value}
+        SecondCounter Count: {value}
     </div>
 }
 
-const ClonedCounterView = cloneComponent(BaseCounterView, [
-    [Counter, ClonedCounter],
-    [CounterMessageView, ClonedCounterMessageView]
-], 'ClonedCounterView')
+function SecondCounterAddButtonView(
+    {onClick, children}: {
+        onClick: () => void, children: string
+    }
+) {
+    return <button id="SecondCounterAddButton" onClick={onClick}>SecondCounterAddButton: {children}</button>
+}
+
+const SecondCounterView = cloneComponent(FirstCounterView, [
+    [FirstCounterService, SecondCounterService],
+    [CounterMessageView, SecondCounterMessageView],
+    ['FirstCounterAddButton', SecondCounterAddButtonView],
+    ['FirstCounterGenErrorButton', null]
+], 'SecondCounterView')
+
+function ThirdCounterAddButtonView(
+    {onClick, children}: {
+        onClick: () => void, children: string
+    }
+) {
+    return <button id="ThirdCounterAddButton" onClick={onClick}>ThirdCounterAddButton: {children}</button>
+}
+
+const ThirdCounterView = cloneComponent(SecondCounterView, [
+    ['FirstCounterAddButton', ThirdCounterAddButtonView]
+], 'ThirdCounterView')
 
 export function CounterView() {
-    return <div>
-        <BaseCounterView/>
-        <ClonedCounterView/>
-    </div>
+    return <ul>
+        <li>FirstCounter: <FirstCounterView/></li>
+        <li>SecondCounter extends FirstCounter: <SecondCounterView/></li>
+        <li>ThirdCounter extends SecondCounter: <ThirdCounterView/></li>
+    </ul>
 }
