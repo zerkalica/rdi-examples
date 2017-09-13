@@ -1,6 +1,6 @@
 // @flow
 
-import {serializable, action, props, mem} from 'lom_atom'
+import {action, props, mem} from 'lom_atom'
 import type {ResultOf, NamesOf} from 'lom_atom'
 import type {ITodo} from './TodoService'
 import TodoService from './TodoService'
@@ -13,7 +13,7 @@ interface ITodoProps {
 }
 
 class TodoItemStore {
-    @serializable @mem todoBeingEditedId: ?string = null
+    @mem todoBeingEditedId: ?string = null
     @mem editText = ''
 
     @props props: ITodoProps

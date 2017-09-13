@@ -307,20 +307,28 @@ function actualizeMaster(master) {
 actualizeMaster._r = [2];
 
 var Atom = function () {
-  function Atom(field, host, context, key, normalize, isComponent, ptr) {
+  function Atom(field, host, context, normalize, key, isComponent) {
     this._masters = null;
     this._slaves = null;
-    this.field = field;
     this.key = key;
+    this.field = field;
     this.host = host;
     this.isComponent = isComponent || false;
     this._normalize = normalize || defaultNormalize;
     this._context = context;
-    var value = ptr === undefined ? undefined : key === undefined ? ptr[field] : ptr[key];
-    this.status = value === undefined ? ATOM_STATUS_OBSOLETE : ATOM_STATUS_ACTUAL;
-    this.cached = value;
-    this._ptr = ptr;
+    this.value = context.create(host, field, key);
+    this.status = this.value === undefined ? ATOM_STATUS_OBSOLETE : ATOM_STATUS_ACTUAL;
   }
+
+  Atom.prototype.toString = function toString() {
+    var hc = this.host.constructor;
+    var k = this.key;
+    return (this.host.displayName || (hc ? String(hc.displayName || hc.name) : '')) + '.' + this.field + (k ? '(' + (typeof k === 'function' ? k.displayName || k.name : String(k)) + ')' : '');
+  };
+
+  Atom.prototype.toJSON = function toJSON() {
+    return this.value;
+  };
 
   Atom.prototype.destroyed = function destroyed(isDestroyed) {
     if (isDestroyed === undefined) {
@@ -337,21 +345,14 @@ var Atom = function () {
 
         this._checkSlaves();
 
-        this._context.destroyHost(this);
-
-        this.cached = undefined;
-        var ptr = this._ptr;
-
-        if (ptr !== undefined) {
-          if (this.key !== undefined) {
-            ptr[this.key] = undefined;
-          } else {
-            ptr[this.field] = null;
-          }
+        if (this.host.destroy !== undefined) {
+          this.host.destroy(this.value, this.field, this.key);
         }
 
+        this._context.destroyHost(this);
+
+        this.value = undefined;
         this.status = ATOM_STATUS_DESTROYED;
-        this.key = undefined;
       }
 
       return true;
@@ -382,11 +383,11 @@ var Atom = function () {
       slave.addMaster(this);
     }
 
-    return this.cached;
+    return this.value;
   };
 
   Atom.prototype.set = function set$$1(v, force) {
-    var oldValue = this.cached;
+    var oldValue = this.value;
 
     var normalized = this._normalize(v, oldValue);
 
@@ -400,16 +401,7 @@ var Atom = function () {
 
     if (!force || normalized instanceof Error) {
       this.status = ATOM_STATUS_ACTUAL;
-      this.cached = normalized instanceof Error ? createMock(normalized) : normalized;
-      var ptr = this._ptr;
-
-      if (ptr !== undefined) {
-        if (this.key !== undefined) {
-          ptr[this.key] = this.cached;
-        } else {
-          ptr[this.field] = this.cached;
-        }
-      }
+      this.value = normalized instanceof Error ? createMock(normalized) : normalized;
 
       this._context.newValue(this, oldValue, normalized);
 
@@ -421,7 +413,7 @@ var Atom = function () {
       this.actualize(normalized);
     }
 
-    return this.cached;
+    return this.value;
   };
 
   Atom.prototype.actualize = function actualize(proposedValue) {
@@ -454,10 +446,10 @@ var Atom = function () {
     var context = this._context;
     var slave = context.last;
     context.last = this;
-    var cached = this.cached;
+    var value = this.value;
 
     try {
-      newValue = this._normalize(this.key === undefined ? this.host[this.field + '$'](proposedValue, force, cached) : this.host[this.field + '$'](this.key, proposedValue, force, cached), cached);
+      newValue = this._normalize(this.key === undefined ? this.host[this.field + '$'](proposedValue, force, value) : this.host[this.field + '$'](this.key, proposedValue, force, value), value);
     } catch (error) {
       if (error[catchedId] === undefined) {
         error[catchedId] = true;
@@ -470,19 +462,10 @@ var Atom = function () {
     context.last = slave;
     this.status = ATOM_STATUS_ACTUAL;
 
-    if (newValue !== undefined && cached !== newValue) {
-      this.cached = newValue;
-      var ptr = this._ptr;
+    if (newValue !== undefined && value !== newValue) {
+      this.value = newValue;
 
-      if (ptr !== undefined) {
-        if (this.key !== undefined) {
-          ptr[this.key] = newValue;
-        } else {
-          ptr[this.field] = newValue;
-        }
-      }
-
-      this._context.newValue(this, cached, newValue, true);
+      this._context.newValue(this, value, newValue, true);
 
       if (this._slaves) {
         this._slaves.forEach(obsoleteSlave);
@@ -536,16 +519,10 @@ var Atom = function () {
     this._masters.add(master);
   };
 
-  Atom.prototype.value = function value(next, force) {
-    return next === undefined ? this.get(force) : this.set(next, force);
-  };
-
   createClass(Atom, [{
     key: "displayName",
     get: function get$$1() {
-      var hc = this.host.constructor;
-      var k = this.key;
-      return (this.host.displayName || (hc ? String(hc.displayName || hc.name) : '')) + '.' + this.field + (k ? '(' + (typeof k === 'function' ? k.displayName || k.name : String(k)) + ')' : '');
+      return this.toString();
     }
   }]);
   return Atom;
@@ -566,41 +543,6 @@ function reap(atom, key, reaping) {
 }
 
 reap._r = [2];
-
-function getKeyFromObj(params) {
-  var keys = Object.keys(params).sort();
-  var result = '';
-
-  for (var i = 0; i < keys.length; i++) {
-    var key = keys[i];
-    var value = params[key];
-    result += "." + key + ":" + (_typeof(value) === 'object' ? JSON.stringify(value) : value);
-  }
-
-  return result;
-}
-
-getKeyFromObj._r = [2];
-var lastId = 0;
-
-function getKey(params) {
-  if (typeof params === 'string' || typeof params === 'number') {
-    return params;
-  }
-
-  if (!params) {
-    return 0;
-  }
-
-  if (typeof params === 'function') {
-    params.__id = params.__id || ++lastId;
-    return params.__id;
-  }
-
-  return _typeof(params) === 'object' ? getKeyFromObj(params) : JSON.stringify(params);
-}
-
-getKey._r = [2];
 
 var BaseLogger = function () {
   function BaseLogger() {}
@@ -640,24 +582,9 @@ var ConsoleLogger = function (_BaseLogger) {
   return ConsoleLogger;
 }(BaseLogger);
 
-var NoSerializableException = function (_Error) {
-  inheritsLoose(NoSerializableException, _Error);
-
-  function NoSerializableException(host, field) {
-    var _this2;
-
-    _this2 = _Error.call(this, "" + (host.displayName || host.constructor.name) + (field ? "." + field : '') + " not a serializable") || this // $FlowFixMe new.target
-    ;
-    _this2['__proto__'] = new.target.prototype;
-    return _this2;
-  }
-
-  return NoSerializableException;
-}(Error);
-
 var Context = function () {
   function Context() {
-    var _this3 = this;
+    var _this2 = this;
 
     this.last = null;
     this._logger = undefined;
@@ -666,10 +593,10 @@ var Context = function () {
     this._scheduled = false;
 
     this.__run = function () {
-      if (_this3._scheduled) {
-        _this3._scheduled = false;
+      if (_this2._scheduled) {
+        _this2._scheduled = false;
 
-        _this3._run();
+        _this2._run();
       }
     };
 
@@ -677,124 +604,9 @@ var Context = function () {
     this._pendCount = 0;
   }
 
-  Context.prototype.hasAtom = function hasAtom(host, key) {
-    return host[getKey(key) + '@'] !== undefined; // const map = this._atomMap.get(host)
-    // return map !== undefined && map.has(getKey(key))
-  };
-
-  Context.prototype.getAtom = function getAtom(field, host, key, normalize, isComponent) {
-    // let map = this._atomMap.get(host)
-    // if (map === undefined) {
-    //     map = new Map()
-    //     this._atomMap.set(host, map)
-    // }
-    // let atom: IAtom<V> | void
-    // let dict = map
-    // let k
-    // if (key === undefined) {
-    //     k = field
-    //     atom = map.get(field)
-    // } else {
-    //     k = getKey(key)
-    //     dict = map.get(field)
-    //     if (dict === undefined) {
-    //         dict = new Map()
-    //         map.set(field, dict)
-    //     }
-    //     atom = dict.get(k)
-    // }
-    var k = key === undefined ? field + '@' : field + '.' + getKey(key) + '@';
-    var atom = host[k];
-
-    if (atom === undefined) {
-      var ptr = host.__lom_state;
-
-      if (ptr !== undefined) {
-        if (ptr[field] === undefined) {
-          ptr = undefined;
-        } else if (key !== undefined) {
-          if (ptr[field] === null) {
-            ptr[field] = {};
-          }
-
-          ptr = ptr[field];
-
-          if (_typeof(ptr) !== 'object') {
-            throw new NoSerializableException(host, field);
-          }
-        } else if (ptr[field] === null) {
-          ptr[field] = undefined;
-        }
-      }
-
-      if (this._logger !== undefined) {
-        this._logger.create(host, field, key);
-      }
-
-      atom = new Atom(field, host, this, key, normalize, isComponent, ptr) // dict.set(k, atom)
-      ;
-      host[k] = atom;
-    }
-
-    return atom;
-  };
-
-  Context.prototype.getState = function getState(host) {
-    if (!host.__lom_state) {
-      throw new NoSerializableException(host);
-    }
-
-    return host.__lom_state;
-  };
-
-  Context.prototype.setState = function setState(host, state, init) {
-    if (init) {
-      host.__lom_state = state;
-      return;
-    }
-
-    var oldState = host.__lom_state;
-
-    if (oldState === undefined) {
-      throw new NoSerializableException(host);
-    }
-
-    var fields = Object.keys(state);
-
-    for (var i = 0; i < fields.length; i++) {
-      var field = fields[i];
-      var value = state[field];
-
-      if (host[field + '?'] !== undefined) {
-        if (_typeof(value) !== 'object' || value === null) {
-          throw new NoSerializableException(host, field);
-        }
-
-        var keys = Object.keys(value);
-
-        for (var j = 0; j < keys.length; j++) {
-          var key = keys[j];
-          var atom = host[field + '.' + key + '@'];
-
-          if (atom !== undefined) {
-            atom.set(value[key]);
-          } else {
-            if (!oldState[field]) {
-              oldState[field] = {};
-            }
-
-            oldState[field][key] = value[key];
-          }
-        }
-      } else {
-        var _atom = host[field + '@'];
-
-        if (_atom !== undefined) {
-          _atom.set(value);
-        } else {
-          oldState[field] = value;
-        }
-      }
+  Context.prototype.create = function create(host, field, key) {
+    if (this._logger !== undefined) {
+      return this._logger.create(host, field, key);
     }
   };
 
@@ -802,32 +614,6 @@ var Context = function () {
     if (this._logger !== undefined) {
       this._logger.destroy(atom);
     }
-
-    var host = atom.host;
-    var k = atom.key === undefined ? atom.field + '@' : atom.field + '.' + getKey(atom.key) + '@';
-    host[k] = undefined;
-
-    if (host._destroyProp !== undefined) {
-      host._destroyProp(atom.key || atom.field, atom.cached);
-    }
-
-    if (host._destroy !== undefined && atom.key === undefined) {
-      host._destroy();
-    } // const map = this._atomMap.get(host)
-    // if (map !== undefined) {
-    //     if (host._destroyProp !== undefined) {
-    //         host._destroyProp(atom.key === undefined ? atom.field : atom.key, atom.cached)
-    //     }
-    //
-    //     map.delete(atom.key === undefined ? atom.field : getKey(atom.key))
-    //     if (map.size === 0) {
-    //         if (host._destroy !== undefined) {
-    //             host._destroy()
-    //         }
-    //         this._atomMap.delete(host)
-    //     }
-    // }
-
   };
 
   Context.prototype.setLogger = function setLogger(logger) {
@@ -835,16 +621,14 @@ var Context = function () {
   };
 
   Context.prototype.newValue = function newValue(atom, from, to, isActualize) {
-    if (this._logger === undefined) {
-      return;
-    }
-
-    if (to instanceof AtomWait) {
-      this._logger.status('waiting', atom);
-    } else if (to instanceof Error) {
-      this._logger.error(atom, to);
-    } else {
-      this._logger.newValue(atom, from, to, isActualize);
+    if (this._logger !== undefined) {
+      if (to instanceof AtomWait) {
+        this._logger.status('waiting', atom);
+      } else if (to instanceof Error) {
+        this._logger.error(atom, to);
+      } else {
+        this._logger.newValue(atom, from, to, isActualize);
+      }
     }
   };
 
@@ -931,18 +715,37 @@ var Context = function () {
 var defaultContext = new Context();
 
 function memMethod(proto, name, descr, normalize, isComponent) {
-  var handlerKey = name + "$";
-
   if (descr.value === undefined) {
     throw new TypeError(name + " is not an function (next?: V)");
   }
 
-  proto[handlerKey] = descr.value;
+  proto[name + "$"] = descr.value;
+  var hostAtoms = new WeakMap();
+  Object.defineProperty(proto, name + "()", {
+    get: function get$$1() {
+      return hostAtoms.get(this);
+    }
+  });
+
+  var forcedFn = function forcedFn(next, force) {
+    return this[name](next, force === undefined ? true : force);
+  };
+
+  forcedFn._r = [2];
+  forcedFn.displayName = name + "*";
+  proto[name + "*"] = forcedFn;
   return {
     enumerable: descr.enumerable,
     configurable: descr.configurable,
     value: function value(next, force) {
-      return defaultContext.getAtom(name, this, undefined, normalize, isComponent).value(next, force);
+      var atom = hostAtoms.get(this);
+
+      if (atom === undefined) {
+        atom = new Atom(name, this, defaultContext, normalize, undefined, isComponent);
+        hostAtoms.set(this, atom);
+      }
+
+      return next === undefined ? atom.get(force) : atom.set(next, force);
     }
   };
 }
@@ -978,32 +781,75 @@ function memProp(proto, name, descr, normalize) {
     return undefined;
   }
 
-  proto[name + "#"] = true;
   proto[handlerKey] = descr.get === undefined && descr.set === undefined ? createValueHandler(descr.initializer) : createGetSetHandler(descr.get, descr.set);
+  var hostAtoms = new WeakMap();
+  Object.defineProperty(proto, name + "()", {
+    get: function get$$1() {
+      return hostAtoms.get(this);
+    }
+  });
   return {
     enumerable: descr.enumerable,
     configurable: descr.configurable,
     get: function get$$1() {
-      if (isForced) {
-        isForced = false;
-        return defaultContext.getAtom(name, this, undefined, normalize).get(true);
+      var atom = hostAtoms.get(this);
+
+      if (atom === undefined) {
+        atom = new Atom(name, this, defaultContext, normalize);
+        hostAtoms.set(this, atom);
       }
 
-      return defaultContext.getAtom(name, this, undefined, normalize).get();
-    },
-    set: function set$$1(val) {
       if (isForced) {
         isForced = false;
-        defaultContext.getAtom(name, this, undefined, normalize).set(val, true);
+        return atom.get(true);
+      }
+
+      return atom.get();
+    },
+    set: function set$$1(val) {
+      var atom = hostAtoms.get(this);
+
+      if (atom === undefined) {
+        atom = new Atom(name, this, defaultContext, normalize);
+        hostAtoms.set(this, atom);
+      }
+
+      if (isForced) {
+        isForced = false;
+        atom.set(val, true);
         return;
       }
 
-      defaultContext.getAtom(name, this, undefined, normalize).set(val);
+      atom.set(val);
     }
   };
 }
 
 memProp._r = [2];
+
+function getKeyFromObj(params) {
+  var keys = Object.keys(params).sort();
+  var result = '';
+
+  for (var i = 0; i < keys.length; i++) {
+    var key = keys[i];
+    var _value = params[key];
+    result += "." + key + ":" + (_typeof(_value) === 'object' ? JSON.stringify(_value) : _value);
+  }
+
+  return result;
+}
+
+getKeyFromObj._r = [2];
+
+function getKey(params) {
+  if (!params) return '';
+  if (params instanceof Array) return JSON.stringify(params);
+  if (_typeof(params) === 'object') return getKeyFromObj(params);
+  return '' + params;
+}
+
+getKey._r = [2];
 
 function memKeyMethod(proto, name, descr, normalize) {
   var handler = descr.value;
@@ -1012,18 +858,41 @@ function memKeyMethod(proto, name, descr, normalize) {
     throw new TypeError(name + " is not an function (rawKey: K, next?: V)");
   }
 
-  var handlerKey = name + "$";
-  proto[handlerKey] = handler;
+  proto[name + "$"] = handler;
+  var hostAtoms = new WeakMap();
+  Object.defineProperty(proto, name + "()", {
+    get: function get$$1() {
+      return hostAtoms.get(this);
+    }
+  });
 
-  proto[handlerKey + '?'] = function (rawKey) {
-    return defaultContext.hasAtom(this, rawKey);
+  var forcedFn = function forcedFn(rawKey, next, force) {
+    return this[name](rawKey, next, force === undefined ? true : force);
   };
 
+  forcedFn._r = [2];
+  forcedFn.displayName = name + "*";
+  proto[name + "*"] = forcedFn;
   return {
     enumerable: descr.enumerable,
     configurable: descr.configurable,
     value: function value(rawKey, next, force) {
-      return defaultContext.getAtom(name, this, rawKey, normalize).value(next, force);
+      var atomMap = hostAtoms.get(this);
+
+      if (atomMap === undefined) {
+        atomMap = new Map();
+        hostAtoms.set(this, atomMap);
+      }
+
+      var key = getKey(rawKey);
+      var atom = atomMap.get(key);
+
+      if (atom === undefined) {
+        atom = new Atom(name, this, defaultContext, normalize, rawKey);
+        atomMap.set(key, atom);
+      }
+
+      return next === undefined ? atom.get(force) : atom.set(next, force);
     }
   };
 }
@@ -1044,28 +913,18 @@ function memkey() {
 memkey._r = [2];
 var forceProxyOpts = {
   get: function get$$1(t, name) {
-    // is property or get/set magic ?
-    if (t[name + '#'] !== undefined) {
+    var forceFn = t[name + "*"]; // is property or get/set magic ?
+
+    if (forceFn === undefined) {
       isForced = true;
       return t[name];
     }
 
-    var forcedFn = t[name + '$f'];
-
-    if (forcedFn === undefined) {
-      forcedFn = function forcedFn(a, b, c) {
-        return t[name + '$?'] === undefined ? t[name](a, true) : t[name](a, b, true);
-      };
-
-      forcedFn.displayName = name + '$f';
-      t[name + '$f'] = forcedFn;
-    }
-
-    return forcedFn;
+    return forceFn.bind(t);
   },
   set: function set$$1(t, name, val) {
     // is property or get/set magic ?
-    if (t[name + '#'] !== undefined) {
+    if (t[name + "*"] === undefined) {
       isForced = true;
       t[name] = val;
       return true;
@@ -1075,17 +934,21 @@ var forceProxyOpts = {
   }
 };
 
-function forceGet() {
-  return new Proxy(this, forceProxyOpts);
-}
-
-forceGet._r = [2];
-
 function force(proto, name, descr) {
+  var proxyMap = new WeakMap();
   return {
     enumerable: descr.enumerable,
     configurable: descr.configurable,
-    get: forceGet
+    get: function get$$1() {
+      var proxy = proxyMap.get(this);
+
+      if (proxy === undefined) {
+        proxy = new Proxy(this, forceProxyOpts);
+        proxyMap.set(this, proxy);
+      }
+
+      return proxy;
+    }
   };
 }
 
@@ -1248,16 +1111,6 @@ function props(proto, name, descr) {
 }
 
 props._r = [2];
-
-function serializable(proto, name, descr) {
-  if (!proto.__lom_state) {
-    proto.__lom_state = {};
-  }
-
-  proto.__lom_state[name] = null;
-}
-
-serializable._r = [2];
 mem.Wait = AtomWait;
 mem.key = memkey;
 mem.detached = detached;
@@ -1267,6 +1120,24 @@ var _typeof$2 = typeof Symbol === "function" && _typeof$1(Symbol.iterator) === "
 } : function (obj) {
   return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : _typeof$1(obj);
 };
+
+var createClass$2 = function () {
+  function defineProperties(target, props$$1) {
+    for (var i = 0; i < props$$1.length; i++) {
+      var descriptor = props$$1[i];
+      descriptor.enumerable = descriptor.enumerable || false;
+      descriptor.configurable = true;
+      if ("value" in descriptor) descriptor.writable = true;
+      Object.defineProperty(target, descriptor.key, descriptor);
+    }
+  }
+
+  return function (Constructor, protoProps, staticProps) {
+    if (protoProps) defineProperties(Constructor.prototype, protoProps);
+    if (staticProps) defineProperties(Constructor, staticProps);
+    return Constructor;
+  };
+}();
 
 var inheritsLoose$2 = function inheritsLoose(subClass, superClass) {
   subClass.prototype = Object.create(superClass.prototype);
@@ -1355,10 +1226,8 @@ var SheetManager = (_class2$1 = function () {
     return oldValue;
   };
 
-  SheetManager.prototype._destroyProp = function _destroyProp(key, value) {
-    if (value !== undefined) {
-      value.detach();
-    }
+  SheetManager.prototype.destroy = function destroy(value) {
+    value.detach();
   };
 
   return SheetManager;
@@ -1373,11 +1242,10 @@ var Alias = function Alias(dest) {
 Alias._r = [2];
 
 var Injector = function () {
-  function Injector(items, sheetProcessor, state, displayName, instance, cache) {
+  function Injector(items, sheetProcessor, displayName, instance, cache) {
     this._resolved = false;
     this._listeners = undefined;
     this._instance = instance || 0;
-    this._state = state || null;
     this.displayName = displayName || '$';
     this._sheetManager = sheetProcessor instanceof SheetManager ? sheetProcessor : new SheetManager(sheetProcessor, this);
     var map = this._cache = cache || Object.create(null);
@@ -1412,6 +1280,14 @@ var Injector = function () {
     }
   }
 
+  Injector.prototype.toString = function toString() {
+    return this.displayName;
+  };
+
+  Injector.prototype.toJSON = function toJSON() {
+    return this._cache;
+  };
+
   Injector.prototype.value = function value(key) {
     var id = key.__rdi_id;
 
@@ -1423,16 +1299,9 @@ var Injector = function () {
 
     if (value === undefined) {
       value = this._cache[id] = this._fastNew(key);
-      var keyName = (key.displayName || key.name) + (this._instance > 0 ? '[' + this._instance + ']' : '');
-      value.displayName = this.displayName + '.' + keyName;
-      var state = this._state;
 
-      if (state && value.__lom_state !== undefined) {
-        if (state[keyName] === undefined) {
-          state[keyName] = Object.create(value.__lom_state);
-        }
-
-        defaultContext.setState(value, state[keyName], true);
+      if (!value.displayName) {
+        value.displayName = this.displayName + '.' + (key.displayName || key.name) + (this._instance > 0 ? '[' + this._instance + ']' : '');
       }
     } else if (value instanceof Alias) {
       value = this._cache[id] = this.value(value.dest);
@@ -1442,7 +1311,6 @@ var Injector = function () {
   };
 
   Injector.prototype.destroy = function destroy() {
-    this._state = undefined;
     this._cache = undefined;
     this._listeners = undefined;
     this._sheetManager = undefined;
@@ -1578,7 +1446,7 @@ var Injector = function () {
   };
 
   Injector.prototype.copy = function copy(items, displayName, instance) {
-    return new Injector(items, this._sheetManager, this._state, this.displayName + '.' + displayName, instance, Object.create(this._cache));
+    return new Injector(items, this._sheetManager, this.displayName + '.' + displayName, instance, Object.create(this._cache));
   };
 
   Injector.prototype.resolve = function resolve(argDeps) {
@@ -1757,7 +1625,7 @@ function createReactWrapper(BaseComponent, defaultFromError) {
       _this = _BaseComponent.call(this, props$$1, reactContext) || this;
       _this._propsChanged = true;
       _this._el = undefined;
-      _this._keys = Object.keys(props$$1);
+      _this._keys = props$$1 ? Object.keys(props$$1) : undefined;
       var cns = _this.constructor;
       var parentInjector = props$$1.__lom_ctx || rootInjector;
       _this._render = cns.render;
@@ -1767,12 +1635,16 @@ function createReactWrapper(BaseComponent, defaultFromError) {
       return _this;
     }
 
+    AtomizedComponent.prototype.toString = function toString() {
+      return this._injector.displayName + "." + this.constructor.displayName;
+    };
+
     AtomizedComponent.prototype.shouldComponentUpdate = function shouldComponentUpdate(props$$1) {
       var keys = this._keys;
-      if (this._render === undefined) return false;
+      if (!keys) return false;
       var oldProps = this.props;
 
-      for (var i = 0; i < keys.length; i++) {
+      for (var i = 0, l = keys.length; i < l; i++) {
         // eslint-disable-line
         var k = keys[i];
 
@@ -1782,15 +1654,14 @@ function createReactWrapper(BaseComponent, defaultFromError) {
         }
       }
 
-      return false; // this._propsChanged = shouldUpdate(this.props, props)
-      // return this._propsChanged
+      return false;
     };
 
     AtomizedComponent.prototype.componentWillUnmount = function componentWillUnmount() {
-      defaultContext.getAtom('r', this).destroyed(true);
+      this['r()'].destroyed(true);
     };
 
-    AtomizedComponent.prototype._destroy = function _destroy() {
+    AtomizedComponent.prototype.destroy = function destroy() {
       this._el = undefined;
       this._keys = undefined;
       this.props = undefined;
@@ -1834,6 +1705,12 @@ function createReactWrapper(BaseComponent, defaultFromError) {
       return this._el === undefined ? this.r(undefined, this._propsChanged) : this._el;
     };
 
+    createClass$2(AtomizedComponent, [{
+      key: "displayName",
+      get: function get$$1() {
+        return this.toString();
+      }
+    }]);
     return AtomizedComponent;
   }(BaseComponent), _applyDecoratedDescriptor$1$1(_class.prototype, "r", [detached], Object.getOwnPropertyDescriptor(_class.prototype, "r"), _class.prototype), _class);
   return function reactWrapper(render) {
@@ -3391,7 +3268,7 @@ var devtools = createCommonjsModule(function (module, exports) {
     }
 
     initDevTools();
-  }); //# sourceMappingURL=devtools.js.map
+  }); 
 
 });
 
@@ -3595,6 +3472,16 @@ Item.prototype.run = function () {
 
  // from https://github.com/kumavis/browser-process-hrtime/blob/master/index.js
 
+// see http://nodejs.org/api/process.html#process_process_hrtime
+
+/**
+ * Copyright 2014-2015, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ */
 'use strict';
 /**
  * Similar to invariant but only logs a warning if the condition is not met.
@@ -6676,8 +6563,7 @@ ErrorableView._r = [1];
 var jss = lib_1({
   plugins: [jssNested(), jssCamel(), jssGlobal()]
 });
-var defaultState = {};
-var injector = new Injector([[AbstractLocationStore, new BrowserLocationStore(location, history)]], jss, defaultState);
+var injector = new Injector([[AbstractLocationStore, new BrowserLocationStore(location, history)]], jss);
 var lomCreateElement = createCreateElement(createReactWrapper(Component, ErrorableView, injector), h);
 global$1['lom_h'] = lomCreateElement;
 
@@ -6766,12 +6652,12 @@ function FirstCounterView(_, counter) {
   return lom_h("div", null, lom_h(CounterMessageView, {
     value: counter.value
   }), lom_h("button", {
-    id: "FirstCounterAdd",
+    id: "FirstCounterAddButton",
     onClick: function onClick() {
       counter.value++;
     }
   }, counter.lang.add), lom_h("button", {
-    id: "FirstCounterGenError",
+    id: "FirstCounterGenErrorButton",
     onClick: function onClick() {
       counter.$.value = 'someStr';
     }
@@ -6806,29 +6692,29 @@ function SecondCounterMessageView(_ref2) {
 
 SecondCounterMessageView._r = [1];
 
-function SecondCounterAddView(_ref3) {
+function SecondCounterAddButtonView(_ref3) {
   var onClick = _ref3.onClick,
       children = _ref3.children;
   return lom_h("button", {
-    id: "SecondCounterAdd",
+    id: "SecondCounterAddButton",
     onClick: onClick
-  }, "SecondCounterAdd: ", children);
+  }, "SecondCounterAddButton: ", children);
 }
 
-SecondCounterAddView._r = [1];
-var SecondCounterView = cloneComponent(FirstCounterView, [[FirstCounterService, SecondCounterService], [CounterMessageView, SecondCounterMessageView], ['FirstCounterAdd', SecondCounterAddView], ['FirstCounterGenError', null]], 'SecondCounterView');
+SecondCounterAddButtonView._r = [1];
+var SecondCounterView = cloneComponent(FirstCounterView, [[FirstCounterService, SecondCounterService], [CounterMessageView, SecondCounterMessageView], ['FirstCounterAddButton', SecondCounterAddButtonView], ['FirstCounterGenErrorButton', null]], 'SecondCounterView');
 
-function ThirdCounterAddView(_ref4) {
+function ThirdCounterAddButtonView(_ref4) {
   var onClick = _ref4.onClick,
       children = _ref4.children;
   return lom_h("button", {
-    id: "ThirdCounterAdd",
+    id: "ThirdCounterAddButton",
     onClick: onClick
-  }, "ThirdCounterAdd: ", children);
+  }, "ThirdCounterAddButton: ", children);
 }
 
-ThirdCounterAddView._r = [1];
-var ThirdCounterView = cloneComponent(SecondCounterView, [['FirstCounterAdd', ThirdCounterAddView]], 'ThirdCounterView');
+ThirdCounterAddButtonView._r = [1];
+var ThirdCounterView = cloneComponent(SecondCounterView, [['FirstCounterAddButton', ThirdCounterAddButtonView]], 'ThirdCounterView');
 function CounterView() {
   return lom_h("ul", null, lom_h("li", null, "FirstCounter: ", lom_h(FirstCounterView, null)), lom_h("li", null, "SecondCounter extends FirstCounter: ", lom_h(SecondCounterView, null)), lom_h("li", null, "ThirdCounter extends SecondCounter: ", lom_h(ThirdCounterView, null)));
 }
@@ -6970,6 +6856,10 @@ globToRegexp._r = [2];
 var isarray = Array.isArray || function (arr) {
   return Object.prototype.toString.call(arr) == '[object Array]';
 };
+
+/**
+ * Expose `pathToRegexp`.
+ */
 
 var pathToRegexp_1 = pathToRegexp;
 var parse_1 = parse;
@@ -8332,7 +8222,7 @@ mockFetch._r = [2, [Storage]];
 var _class$3;
 var _descriptor$2;
 var _class3;
-var _descriptor2$1;
+var _descriptor2;
 
 function _initDefineProp$2(target, property, descriptor, context) {
   if (!descriptor) return;
@@ -8383,7 +8273,7 @@ var Hello = (_class$3 = function Hello() {
 })), _class$3);
 var HelloOptions = (_class3 = function () {
   function HelloOptions() {
-    _initDefineProp$2(this, "_props", _descriptor2$1, this);
+    _initDefineProp$2(this, "_props", _descriptor2, this);
   }
 
   createClass$1(HelloOptions, [{
@@ -8394,7 +8284,7 @@ var HelloOptions = (_class3 = function () {
     set: function set$$1(name) {}
   }]);
   return HelloOptions;
-}(), (_descriptor2$1 = _applyDecoratedDescriptor$4(_class3.prototype, "_props", [mem, props], {
+}(), (_descriptor2 = _applyDecoratedDescriptor$4(_class3.prototype, "_props", [mem, props], {
   enumerable: true,
   initializer: null
 }), _applyDecoratedDescriptor$4(_class3.prototype, "actionName", [mem], Object.getOwnPropertyDescriptor(_class3.prototype, "actionName"), _class3.prototype), _applyDecoratedDescriptor$4(_class3.prototype, "actionName", [mem], Object.getOwnPropertyDescriptor(_class3.prototype, "actionName"), _class3.prototype)), _class3);
@@ -8856,7 +8746,7 @@ var TodoService = (_class2$2 = function () {
   initializer: function initializer() {
     return 0;
   }
-}), _applyDecoratedDescriptor$6(_class2$2.prototype, "todoExtInfo", [serializable, memkey], Object.getOwnPropertyDescriptor(_class2$2.prototype, "todoExtInfo"), _class2$2.prototype), _applyDecoratedDescriptor$6(_class2$2.prototype, "todos", [serializable, mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "todos"), _class2$2.prototype), _applyDecoratedDescriptor$6(_class2$2.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "todos"), _class2$2.prototype), _applyDecoratedDescriptor$6(_class2$2.prototype, "activeTodoCount", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "activeTodoCount"), _class2$2.prototype), _applyDecoratedDescriptor$6(_class2$2.prototype, "remove", [action], Object.getOwnPropertyDescriptor(_class2$2.prototype, "remove"), _class2$2.prototype), _applyDecoratedDescriptor$6(_class2$2.prototype, "toggleAll", [action], Object.getOwnPropertyDescriptor(_class2$2.prototype, "toggleAll"), _class2$2.prototype)), _class2$2);
+}), _applyDecoratedDescriptor$6(_class2$2.prototype, "todoExtInfo", [memkey], Object.getOwnPropertyDescriptor(_class2$2.prototype, "todoExtInfo"), _class2$2.prototype), _applyDecoratedDescriptor$6(_class2$2.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "todos"), _class2$2.prototype), _applyDecoratedDescriptor$6(_class2$2.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "todos"), _class2$2.prototype), _applyDecoratedDescriptor$6(_class2$2.prototype, "activeTodoCount", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "activeTodoCount"), _class2$2.prototype), _applyDecoratedDescriptor$6(_class2$2.prototype, "remove", [action], Object.getOwnPropertyDescriptor(_class2$2.prototype, "remove"), _class2$2.prototype), _applyDecoratedDescriptor$6(_class2$2.prototype, "toggleAll", [action], Object.getOwnPropertyDescriptor(_class2$2.prototype, "toggleAll"), _class2$2.prototype)), _class2$2);
 
 var _class$5;
 
@@ -9059,7 +8949,7 @@ TodoHeaderView._r = [1, [{
 
 var _class$7;
 var _descriptor$5;
-var _descriptor2$2;
+var _descriptor2$1;
 var _descriptor3;
 
 function _initDefineProp$5(target, property, descriptor, context) {
@@ -9109,7 +8999,7 @@ var TodoItemStore = (_class$7 = function () {
 
     _initDefineProp$5(this, "todoBeingEditedId", _descriptor$5, this);
 
-    _initDefineProp$5(this, "editText", _descriptor2$2, this);
+    _initDefineProp$5(this, "editText", _descriptor2$1, this);
 
     _initDefineProp$5(this, "props", _descriptor3, this);
 
@@ -9175,12 +9065,12 @@ var TodoItemStore = (_class$7 = function () {
   };
 
   return TodoItemStore;
-}(), (_descriptor$5 = _applyDecoratedDescriptor$9(_class$7.prototype, "todoBeingEditedId", [serializable, mem], {
+}(), (_descriptor$5 = _applyDecoratedDescriptor$9(_class$7.prototype, "todoBeingEditedId", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return null;
   }
-}), _descriptor2$2 = _applyDecoratedDescriptor$9(_class$7.prototype, "editText", [mem], {
+}), _descriptor2$1 = _applyDecoratedDescriptor$9(_class$7.prototype, "editText", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return '';
@@ -9736,7 +9626,6 @@ autocompleteMocks._r = [2, [Storage]];
 
 var _class;
 var _descriptor;
-var _descriptor2;
 var _class2;
 var _temp;
 
@@ -9782,18 +9671,10 @@ function _applyDecoratedDescriptor(target, property, decorators, descriptor, con
 mockFetch(localStorage, 500, [todoMocks, autocompleteMocks]);
 var Store = (_class = (_temp = _class2 = function () {
   function Store(locationStore) {
-    var _this = this;
-
     this._locationStore = void 0;
     this.pages = ['hello', 'counter', 'error', 'todomvc', 'autocomplete'];
 
     _initDefineProp(this, "name", _descriptor, this);
-
-    _initDefineProp(this, "state", _descriptor2, this);
-
-    this.showState = function () {
-      _this.state = _extends({}, injector._state);
-    };
 
     this._locationStore = locationStore;
   }
@@ -9812,11 +9693,6 @@ var Store = (_class = (_temp = _class2 = function () {
   enumerable: true,
   initializer: function initializer() {
     return 'vvv';
-  }
-}), _descriptor2 = _applyDecoratedDescriptor(_class.prototype, "state", [mem], {
-  enumerable: true,
-  initializer: function initializer() {
-    return null;
   }
 })), _class);
 Store._r = [0, [AbstractLocationStore]];
@@ -9876,9 +9752,7 @@ function AppView(_ref, _ref2) {
       padding: '1em',
       margin: '0 1em'
     }
-  }, lom_h("h1", null, store.page), page), lom_h("button", {
-    onClick: store.showState
-  }, "Show state"), store.state ? lom_h("pre", null, JSON.stringify(store.state, null, '  ')) : null, lom_h(ItemView, null, lom_h(ItemView.Key, null, "APPName:"), lom_h(ItemView.Value, null, lom_h("input", {
+  }, lom_h("h1", null, store.page), page), lom_h(ItemView, null, lom_h(ItemView.Key, null, "APPName:"), lom_h(ItemView.Value, null, lom_h("input", {
     value: store.name,
     onInput: function onInput(_ref3) {
       var target = _ref3.target;
@@ -9890,10 +9764,6 @@ function AppView(_ref, _ref2) {
 AppView._r = [1, [{
   store: Store
 }]];
-AppView.deps = [{
-  locale: Locale,
-  store: Store
-}];
 render(lom_h(AppView, {
   lang: "ru"
 }), document.getElementById('app'));

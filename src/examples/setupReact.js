@@ -40,15 +40,11 @@ const jss = createJss({
     ]
 })
 
-
-const defaultState = {}
-
 const injector = new Injector(
     [
         [AbstractLocationStore, new BrowserLocationStore(location, history)]
     ],
-    jss,
-    defaultState
+    jss
 )
 
 
@@ -61,5 +57,3 @@ const lomCreateElement = createCreateElement(
     h
 )
 global['lom_h'] = lomCreateElement
-
-export default injector
