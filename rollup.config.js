@@ -53,11 +53,6 @@ const baseConfig = {
     ].concat(process.env.UGLIFY === '1' ? [uglify({}, minify)] : [])
 }
 
-const perfPlugins = baseConfig.plugins.concat([
-    replace({
-        'process.env.NODE_ENV': JSON.stringify('production')
-    })
-])
 
 const examplesConfig = Object.assign({}, baseConfig, {
     input: 'src/examples/index.js',
@@ -73,18 +68,4 @@ const examplesConfig = Object.assign({}, baseConfig, {
     ])
 })
 
-function toConfig(name) {
-    return Object.assign({}, baseConfig, {
-        input: `src/perf/${name}/index.js`,
-        output: [
-            {file: `docs/perf/${name}/bundle.js`, format: 'iife', name: name.replace(/\-/g, '_')}
-        ],
-        plugins: perfPlugins
-    })
-}
-
-export default [
-     examplesConfig
-].concat([
-    'preact-raw', 'preact-mobx', 'preact-lom', 'preact-lom-rdi'
-].map(toConfig))
+export default examplesConfig

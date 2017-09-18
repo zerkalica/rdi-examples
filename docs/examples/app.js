@@ -1,4 +1,3 @@
-(function(l, i, v, e) { v = l.createElement(i); v.async = 1; v.src = '//' + (location.host || 'localhost').split(':')[0] + ':35729/livereload.js?snipver=1'; e = l.getElementsByTagName(i)[0]; e.parentNode.insertBefore(v, e)})(document, 'script');
 (function () {
 'use strict';
 
@@ -732,7 +731,7 @@ function memMethod(proto, name, descr, normalize, isComponent) {
   };
 
   forcedFn._r = [2];
-  forcedFn.displayName = name + "*";
+  setFunctionName(fn, name + "*");
   proto[name + "*"] = forcedFn;
   return {
     enumerable: descr.enumerable,
@@ -774,6 +773,16 @@ function createValueHandler(initializer) {
 createValueHandler._r = [2];
 var isForced = false;
 
+function setFunctionName(fn, name) {
+  Object.defineProperty(fn, 'name', {
+    value: name,
+    writable: false
+  });
+  fn.displayName = name;
+}
+
+setFunctionName._r = [2];
+
 function memProp(proto, name, descr, normalize) {
   var handlerKey = name + "$";
 
@@ -781,7 +790,11 @@ function memProp(proto, name, descr, normalize) {
     return undefined;
   }
 
-  proto[handlerKey] = descr.get === undefined && descr.set === undefined ? createValueHandler(descr.initializer) : createGetSetHandler(descr.get, descr.set);
+  if (descr.initializer) setFunctionName(descr.initializer, name);
+  if (descr.get) setFunctionName(descr.get, "get#" + name);
+  if (descr.set) setFunctionName(descr.set, "set#" + name);
+  var handler = proto[handlerKey] = descr.get === undefined && descr.set === undefined ? createValueHandler(descr.initializer) : createGetSetHandler(descr.get, descr.set);
+  setFunctionName(handler, name + "()");
   var hostAtoms = new WeakMap();
   Object.defineProperty(proto, name + "()", {
     get: function get$$1() {
@@ -871,7 +884,7 @@ function memKeyMethod(proto, name, descr, normalize) {
   };
 
   forcedFn._r = [2];
-  forcedFn.displayName = name + "*";
+  setFunctionName(fn, name + "*");
   proto[name + "*"] = forcedFn;
   return {
     enumerable: descr.enumerable,
@@ -998,7 +1011,7 @@ function createActionMethod(t, hk, context) {
     return result;
   }
 
-  action.displayName = hk;
+  setFunctionName(action, hk);
   return action;
 }
 
@@ -1042,7 +1055,7 @@ function createActionFn(fn, name, context) {
     return result;
   }
 
-  action.displayName = name || fn.displayName || fn.name;
+  setFunctionName(action, name || fn.displayName || fn.name);
   return action;
 }
 
@@ -1242,9 +1255,10 @@ var Alias = function Alias(dest) {
 Alias._r = [2];
 
 var Injector = function () {
-  function Injector(items, sheetProcessor, displayName, instance, cache) {
+  function Injector(items, sheetProcessor, state, displayName, instance, cache) {
     this._resolved = false;
     this._listeners = undefined;
+    this._state = state;
     this._instance = instance || 0;
     this.displayName = displayName || '$';
     this._sheetManager = sheetProcessor instanceof SheetManager ? sheetProcessor : new SheetManager(sheetProcessor, this);
@@ -1298,10 +1312,15 @@ var Injector = function () {
     var value = this._cache[id];
 
     if (value === undefined) {
-      value = this._cache[id] = this._fastNew(key);
+      value = this._cache[id] = this.invoke(key);
+      var depName = (key.displayName || key.name) + (this._instance > 0 ? '[' + this._instance + ']' : '');
+      value.displayName = this.displayName + "." + depName;
+      var state = this._state === undefined ? undefined : this._state[depName];
 
-      if (!value.displayName) {
-        value.displayName = this.displayName + '.' + (key.displayName || key.name) + (this._instance > 0 ? '[' + this._instance + ']' : '');
+      if (state && _typeof$2(state) === 'object') {
+        for (var prop in state) {
+          value[prop] = state[prop];
+        }
       }
     } else if (value instanceof Alias) {
       value = this._cache[id] = this.value(value.dest);
@@ -1316,8 +1335,44 @@ var Injector = function () {
     this._sheetManager = undefined;
   };
 
-  Injector.prototype._fastNew = function _fastNew(key) {
-    var a = this.resolve(key.deps || (key._r === undefined ? undefined : key._r[1]));
+  Injector.prototype.invoke = function invoke(key) {
+    var isFn = key.theme;
+    var deps = key.deps;
+
+    if (key._r !== undefined) {
+      isFn = key._r[0] === 2;
+      deps = deps || key._r[1];
+    }
+
+    var a = this.resolve(deps);
+
+    if (isFn) {
+      switch (a.length) {
+        case 0:
+          return key();
+
+        case 1:
+          return key(a[0]);
+
+        case 2:
+          return key(a[0], a[1]);
+
+        case 3:
+          return key(a[0], a[1], a[2]);
+
+        case 4:
+          return key(a[0], a[1], a[2], a[3]);
+
+        case 5:
+          return key(a[0], a[1], a[2], a[3], a[4]);
+
+        case 6:
+          return key(a[0], a[1], a[2], a[3], a[4], a[5]);
+
+        default:
+          return key.apply(undefined, a);
+      }
+    }
 
     switch (a.length) {
       case 0:
@@ -1343,36 +1398,6 @@ var Injector = function () {
 
       default:
         return new (Function.prototype.bind.apply(key, [null].concat(a)))();
-    }
-  };
-
-  Injector.prototype.invoke = function invoke(key) {
-    var a = this.resolve(key.deps || (key._r === undefined ? undefined : key._r[1]));
-
-    switch (a.length) {
-      case 0:
-        return key();
-
-      case 1:
-        return key(a[0]);
-
-      case 2:
-        return key(a[0], a[1]);
-
-      case 3:
-        return key(a[0], a[1], a[2]);
-
-      case 4:
-        return key(a[0], a[1], a[2], a[3]);
-
-      case 5:
-        return key(a[0], a[1], a[2], a[3], a[4]);
-
-      case 6:
-        return key(a[0], a[1], a[2], a[3], a[4], a[5]);
-
-      default:
-        return key.apply(undefined, a);
     }
   };
 
@@ -1446,7 +1471,7 @@ var Injector = function () {
   };
 
   Injector.prototype.copy = function copy(items, displayName, instance) {
-    return new Injector(items, this._sheetManager, this.displayName + '.' + displayName, instance, Object.create(this._cache));
+    return new Injector(items, this._sheetManager, this._state, this.displayName + '.' + displayName, instance, Object.create(this._cache));
   };
 
   Injector.prototype.resolve = function resolve(argDeps) {
@@ -1627,16 +1652,14 @@ function createReactWrapper(BaseComponent, defaultFromError) {
       _this._el = undefined;
       _this._keys = props$$1 ? Object.keys(props$$1) : undefined;
       var cns = _this.constructor;
-      var parentInjector = props$$1.__lom_ctx || rootInjector;
       _this._render = cns.render;
-      var injectorName = cns.displayName + (cns.instance ? '[' + cns.instance + ']' : '');
-      _this._injector = parentInjector.copy(_this._render.aliases, injectorName, cns.instance);
+      _this._injector = (props$$1.__lom_ctx || rootInjector).copy(_this._render.aliases, cns.displayName + (cns.instance ? '[' + cns.instance + ']' : ''), cns.instance);
       cns.instance++;
       return _this;
     }
 
     AtomizedComponent.prototype.toString = function toString() {
-      return this._injector.displayName + "." + this.constructor.displayName;
+      return this._injector.displayName;
     };
 
     AtomizedComponent.prototype.shouldComponentUpdate = function shouldComponentUpdate(props$$1) {

@@ -1,11 +1,8 @@
 # rdi-examples
 
-* [All demos](http://zerkalica.github.io/rdi-examples/)
-* [autocomplete](http://zerkalica.github.io/rdi-examples/?page=autocomplete)
-* [counter](http://zerkalica.github.io/rdi-examples/?page=counter)
-* [full todomvc](http://zerkalica.github.io/rdi-examples/?page=todomvc)
+Examples for [reactive-di](https://github.com/zerkalica/reactive-di) and [lom_atom](https://github.com/zerkalica/lom_atom)
 
-Basic solutions for typical web app tasks.
+* [All demos](http://zerkalica.github.io/rdi-examples/)
 
 Stack:
  - lom_atom
