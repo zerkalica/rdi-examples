@@ -1,5 +1,5 @@
 // @flow
-import {mem} from 'lom_atom'
+import {mem, ConsoleLogger, defaultContext} from 'lom_atom'
 import {createReactWrapper, createCreateElement, Injector} from 'reactive-di'
 
 import {h, Component} from 'preact'
@@ -10,6 +10,9 @@ import jssGlobal from 'jss-global'
 import jssNested from 'jss-nested'
 
 import {BrowserLocationStore, AbstractLocationStore} from './common-todomvc'
+
+const logger = new ConsoleLogger()
+defaultContext.setLogger(logger)
 
 function ErrorableView({
     error

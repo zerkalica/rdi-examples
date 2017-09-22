@@ -11,6 +11,7 @@ import {AutocompleteView, autocompleteMocks} from './autocomplete'
 
 import {ItemView, Locale, mockFetch} from './common'
 import {AbstractLocationStore} from './common-todomvc'
+import {CssChangeView} from './cssChange'
 
 mockFetch(localStorage, 500, [
     todoMocks,
@@ -25,7 +26,7 @@ class Store {
         this._locationStore = locationStore
     }
 
-    pages = ['hello', 'counter', 'error', 'todomvc', 'autocomplete']
+    pages = ['hello', 'counter', 'error', 'todomvc', 'autocomplete', 'css-change']
 
     get page(): string {
         return this._locationStore.location('page') || this.pages[0]
@@ -64,6 +65,10 @@ function AppView(
 
         case 'todomvc':
             page = <TodoAppView />
+            break
+
+        case 'css-change':
+            page = <CssChangeView/>
             break
 
         default:

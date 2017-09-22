@@ -1,3 +1,4 @@
+(function(l, i, v, e) { v = l.createElement(i); v.async = 1; v.src = '//' + (location.host || 'localhost').split(':')[0] + ':35729/livereload.js?snipver=1'; e = l.getElementsByTagName(i)[0]; e.parentNode.insertBefore(v, e)})(document, 'script');
 (function () {
 'use strict';
 
@@ -731,7 +732,7 @@ function memMethod(proto, name, descr, normalize, isComponent) {
   };
 
   forcedFn._r = [2];
-  setFunctionName(fn, name + "*");
+  setFunctionName(forcedFn, name + "*");
   proto[name + "*"] = forcedFn;
   return {
     enumerable: descr.enumerable,
@@ -884,7 +885,7 @@ function memKeyMethod(proto, name, descr, normalize) {
   };
 
   forcedFn._r = [2];
-  setFunctionName(fn, name + "*");
+  setFunctionName(forcedFn, name + "*");
   proto[name + "*"] = forcedFn;
   return {
     enumerable: descr.enumerable,
@@ -1216,7 +1217,8 @@ var FakeSheet = function () {
 var defaultSheetProcessor = {
   createStyleSheet: function createStyleSheet(cssProps) {
     return new FakeSheet();
-  }
+  },
+  removeStyleSheet: function removeStyleSheet(sheet) {}
 };
 var SheetManager = (_class2$1 = function () {
   function SheetManager(sheetProcessor, injector) {
@@ -1227,20 +1229,20 @@ var SheetManager = (_class2$1 = function () {
   SheetManager.prototype.sheet = function sheet(key, value, force$$1, oldValue) {
     if (value !== undefined) return value;
 
-    if (oldValue === undefined) {
-      var newValue = this._sheetProcessor.createStyleSheet(this._injector.invoke(key));
+    if (oldValue !== undefined) {
+      this._sheetProcessor.removeStyleSheet(oldValue); // oldValue.detach()
 
-      newValue.attach();
-      return newValue;
     }
 
-    oldValue.update(undefined, this._injector.invoke(key));
-    oldValue.attach();
-    return oldValue;
+    var newValue = this._sheetProcessor.createStyleSheet(this._injector.invoke(key));
+
+    newValue.attach();
+    return newValue;
   };
 
   SheetManager.prototype.destroy = function destroy(value) {
-    value.detach();
+    this._sheetProcessor.removeStyleSheet(value); // value.detach()
+
   };
 
   return SheetManager;
@@ -1477,6 +1479,7 @@ var Injector = function () {
   Injector.prototype.resolve = function resolve(argDeps) {
     var result = [];
     if (argDeps !== undefined) {
+      var sm = this._sheetManager;
       var resolved = this._resolved;
 
       for (var i = 0, l = argDeps.length; i < l; i++) {
@@ -1485,12 +1488,23 @@ var Injector = function () {
         if (_typeof$2(argDep) === 'object') {
           var obj = {};
 
-          for (var prop in argDep) {
-            // eslint-disable-line
-            var key = argDep[prop];
-            var dep = key.theme === undefined ? this.value(key) : this._sheetManager.sheet(key).classes;
+          if (!resolved) {
+            for (var prop in argDep) {
+              // eslint-disable-line
+              var key = argDep[prop];
 
-            if (resolved === false && key.__lom_prop !== undefined) {
+              if (key.theme !== undefined) {
+                obj[prop] = sm.sheet(key).classes;
+              }
+            }
+          }
+
+          for (var _prop in argDep) {
+            // eslint-disable-line
+            var _key = argDep[_prop];
+            var dep = _key.theme === undefined ? this.value(_key) : sm.sheet(_key).classes;
+
+            if (resolved === false && _key.__lom_prop !== undefined) {
               if (this._listeners === undefined) {
                 this._listeners = [];
               }
@@ -1498,12 +1512,12 @@ var Injector = function () {
               this._listeners.push(dep);
             }
 
-            obj[prop] = dep;
+            obj[_prop] = dep;
           }
 
           result.push(obj);
         } else {
-          var _dep = argDep.theme === undefined ? this.value(argDep) : this._sheetManager.sheet(argDep).classes;
+          var _dep = argDep.theme === undefined ? this.value(argDep) : sm.sheet(argDep).classes;
 
           if (resolved === false && argDep.__lom_prop !== undefined) {
             if (this._listeners === undefined) {
@@ -3291,7 +3305,7 @@ var devtools = createCommonjsModule(function (module, exports) {
     }
 
     initDevTools();
-  }); 
+  }); //# sourceMappingURL=devtools.js.map
 
 });
 
@@ -3495,16 +3509,6 @@ Item.prototype.run = function () {
 
  // from https://github.com/kumavis/browser-process-hrtime/blob/master/index.js
 
-// see http://nodejs.org/api/process.html#process_process_hrtime
-
-/**
- * Copyright 2014-2015, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- */
 'use strict';
 /**
  * Similar to invariant but only logs a warning if the condition is not met.
@@ -6577,6 +6581,9 @@ var BrowserLocationStore = (_class$1 = function (_AbstractLocationStor) {
 }(AbstractLocationStore), (_applyDecoratedDescriptor$2(_class$1.prototype, "location", [memkey], Object.getOwnPropertyDescriptor(_class$1.prototype, "location"), _class$1.prototype)), _class$1);
 BrowserLocationStore._r = [0, [Location, History]];
 
+var logger = new ConsoleLogger();
+defaultContext.setLogger(logger);
+
 function ErrorableView(_ref) {
   var error = _ref.error;
   return lom_h("div", null, error instanceof mem.Wait ? lom_h("div", null, "Loading...") : lom_h("div", null, lom_h("h3", null, "Fatal error !"), lom_h("div", null, error.message), lom_h("pre", null, error.stack.toString())));
@@ -6879,10 +6886,6 @@ globToRegexp._r = [2];
 var isarray = Array.isArray || function (arr) {
   return Object.prototype.toString.call(arr) == '[object Array]';
 };
-
-/**
- * Expose `pathToRegexp`.
- */
 
 var pathToRegexp_1 = pathToRegexp;
 var parse_1 = parse;
@@ -9647,6 +9650,88 @@ function autocompleteMocks(rawStorage) {
 }
 autocompleteMocks._r = [2, [Storage]];
 
+var _class$9;
+var _descriptor$7;
+
+function _initDefineProp$7(target, property, descriptor, context) {
+  if (!descriptor) return;
+  Object.defineProperty(target, property, {
+    enumerable: descriptor.enumerable,
+    configurable: descriptor.configurable,
+    writable: descriptor.writable,
+    value: descriptor.initializer ? descriptor.initializer.call(context) : void 0
+  });
+}
+
+function _applyDecoratedDescriptor$11(target, property, decorators, descriptor, context) {
+  var desc = {};
+  Object['ke' + 'ys'](descriptor).forEach(function (key) {
+    desc[key] = descriptor[key];
+  });
+  desc.enumerable = !!desc.enumerable;
+  desc.configurable = !!desc.configurable;
+
+  if ('value' in desc || desc.initializer) {
+    desc.writable = true;
+  }
+
+  desc = decorators.slice().reverse().reduce(function (desc, decorator) {
+    return decorator(target, property, desc) || desc;
+  }, desc);
+
+  if (context && desc.initializer !== void 0) {
+    desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
+    desc.initializer = undefined;
+  }
+
+  if (desc.initializer === void 0) {
+    Object['define' + 'Property'](target, property, desc);
+    desc = null;
+  }
+
+  return desc;
+}
+
+var Store$1 = (_class$9 = function Store() {
+  _initDefineProp$7(this, "red", _descriptor$7, this);
+}, (_descriptor$7 = _applyDecoratedDescriptor$11(_class$9.prototype, "red", [mem], {
+  enumerable: true,
+  initializer: function initializer() {
+    return 140;
+  }
+})), _class$9);
+
+function CssChangeTheme(store) {
+  return {
+    wrapper: {
+      background: "rgb(" + store.red + ", 0, 0)"
+    }
+  };
+}
+
+CssChangeTheme._r = [2, [Store$1]];
+CssChangeTheme.theme = true;
+function CssChangeView(_, _ref) {
+  var store = _ref.store,
+      theme = _ref.theme;
+  return lom_h("div", {
+    className: theme.wrapper
+  }, "color via css ", store.red, ": ", lom_h("input", {
+    type: "range",
+    min: "0",
+    max: "255",
+    value: store.red,
+    onInput: function onInput(_ref2) {
+      var target = _ref2.target;
+      store.red = Number(target.value);
+    }
+  }));
+}
+CssChangeView._r = [1, [{
+  theme: CssChangeTheme,
+  store: Store$1
+}]];
+
 var _class;
 var _descriptor;
 var _class2;
@@ -9695,7 +9780,7 @@ mockFetch(localStorage, 500, [todoMocks, autocompleteMocks]);
 var Store = (_class = (_temp = _class2 = function () {
   function Store(locationStore) {
     this._locationStore = void 0;
-    this.pages = ['hello', 'counter', 'error', 'todomvc', 'autocomplete'];
+    this.pages = ['hello', 'counter', 'error', 'todomvc', 'autocomplete', 'css-change'];
 
     _initDefineProp(this, "name", _descriptor, this);
 
@@ -9743,6 +9828,10 @@ function AppView(_ref, _ref2) {
 
     case 'todomvc':
       page = lom_h(TodoApp, null);
+      break;
+
+    case 'css-change':
+      page = lom_h(CssChangeView, null);
       break;
 
     default:
