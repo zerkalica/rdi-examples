@@ -362,12 +362,6 @@ var Atom = function () {
   };
 
   Atom.prototype.get = function get$$1(force) {
-    if (force) {
-      this._pullPush(undefined, true);
-    } else {
-      this.actualize();
-    }
-
     var slave = this._context.last;
 
     if (slave && (!slave.isComponent || !this.isComponent)) {
@@ -381,6 +375,12 @@ var Atom = function () {
 
       slaves.add(slave);
       slave.addMaster(this);
+    }
+
+    if (force) {
+      this._pullPush(undefined, true);
+    } else {
+      this.actualize();
     }
 
     return this.value;
@@ -417,6 +417,10 @@ var Atom = function () {
   };
 
   Atom.prototype.actualize = function actualize(proposedValue) {
+    if (this.status === ATOM_STATUS_PULLING) {
+      throw new Error("Cyclic atom dependency of " + String(this));
+    }
+
     if (this.status === ATOM_STATUS_ACTUAL) {
       return;
     }
@@ -547,15 +551,15 @@ reap._r = [2];
 var BaseLogger = function () {
   function BaseLogger() {}
 
-  BaseLogger.prototype.create = function create(host, field, key) {};
+  BaseLogger.prototype.create = function create(host, field, key, namespace) {};
 
-  BaseLogger.prototype.destroy = function destroy(atom) {};
+  BaseLogger.prototype.destroy = function destroy(atom, namespace) {};
 
-  BaseLogger.prototype.status = function status(_status, atom) {};
+  BaseLogger.prototype.status = function status(_status, atom, namespace) {};
 
-  BaseLogger.prototype.error = function error(atom, err) {};
+  BaseLogger.prototype.error = function error(atom, err, namespace) {};
 
-  BaseLogger.prototype.newValue = function newValue(atom, from, to, isActualize) {};
+  BaseLogger.prototype.newValue = function newValue(atom, from, to, isActualize, namespace) {};
 
   return BaseLogger;
 }();
@@ -567,16 +571,16 @@ var ConsoleLogger = function (_BaseLogger) {
     return _BaseLogger.apply(this, arguments) || this;
   }
 
-  ConsoleLogger.prototype.status = function status(_status2, atom) {
-    console.log(_status2, atom.displayName);
+  ConsoleLogger.prototype.status = function status(_status2, atom, namespace) {
+    console.log(namespace, _status2, atom.displayName);
   };
 
-  ConsoleLogger.prototype.error = function error(atom, err) {
-    console.log('error', atom.displayName, err);
+  ConsoleLogger.prototype.error = function error(atom, err, namespace) {
+    console.log(namespace, 'error', atom.displayName, err);
   };
 
-  ConsoleLogger.prototype.newValue = function newValue(atom, from, to, isActualize) {
-    console.log(isActualize ? 'actualize' : 'cacheSet', atom.displayName, 'from', from, 'to', to);
+  ConsoleLogger.prototype.newValue = function newValue(atom, from, to, isActualize, namespace) {
+    console.log(namespace, isActualize ? 'actualize' : 'cacheSet', atom.displayName, 'from', from, 'to', to);
   };
 
   return ConsoleLogger;
@@ -591,6 +595,7 @@ var Context = function () {
     this._updating = [];
     this._reaping = new Set();
     this._scheduled = false;
+    this._namespace = '$';
 
     this.__run = function () {
       if (_this2._scheduled) {
@@ -606,13 +611,13 @@ var Context = function () {
 
   Context.prototype.create = function create(host, field, key) {
     if (this._logger !== undefined) {
-      return this._logger.create(host, field, key);
+      return this._logger.create(host, field, key, this._namespace);
     }
   };
 
   Context.prototype.destroyHost = function destroyHost(atom) {
     if (this._logger !== undefined) {
-      this._logger.destroy(atom);
+      this._logger.destroy(atom, this._namespace);
     }
   };
 
@@ -623,18 +628,18 @@ var Context = function () {
   Context.prototype.newValue = function newValue(atom, from, to, isActualize) {
     if (this._logger !== undefined) {
       if (to instanceof AtomWait) {
-        this._logger.status('waiting', atom);
+        this._logger.status('waiting', atom, this._namespace);
       } else if (to instanceof Error) {
-        this._logger.error(atom, to);
+        this._logger.error(atom, to, this._namespace);
       } else {
-        this._logger.newValue(atom, from, to, isActualize);
+        this._logger.newValue(atom, from, to, isActualize, this._namespace);
       }
     }
   };
 
   Context.prototype.proposeToPull = function proposeToPull(atom) {
     if (this._logger !== undefined) {
-      this._logger.status('proposeToPull', atom);
+      this._logger.status('proposeToPull', atom, this._namespace);
     }
 
     this._updating.push(atom);
@@ -644,7 +649,7 @@ var Context = function () {
 
   Context.prototype.proposeToReap = function proposeToReap(atom) {
     if (this._logger !== undefined) {
-      this._logger.status('proposeToReap', atom);
+      this._logger.status('proposeToReap', atom, this._namespace);
     }
 
     this._reaping.add(atom);
@@ -697,11 +702,16 @@ var Context = function () {
     this._pendCount = 0;
   };
 
-  Context.prototype.beginTransaction = function beginTransaction() {
+  Context.prototype.beginTransaction = function beginTransaction(namespace) {
+    var result = this._namespace;
+    this._namespace = namespace;
     this._pendCount++;
+    return result;
   };
 
-  Context.prototype.endTransaction = function endTransaction() {
+  Context.prototype.endTransaction = function endTransaction(prev) {
+    this._namespace = prev;
+
     if (this._pendCount === 1) {
       this._run();
     } else {
@@ -975,88 +985,98 @@ function detached(proto, name, descr) {
 detached._r = [2];
 
 function createActionMethod(t, hk, context) {
+  var name = (t.displayName || t.constructor.displayName || t.constructor.name) + "." + hk;
+
   function action() {
     var result = void 0;
-    context.beginTransaction();
+    var oldNamespace = context.beginTransaction(name);
 
-    switch (arguments.length) {
-      case 0:
-        result = t[hk]();
-        break;
+    try {
+      switch (arguments.length) {
+        case 0:
+          result = t[hk]();
+          break;
 
-      case 1:
-        result = t[hk](arguments[0]);
-        break;
+        case 1:
+          result = t[hk](arguments[0]);
+          break;
 
-      case 2:
-        result = t[hk](arguments[0], arguments[1]);
-        break;
+        case 2:
+          result = t[hk](arguments[0], arguments[1]);
+          break;
 
-      case 3:
-        result = t[hk](arguments[0], arguments[1], arguments[2]);
-        break;
+        case 3:
+          result = t[hk](arguments[0], arguments[1], arguments[2]);
+          break;
 
-      case 4:
-        result = t[hk](arguments[0], arguments[1], arguments[2], arguments[3]);
-        break;
+        case 4:
+          result = t[hk](arguments[0], arguments[1], arguments[2], arguments[3]);
+          break;
 
-      case 5:
-        result = t[hk](arguments[0], arguments[1], arguments[2], arguments[3], arguments[4]);
-        break;
+        case 5:
+          result = t[hk](arguments[0], arguments[1], arguments[2], arguments[3], arguments[4]);
+          break;
 
-      default:
-        result = t[hk].apply(t, arguments);
+        default:
+          result = t[hk].apply(t, arguments);
+      }
+    } finally {
+      context.endTransaction(oldNamespace);
     }
 
-    context.endTransaction();
     return result;
   }
 
-  setFunctionName(action, hk);
+  setFunctionName(action, name);
   return action;
 }
 
 createActionMethod._r = [2];
 
-function createActionFn(fn, name, context) {
+function createActionFn(fn, rawName, context) {
+  var name = rawName || fn.displayName || fn.name;
+
   function action() {
     var result = void 0;
-    context.beginTransaction();
+    var oldNamespace = context.beginTransaction(name);
 
-    switch (arguments.length) {
-      case 0:
-        result = fn();
-        break;
+    try {
+      switch (arguments.length) {
+        case 0:
+          result = fn();
+          break;
 
-      case 1:
-        result = fn(arguments[0]);
-        break;
+        case 1:
+          result = fn(arguments[0]);
+          break;
 
-      case 2:
-        result = fn(arguments[0], arguments[1]);
-        break;
+        case 2:
+          result = fn(arguments[0], arguments[1]);
+          break;
 
-      case 3:
-        result = fn(arguments[0], arguments[1], arguments[2]);
-        break;
+        case 3:
+          result = fn(arguments[0], arguments[1], arguments[2]);
+          break;
 
-      case 4:
-        result = fn(arguments[0], arguments[1], arguments[2], arguments[3]);
-        break;
+        case 4:
+          result = fn(arguments[0], arguments[1], arguments[2], arguments[3]);
+          break;
 
-      case 5:
-        result = fn(arguments[0], arguments[1], arguments[2], arguments[3], arguments[4]);
-        break;
+        case 5:
+          result = fn(arguments[0], arguments[1], arguments[2], arguments[3], arguments[4]);
+          break;
 
-      default:
-        result = fn.apply(null, arguments);
+        default:
+          result = fn.apply(null, arguments);
+      }
+    } finally {
+      context.endTransaction(oldNamespace);
     }
 
-    context.endTransaction();
     return result;
   }
 
-  setFunctionName(action, name || fn.displayName || fn.name);
+  setFunctionName(action, name);
   return action;
 }
 
@@ -3305,7 +3325,7 @@ var devtools = createCommonjsModule(function (module, exports) {
     }
 
     initDevTools();
-  }); //# sourceMappingURL=devtools.js.map
+  }); 
 
 });
 
@@ -3509,6 +3529,16 @@ Item.prototype.run = function () {
 
  // from https://github.com/kumavis/browser-process-hrtime/blob/master/index.js
 
+// see http://nodejs.org/api/process.html#process_process_hrtime
+
+/**
+ * Copyright 2014-2015, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ */
 'use strict';
 /**
  * Similar to invariant but only logs a warning if the condition is not met.
@@ -6886,6 +6916,10 @@ globToRegexp._r = [2];
 var isarray = Array.isArray || function (arr) {
   return Object.prototype.toString.call(arr) == '[object Array]';
 };
+
+/**
+ * Expose `pathToRegexp`.
+ */
 
 var pathToRegexp_1 = pathToRegexp;
 var parse_1 = parse;
