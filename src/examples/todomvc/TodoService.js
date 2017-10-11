@@ -1,16 +1,18 @@
 // @flow
+import Fetcher from '../../Fetcher'
 import {uuid} from '../common-todomvc'
-import {action, mem, memkey} from 'lom_atom'
+import {action, mem, memkey, force} from 'lom_atom'
 
-interface ITodoBase {
+interface ITodoData {
     id: string;
     completed: boolean;
     title: string;
 }
 
-export interface ITodo extends ITodoBase {
-    destroy(): void;
+export interface ITodo extends ITodoData {
+    remove(): void;
     toggle(): void;
+    update(data: ITodoData): void;
 }
 
 function toJson<V>(r: Response): Promise<V> {
@@ -24,7 +26,7 @@ class TodoModel implements ITodo {
 
     _store: TodoService
 
-    constructor(todo?: $Shape<ITodoBase> = {}, store: TodoService) {
+    constructor(todo?: $Shape<ITodoData> = {}, store: TodoService) {
         this._title = todo.title || ''
         this.id = todo.id || uuid()
         this.completed = todo.completed || false
@@ -40,7 +42,7 @@ class TodoModel implements ITodo {
         this._store.saveTodo(this.toJSON())
     }
 
-    destroy() {
+    remove() {
         this._store.remove(this.id)
     }
 
@@ -49,12 +51,16 @@ class TodoModel implements ITodo {
         this._store.saveTodo(this.toJSON())
     }
 
-    toJSON(): ITodoBase {
-        return ({
+    update(data: ITodoData) {
+        this._store.saveTodo(data)
+    }
+
+    toJSON(): ITodoData {
+        return {
             completed: this.completed,
             title: this._title,
             id: this.id
-        })
+        }
     }
 }
 
@@ -64,34 +70,38 @@ interface ITodoExtInfo {
 
 export default class TodoService {
     @mem opCount = 0
+    _fetcher: Fetcher
+    @force $: TodoService
+
+    constructor(fetcher: Fetcher) {
+        this._fetcher = fetcher
+    }
 
     get isOperationRunning(): boolean {
         return this.opCount !== 0
     }
+
     @memkey todoExtInfo(id: string, info?: ITodoExtInfo | Error): ITodoExtInfo {
         if (info !== undefined && !(info instanceof Error)) return info
-        fetch(`/api/todo/${id}/info`, {method: 'GET'})
+        fetch(`/api/todo/${id}/info`)
             .then(toJson)
-            .then((info: ITodoExtInfo) => {
-                this.todoExtInfo(id, info)
+            .then((data: ITodoExtInfo) => {
+                this.$.todoExtInfo(id, data)
             })
-            .catch((error: Error) => {
-                this.todoExtInfo(id, error)
+            .catch((e: Error) => {
+                this.$.todoExtInfo(id, e)
             })
-
         throw new mem.Wait()
     }
 
     @mem get todos(): ITodo[] {
-        fetch('/api/todos', {
-            method: 'GET'
-        })
+        fetch('/api/todos')
             .then(toJson)
-            .then((todos: ITodoBase[]) => {
-                this.todos = todos.map((todo: ITodoBase) => new TodoModel(todo, this))
+            .then((data: ITodoData[]) => {
+                this.$.todos = data.map((todo: ITodoData) => new TodoModel(todo, this))
             })
             .catch((e: Error) => {
-                this.todos = e
+                this.$.todos = e
             })
         throw new mem.Wait()
     }
@@ -124,14 +134,15 @@ export default class TodoService {
     addTodo(title: string) {
         const todo = new TodoModel({title}, this)
         this.todos = this.todos.concat([todo])
+
         this._handlePromise(
             fetch('/api/todo', {
                 method: 'PUT',
                 body: JSON.stringify(todo)
             })
                 .then(toJson)
-                .then((updatedTodo: ITodoBase) => {
-                    this.todos = this.todos.map(
+                .then((updatedTodo: ITodoData) => {
+                    this.$.todos = this.todos.map(
                         (t: ITodo) => t.id === todo.id
                             ? new TodoModel(updatedTodo, this)
                             : t
@@ -140,7 +151,7 @@ export default class TodoService {
         )
     }
 
-    saveTodo(todo: ITodoBase) {
+    saveTodo(todo: ITodoData) {
         this.todos = this.todos.map(
             (t: ITodo) => t.id === todo.id
                 ? new TodoModel(todo, this)
@@ -152,7 +163,7 @@ export default class TodoService {
                 body: JSON.stringify(todo)
             })
                 .then(toJson)
-                .then((updatedTodo: ITodoBase) => {
+                .then((updatedTodo: ITodoData) => {
                     this.todos = this.todos.map(
                         (t: ITodo) => t.id === todo.id
                             ? new TodoModel(updatedTodo, this)
@@ -162,7 +173,7 @@ export default class TodoService {
         )
     }
 
-    @action remove(id: string) {
+    remove(id: string) {
         this.todos = this.todos.filter((todo: ITodo) => todo.id !== id)
 
         this._handlePromise(

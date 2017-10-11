@@ -7,43 +7,81 @@ interface IParent<V: Object> {
     endFetch(f: FetcherResponse<V>, e?: Error): void;
 }
 
+type IRequestOptions = RequestOptions & {timeout?: number}
+
+export interface IErrorParams {
+    url: string;
+    method: string;
+    body: string | Object;
+}
+
+export class HttpError extends Error {
+    statusCode: number
+    message: string
+    stack: string
+
+    localizedMessage: ?string
+    errorCode: ?string
+    params: ?IErrorParams
+
+    constructor(
+        statusCode: number,
+        message: string,
+        errorCode?: ?string,
+        localizedMessage?: ?string,
+        params?: IErrorParams
+    ) {
+        super(message)
+        // $FlowFixMe new.target
+        ;(this: Object)['__proto__'] = new.target.prototype
+        this.params = params || null
+        this.statusCode = statusCode
+        this.errorCode = errorCode || null
+        this.localizedMessage = localizedMessage || null
+    }
+}
+
+function timeoutPromise<D>(promise: Promise<D>, timeout?: ?number, params: IErrorParams): Promise<D> {
+    if (!timeout) return promise
+    const tm = timeout
+
+    return Promise.race([
+        promise,
+        new Promise((resolve: (data: D) => void, reject: (err: any) => void) => {
+            setTimeout(() => reject(new HttpError(
+                408,
+                'Request timeout client emulation: ' + (tm / 1000) + 's',
+                null,
+                null,
+                params
+            )), tm)
+        })
+    ])
+}
+
+interface IFetcher {
+    request(url: string, init?: IRequestOptions): Promise<Response>;
+}
+
 class FetcherResponse<V: Object> {
     _url: string
-    _init: RequestOptions | void
+    _init: IRequestOptions | void
     _state: V | void
     _ptr: IParent<V> | void
+    _fetcher: IFetcher
 
-    constructor(url: string, init?: RequestOptions, state?: V, ptr?: IParent<V>) {
+    constructor(url: string, init?: IRequestOptions, state?: V, ptr?: IParent<V>, fetcher: IFetcher) {
         this._url = url
         this._init = init
         this._state = state
         this._ptr = ptr
-    }
-
-    _fetch(): Promise<Response> {
-        if (this._ptr) {
-            this._ptr.beginFetch()
-        }
-
-        return fetch(this._url, this._init)
+        this._fetcher = fetcher
     }
 
     _end = (e?: any) => {
         if (this._ptr) {
             this._ptr.endFetch(this, e instanceof Error ? e : undefined)
         }
-    }
-
-    @mem response(next?: Response, force?: boolean): Response {
-        this._fetch()
-            .then((result: Response) => this.response(result))
-            .catch((e: Error) => {
-                this.response((e: any))
-                return e
-            })
-            .then(this._end)
-
-        throw new mem.Wait()
     }
 
     _getState(): V | void | string {
@@ -54,23 +92,37 @@ class FetcherResponse<V: Object> {
         }
     }
 
-    @mem text(next?: string): string {
+    @mem text(next?: string | Error, force?: boolean): string {
         const state = this._getState()
         if (state !== undefined) {
             if (typeof state !== 'string') throw new Error(`${this._url} state need an string`)
             return state
         }
 
-        this._fetch()
+        if (this._ptr) {
+            this._ptr.beginFetch()
+        }
+        const init = this._init
+        const params: IErrorParams = {
+            url: this._url,
+            method: init ? init.method : 'GET',
+            body: init ? init.body : ''
+        }
+        timeoutPromise(this._fetcher.request(this._url, init), init ? init.timeout : null, params)
             .then((r: Response) => r.status === 204 ? '' : r.text())
-            .then((data: string) => this.text(data))
+            .then((data: string) => this.text(data, true))
             .catch((e: Error) => {
-                this.text((e: any))
+                if (!(e instanceof HttpError)) {
+                    const err = new HttpError((e: Object).statusCode || 500, e.message, null, null, params)
+                    err.stack = e.stack
+                    this.text(err, true)
+                }
+                this.text((e: any), true)
                 return e
             })
             .then(this._end)
 
-        throw new mem.Wait()
+        throw new mem.Wait(`${params.method} ${params.url}`)
     }
 
     json(): V {
@@ -93,14 +145,14 @@ type IErrorCb = (e: Error) => void
 export default class Fetcher {
     _state: IState
     _baseUrl: string
-    _init: RequestOptions | void
+    _init: IRequestOptions | void
     _renderer: IParent<*> | void
 
     static Response: Class<FetcherResponse<*>> = FetcherResponse
 
     constructor(
         baseUrl?: string,
-        init?: RequestOptions,
+        init?: IRequestOptions,
         state?: IState,
         renderer?: IParent<*>
     ) {
@@ -110,11 +162,17 @@ export default class Fetcher {
         this._renderer = renderer
     }
 
-    mergeOptions(init?: RequestOptions): RequestOptions | void {
-        return this._init === undefined && init === undefined ? undefined : {...(this._init || {}), ...(init || {})}
+    request(url: string, init?: IRequestOptions): Promise<Response> {
+        return fetch(url, init)
     }
 
-    fetch<V: any>(url: string, init?: RequestOptions): FetcherResponse<V> {
+    mergeOptions(init?: IRequestOptions): IRequestOptions | void {
+        return this._init === undefined && init === undefined
+            ? undefined
+            : {...(this._init || {}), ...(init || {})}
+    }
+
+    fetch<V: any>(url: string, init?: IRequestOptions): FetcherResponse<V> {
         const method = (init ? init.method : null) || 'GET'
         let state: any = this._state[url]
         if (state) {
@@ -126,7 +184,13 @@ export default class Fetcher {
             }
         }
 
-        return new this.constructor.Response(this._baseUrl + url, this.mergeOptions(init), state, this._renderer)
+        return new this.constructor.Response(
+            this._baseUrl + url,
+            this.mergeOptions(init),
+            state,
+            this._renderer,
+            (this: IFetcher)
+        )
     }
 }
 

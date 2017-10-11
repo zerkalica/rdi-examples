@@ -1,35 +1,42 @@
 // @flow
 
-import {props, mem} from 'lom_atom'
+import {props, mem, force} from 'lom_atom'
 
 interface IAutocompleteProps {
     initialValue: string;
 }
 
+class TimeoutHandler {
+    _handler: ?number = null
+    constructor(fn: () => void, timeout: number) {
+        this._handler = setTimeout(fn, timeout)
+    }
+
+    destructor() {
+        clearTimeout(this._handler)
+    }
+}
+
 class AutocompleteService {
-    @mem nameToSearch: string
+    @force $: AutocompleteService
+    @mem nameToSearch: string = ''
 
     @props set props({initialValue}: IAutocompleteProps) {
         this.nameToSearch = initialValue
     }
 
-    _handler: number = 0
-
-    _destroy() {
-        clearTimeout(this._handler)
-    }
+    @mem _handler: ?TimeoutHandler = null
 
     @mem get searchResults(): string[] {
-        clearTimeout(this._handler)
         const name = this.nameToSearch
-        this._handler = setTimeout(() => {
+        this._handler = new TimeoutHandler(() => {
             fetch(`/api/autocomplete?q=${name}`)
                 .then((r: Response) => r.json())
                 .then((data: string[]) => {
-                    this.searchResults = data
+                    this.$.searchResults = data
                 })
                 .catch((e: Error) => {
-                    this.searchResults = e
+                    this.$.searchResults = e
                 })
         }, 500)
 
@@ -40,7 +47,7 @@ class AutocompleteService {
     set searchResults(searchResults: string[] | Error) {}
 
     setValue = (e: Event) => {
-        this.nameToSearch = (e.target: any).value
+        this.$.nameToSearch = (e.target: any).value
     }
 }
 
@@ -62,13 +69,15 @@ export function AutocompleteView(
     _: IAutocompleteProps,
     service: AutocompleteService
 ) {
+    const results = service.searchResults
+    const name = service.nameToSearch
     return <div>
         <div>
             Filter:
-            <input value={service.nameToSearch} onInput={service.setValue}/>
+            <input value={name} onInput={service.setValue}/>
         </div>
         Values:
-        <AutocompleteResultsView searchResults={service.searchResults} />
+        <AutocompleteResultsView searchResults={results} />
     </div>
 }
 

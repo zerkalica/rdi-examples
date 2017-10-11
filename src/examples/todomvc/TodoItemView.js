@@ -67,7 +67,7 @@ class TodoItemStore {
     }
 
     handleDestroy = () => {
-        this.props.todo.destroy()
+        this.props.todo.remove()
         this.todoBeingEditedId = null
     }
 }
@@ -222,8 +222,9 @@ export default function TodoItemView(
             <label
                 class={todo.completed ? theme.viewLabelCompleted : theme.viewLabelRegular}
                 id="beginEdit"
+                title={info.description}
                 onDblClick={itemStore.beginEdit}>
-                {todo.title}, desc: {info.description}
+                {todo.title}
             </label>
             <button class={theme.destroy} id="destroy" onClick={itemStore.handleDestroy} />
         </li>

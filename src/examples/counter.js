@@ -11,7 +11,7 @@ class FirstCounterService {
     }
     @mem get value(): number {
         setTimeout(() => {
-            this.value = 1
+            this.$.value = 1
             // this.value = new Error('loading error')
         }, 500)
 
@@ -38,7 +38,7 @@ function FirstCounterView(
     return <div>
         <CounterMessageView value={counter.value}/>
         <button id="FirstCounterAddButton" onClick={() => { counter.value++ }}>{counter.lang.add}</button>
-        <button id="FirstCounterGenErrorButton" onClick={() => { counter.$.value = ('someStr': any) }}>{counter.lang.error}</button>
+        <button id="FirstCounterGenErrorButton" onClick={() => { counter.value = ('someStr': any) }}>{counter.lang.error}</button>
     </div>
 }
 

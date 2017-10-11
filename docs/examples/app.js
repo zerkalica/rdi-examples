@@ -14,118 +14,7 @@ var _typeof$1 = typeof Symbol === "function" && typeof Symbol.iterator === "symb
 
 
 
-var asyncGenerator = function () {
-  function AwaitValue(value) {
-    this.value = value;
-  }
 
-  function AsyncGenerator(gen) {
-    var front, back;
-
-    function send(key, arg) {
-      return new Promise(function (resolve, reject) {
-        var request = {
-          key: key,
-          arg: arg,
-          resolve: resolve,
-          reject: reject,
-          next: null
-        };
-
-        if (back) {
-          back = back.next = request;
-        } else {
-          front = back = request;
-          resume(key, arg);
-        }
-      });
-    }
-
-    function resume(key, arg) {
-      try {
-        var result = gen[key](arg);
-        var value = result.value;
-
-        if (value instanceof AwaitValue) {
-          Promise.resolve(value.value).then(function (arg) {
-            resume("next", arg);
-          }, function (arg) {
-            resume("throw", arg);
-          });
-        } else {
-          settle(result.done ? "return" : "normal", result.value);
-        }
-      } catch (err) {
-        settle("throw", err);
-      }
-    }
-
-    function settle(type, value) {
-      switch (type) {
-        case "return":
-          front.resolve({
-            value: value,
-            done: true
-          });
-          break;
-
-        case "throw":
-          front.reject(value);
-          break;
-
-        default:
-          front.resolve({
-            value: value,
-            done: false
-          });
-          break;
-      }
-
-      front = front.next;
-
-      if (front) {
-        resume(front.key, front.arg);
-      } else {
-        back = null;
-      }
-    }
-
-    this._invoke = send;
-
-    if (typeof gen.return !== "function") {
-      this.return = undefined;
-    }
-  }
-
-  if (typeof Symbol === "function" && Symbol.asyncIterator) {
-    AsyncGenerator.prototype[Symbol.asyncIterator] = function () {
-      return this;
-    };
-  }
-
-  AsyncGenerator.prototype.next = function (arg) {
-    return this._invoke("next", arg);
-  };
-
-  AsyncGenerator.prototype.throw = function (arg) {
-    return this._invoke("throw", arg);
-  };
-
-  AsyncGenerator.prototype.return = function (arg) {
-    return this._invoke("return", arg);
-  };
-
-  return {
-    wrap: function (fn) {
-      return function () {
-        return new AsyncGenerator(fn.apply(this, arguments));
-      };
-    },
-    await: function (value) {
-      return new AwaitValue(value);
-    }
-  };
-}();
 
 
 
@@ -307,58 +196,54 @@ function actualizeMaster(master) {
 actualizeMaster._r = [2];
 
 var Atom = function () {
-  function Atom(field, host, context, normalize, key, isComponent) {
+  function Atom(field, owner, context, hostAtoms, normalize, key, keyHash, isComponent) {
     this._masters = null;
     this._slaves = null;
+    this._keyHash = keyHash;
     this.key = key;
     this.field = field;
-    this.host = host;
+    this.owner = owner;
     this.isComponent = isComponent || false;
     this._normalize = normalize || defaultNormalize;
     this._context = context;
-    this.value = context.create(host, field, key);
+    this.value = context.create(this);
+    this._hostAtoms = hostAtoms;
     this.status = this.value === undefined ? ATOM_STATUS_OBSOLETE : ATOM_STATUS_ACTUAL;
   }
 
   Atom.prototype.toString = function toString() {
-    var hc = this.host.constructor;
+    var hc = this.owner.constructor;
     var k = this.key;
-    return (this.host.displayName || (hc ? String(hc.displayName || hc.name) : '')) + '.' + this.field + (k ? '(' + (typeof k === 'function' ? k.displayName || k.name : String(k)) + ')' : '');
+    return this.field + (k ? '(' + (typeof k === 'function' ? k.displayName || k.name : String(k)) + ')' : '');
   };
 
   Atom.prototype.toJSON = function toJSON() {
     return this.value;
   };
 
-  Atom.prototype.destroyed = function destroyed(isDestroyed) {
-    if (isDestroyed === undefined) {
-      return this.status === ATOM_STATUS_DESTROYED;
+  Atom.prototype.destructor = function destructor() {
+    if (this.status === ATOM_STATUS_DESTROYED) return;
+
+    if (this._masters) {
+      this._masters.forEach(disleadThis, this);
+
+      this._masters = null;
     }
 
-    if (isDestroyed) {
-      if (this.status !== ATOM_STATUS_DESTROYED) {
-        if (this._masters) {
-          this._masters.forEach(disleadThis, this);
+    this._checkSlaves();
 
-          this._masters = null;
-        }
+    var hostAtoms = this._hostAtoms;
 
-        this._checkSlaves();
-
-        if (this.host.destroy !== undefined) {
-          this.host.destroy(this.value, this.field, this.key);
-        }
-
-        this._context.destroyHost(this);
-
-        this.value = undefined;
-        this.status = ATOM_STATUS_DESTROYED;
-      }
-
-      return true;
+    if (hostAtoms instanceof WeakMap) {
+      hostAtoms.delete(this.owner);
+    } else if (this._keyHash) {
+      hostAtoms.delete(this._keyHash);
     }
 
-    return false;
+    this._context.destroyHost(this);
+
+    this.value = undefined;
+    this.status = ATOM_STATUS_DESTROYED;
   };
 
   Atom.prototype.get = function get$$1(force) {
@@ -399,7 +284,7 @@ var Atom = function () {
       return oldValue;
     }
 
-    if (!force || normalized instanceof Error) {
+    if (force || normalized instanceof Error) {
       this.status = ATOM_STATUS_ACTUAL;
       this.value = normalized instanceof Error ? createMock(normalized) : normalized;
 
@@ -453,7 +338,7 @@ var Atom = function () {
     var value = this.value;
 
     try {
-      newValue = this._normalize(this.key === undefined ? this.host[this.field + '$'](proposedValue, force, value) : this.host[this.field + '$'](this.key, proposedValue, force, value), value);
+      newValue = this._normalize(this.key === undefined ? this.owner[this.field + '$'](proposedValue, force, value) : this.owner[this.field + '$'](this.key, proposedValue, force, value), value);
     } catch (error) {
       if (error[catchedId] === undefined) {
         error[catchedId] = true;
@@ -542,7 +427,7 @@ function reap(atom, key, reaping) {
   reaping.delete(atom);
 
   if (!atom.slaves) {
-    atom.destroyed(true);
+    atom.destructor();
   }
 }
 
@@ -551,9 +436,9 @@ reap._r = [2];
 var BaseLogger = function () {
   function BaseLogger() {}
 
-  BaseLogger.prototype.create = function create(host, field, key, namespace) {};
+  BaseLogger.prototype.create = function create(owner, field, key, namespace) {};
 
-  BaseLogger.prototype.destroy = function destroy(atom, namespace) {};
+  BaseLogger.prototype.onDestruct = function onDestruct(atom, namespace) {};
 
   BaseLogger.prototype.status = function status(_status, atom, namespace) {};
 
@@ -596,6 +481,7 @@ var Context = function () {
     this._reaping = new Set();
     this._scheduled = false;
     this._namespace = '$';
+    this._owners = new WeakMap();
 
     this.__run = function () {
       if (_this2._scheduled) {
@@ -609,15 +495,25 @@ var Context = function () {
     this._pendCount = 0;
   }
 
-  Context.prototype.create = function create(host, field, key) {
+  Context.prototype.create = function create(atom) {
+    this._owners.set(atom, atom.owner);
+
     if (this._logger !== undefined) {
-      return this._logger.create(host, field, key, this._namespace);
+      return this._logger.create(atom.owner, atom.field, atom.key, this._namespace);
     }
   };
 
   Context.prototype.destroyHost = function destroyHost(atom) {
+    var from = atom.value;
+
+    if (from && !(from instanceof Error) && _typeof(from) === 'object' && typeof from.destructor === 'function' && this._owners.get(from) === atom) {
+      from.destructor();
+
+      this._owners.delete(from);
+    }
+
     if (this._logger !== undefined) {
-      this._logger.destroy(atom, this._namespace);
+      this._logger.onDestruct(atom, this._namespace);
     }
   };
 
@@ -626,6 +522,16 @@ var Context = function () {
   };
 
   Context.prototype.newValue = function newValue(atom, from, to, isActualize) {
+    if (from && !(from instanceof Error) && _typeof(from) === 'object' && typeof from.destructor === 'function' && this._owners.get(from) === atom) {
+      from.destructor();
+
+      this._owners.delete(from);
+    }
+
+    if (to && !(to instanceof Error) && _typeof(to) === 'object' && typeof to.destructor === 'function') {
+      this._owners.set(to, atom);
+    }
+
     if (this._logger !== undefined) {
       if (to instanceof AtomWait) {
         this._logger.status('waiting', atom, this._namespace);
@@ -683,7 +589,7 @@ var Context = function () {
 
         var atom = updating[i];
 
-        if (!reaping.has(atom) && !atom.destroyed()) {
+        if (!reaping.has(atom) && atom.status !== ATOM_STATUS_DESTROYED) {
           atom.actualize();
         }
       }
@@ -724,7 +630,15 @@ var Context = function () {
 
 var defaultContext = new Context();
 
-function memMethod(proto, name, descr, normalize, isComponent) {
+function getId(t, hk) {
+  return (t.constructor.displayName || t.constructor.name) + "." + hk;
+}
+
+getId._r = [2];
+
+function memMethod(proto, rname, descr, normalize, isComponent) {
+  var name = getId(proto, rname);
+
   if (descr.value === undefined) {
     throw new TypeError(name + " is not an function (next?: V)");
   }
@@ -738,12 +652,12 @@ function memMethod(proto, name, descr, normalize, isComponent) {
   });
 
   var forcedFn = function forcedFn(next, force) {
-    return this[name](next, force === undefined ? true : force);
+    return this[rname](next, force === undefined ? true : force);
   };
 
   forcedFn._r = [2];
   setFunctionName(forcedFn, name + "*");
-  proto[name + "*"] = forcedFn;
+  proto[rname + "*"] = forcedFn;
   return {
     enumerable: descr.enumerable,
     configurable: descr.configurable,
@@ -751,7 +665,7 @@ function memMethod(proto, name, descr, normalize, isComponent) {
       var atom = hostAtoms.get(this);
 
       if (atom === undefined) {
-        atom = new Atom(name, this, defaultContext, normalize, undefined, isComponent);
+        atom = new Atom(name, this, defaultContext, hostAtoms, normalize, undefined, undefined, isComponent);
         hostAtoms.set(this, atom);
       }
 
@@ -794,7 +708,8 @@ function setFunctionName(fn, name) {
 
 setFunctionName._r = [2];
 
-function memProp(proto, name, descr, normalize) {
+function memProp(proto, rname, descr, normalize) {
+  var name = getId(proto, rname);
   var handlerKey = name + "$";
 
   if (proto[handlerKey] !== undefined) {
@@ -819,7 +734,7 @@ function memProp(proto, name, descr, normalize) {
       var atom = hostAtoms.get(this);
 
       if (atom === undefined) {
-        atom = new Atom(name, this, defaultContext, normalize);
+        atom = new Atom(name, this, defaultContext, hostAtoms, normalize);
         hostAtoms.set(this, atom);
       }
 
@@ -834,7 +749,7 @@ function memProp(proto, name, descr, normalize) {
       var atom = hostAtoms.get(this);
 
       if (atom === undefined) {
-        atom = new Atom(name, this, defaultContext, normalize);
+        atom = new Atom(name, this, defaultContext, hostAtoms, normalize);
         hostAtoms.set(this, atom);
       }
 
@@ -875,7 +790,8 @@ function getKey(params) {
 
 getKey._r = [2];
 
-function memKeyMethod(proto, name, descr, normalize) {
+function memKeyMethod(proto, rname, descr, normalize) {
+  var name = getId(proto, rname);
   var handler = descr.value;
 
   if (handler === undefined) {
@@ -891,12 +807,12 @@ function memKeyMethod(proto, name, descr, normalize) {
   });
 
   var forcedFn = function forcedFn(rawKey, next, force) {
-    return this[name](rawKey, next, force === undefined ? true : force);
+    return this[rname](rawKey, next, force === undefined ? true : force);
   };
 
   forcedFn._r = [2];
   setFunctionName(forcedFn, name + "*");
-  proto[name + "*"] = forcedFn;
+  proto[rname + "*"] = forcedFn;
   return {
     enumerable: descr.enumerable,
     configurable: descr.configurable,
@@ -912,7 +828,7 @@ function memKeyMethod(proto, name, descr, normalize) {
       var atom = atomMap.get(key);
 
       if (atom === undefined) {
-        atom = new Atom(name, this, defaultContext, normalize, rawKey);
+        atom = new Atom(name, this, defaultContext, atomMap, normalize, rawKey, key);
         atomMap.set(key, atom);
       }
 
@@ -985,7 +901,7 @@ function detached(proto, name, descr) {
 detached._r = [2];
 
 function createActionMethod(t, hk, context) {
-  var name = (t.displayName || t.constructor.displayName || t.constructor.name) + "." + hk;
+  var name = getId(t, hk);
 
   function action() {
     var result = void 0;
@@ -1181,7 +1097,7 @@ var inheritsLoose$2 = function inheritsLoose(subClass, superClass) {
 
 inheritsLoose$2._r = [2];
 
-var _class2$1;
+var _class3;
 
 function _applyDecoratedDescriptor$1(target, property, decorators, descriptor, context) {
   var desc = {};
@@ -1240,33 +1156,38 @@ var defaultSheetProcessor = {
   },
   removeStyleSheet: function removeStyleSheet(sheet) {}
 };
-var SheetManager = (_class2$1 = function () {
+
+var DisposableSheet = function () {
+  function DisposableSheet(sheet, sheetProcessor) {
+    this.classes = sheet.classes;
+    this._sheet = sheet;
+    this._sheetProcessor = sheetProcessor;
+  }
+
+  DisposableSheet.prototype.destructor = function destructor() {
+    this._sheetProcessor.removeStyleSheet(this._sheet);
+  };
+
+  return DisposableSheet;
+}();
+
+var SheetManager = (_class3 = function () {
   function SheetManager(sheetProcessor, injector) {
     this._sheetProcessor = sheetProcessor || defaultSheetProcessor;
     this._injector = injector;
   }
 
-  SheetManager.prototype.sheet = function sheet(key, value, force$$1, oldValue) {
+  SheetManager.prototype.sheet = function sheet(key, value, force$$1) {
     if (value !== undefined) return value;
-
-    if (oldValue !== undefined) {
-      this._sheetProcessor.removeStyleSheet(oldValue); // oldValue.detach()
-
-    }
 
     var newValue = this._sheetProcessor.createStyleSheet(this._injector.invoke(key));
 
     newValue.attach();
-    return newValue;
-  };
-
-  SheetManager.prototype.destroy = function destroy(value) {
-    this._sheetProcessor.removeStyleSheet(value); // value.detach()
-
+    return new DisposableSheet(newValue, this._sheetProcessor);
   };
 
   return SheetManager;
-}(), _applyDecoratedDescriptor$1(_class2$1.prototype, "sheet", [memkey], Object.getOwnPropertyDescriptor(_class2$1.prototype, "sheet"), _class2$1.prototype), _class2$1);
+}(), _applyDecoratedDescriptor$1(_class3.prototype, "sheet", [memkey], Object.getOwnPropertyDescriptor(_class3.prototype, "sheet"), _class3.prototype), _class3);
 var depId = 0;
 
 var Alias = function Alias(dest) {
@@ -1351,7 +1272,7 @@ var Injector = function () {
     return value;
   };
 
-  Injector.prototype.destroy = function destroy() {
+  Injector.prototype.destructor = function destructor() {
     this._cache = undefined;
     this._listeners = undefined;
     this._sheetManager = undefined;
@@ -1498,6 +1419,8 @@ var Injector = function () {
 
   Injector.prototype.resolve = function resolve(argDeps) {
     var result = [];
+    var map = this._cache;
+
     if (argDeps !== undefined) {
       var sm = this._sheetManager;
       var resolved = this._resolved;
@@ -1715,10 +1638,10 @@ function createReactWrapper(BaseComponent, defaultFromError) {
     };
 
     AtomizedComponent.prototype.componentWillUnmount = function componentWillUnmount() {
-      this['r()'].destroyed(true);
+      this['AtomizedComponent.r()'].destructor();
     };
 
-    AtomizedComponent.prototype.destroy = function destroy() {
+    AtomizedComponent.prototype.destructor = function destructor() {
       this._el = undefined;
       this._keys = undefined;
       this.props = undefined;
@@ -1726,7 +1649,7 @@ function createReactWrapper(BaseComponent, defaultFromError) {
       if (this._render !== undefined) {
         this.constructor.instance--;
 
-        this._injector.destroy();
+        this._injector.destructor();
 
         this._injector = undefined;
       }
@@ -1771,6 +1694,8 @@ function createReactWrapper(BaseComponent, defaultFromError) {
     return AtomizedComponent;
   }(BaseComponent), _applyDecoratedDescriptor$1$1(_class.prototype, "r", [detached], Object.getOwnPropertyDescriptor(_class.prototype, "r"), _class.prototype), _class);
   return function reactWrapper(render) {
+    var displayName = render.displayName || render.name;
+
     var WrappedComponent = function WrappedComponent(props$$1, context) {
       AtomizedComponent.call(this, props$$1, context);
     };
@@ -3325,7 +3250,7 @@ var devtools = createCommonjsModule(function (module, exports) {
     }
 
     initDevTools();
-  }); 
+  }); //# sourceMappingURL=devtools.js.map
 
 });
 
@@ -3374,7 +3299,6 @@ var getDynamicStyles = createCommonjsModule(function (module, exports) {
     return extract(styles);
   };
 });
-unwrapExports(getDynamicStyles);
 
 var SheetsRegistry_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -3490,20 +3414,140 @@ var SheetsRegistry_1 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = SheetsRegistry;
 });
-unwrapExports(SheetsRegistry_1);
 
-// v8 likes predictible objects
-
-function Item(fun, array) {
-  this.fun = fun;
-  this.array = array;
+function defaultSetTimout() {
+  throw new Error('setTimeout has not been defined');
 }
 
-Item._r = [2];
+defaultSetTimout._r = [2];
 
-Item.prototype.run = function () {
-  this.fun.apply(null, this.array);
-};
+function defaultClearTimeout() {
+  throw new Error('clearTimeout has not been defined');
+}
+
+defaultClearTimeout._r = [2];
+var cachedSetTimeout = defaultSetTimout;
+var cachedClearTimeout = defaultClearTimeout;
+
+if (typeof global$1.setTimeout === 'function') {
+  cachedSetTimeout = setTimeout;
+}
+
+if (typeof global$1.clearTimeout === 'function') {
+  cachedClearTimeout = clearTimeout;
+}
+
+function runTimeout(fun) {
+  if (cachedSetTimeout === setTimeout) {
+    //normal enviroments in sane situations
+    return setTimeout(fun, 0);
+  } // if setTimeout wasn't available but was latter defined
+
+
+  if ((cachedSetTimeout === defaultSetTimout || !cachedSetTimeout) && setTimeout) {
+    cachedSetTimeout = setTimeout;
+    return setTimeout(fun, 0);
+  }
+
+  try {
+    // when when somebody has screwed with setTimeout but no I.E. maddness
+    return cachedSetTimeout(fun, 0);
+  } catch (e) {
+    try {
+      // When we are in I.E. but the script has been evaled so I.E. doesn't trust the global object when called normally
+      return cachedSetTimeout.call(null, fun, 0);
+    } catch (e) {
+      // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error
+      return cachedSetTimeout.call(this, fun, 0);
+    }
+  }
+}
+
+runTimeout._r = [2];
+
+function runClearTimeout(marker) {
+  if (cachedClearTimeout === clearTimeout) {
+    //normal enviroments in sane situations
+    return clearTimeout(marker);
+  } // if clearTimeout wasn't available but was latter defined
+
+
+  if ((cachedClearTimeout === defaultClearTimeout || !cachedClearTimeout) && clearTimeout) {
+    cachedClearTimeout = clearTimeout;
+    return clearTimeout(marker);
+  }
+
+  try {
+    // when when somebody has screwed with setTimeout but no I.E. maddness
+    return cachedClearTimeout(marker);
+  } catch (e) {
+    try {
+      // When we are in I.E. but the script has been evaled so I.E. doesn't  trust the global object when called normally
+      return cachedClearTimeout.call(null, marker);
+    } catch (e) {
+      // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error.
+      // Some versions of I.E. have different rules for clearTimeout vs setTimeout
+      return cachedClearTimeout.call(this, marker);
+    }
+  }
+}
+
+runClearTimeout._r = [2];
+var queue = [];
+var draining = false;
+var currentQueue;
+var queueIndex = -1;
+
+function cleanUpNextTick() {
+  if (!draining || !currentQueue) {
+    return;
+  }
+
+  draining = false;
+
+  if (currentQueue.length) {
+    queue = currentQueue.concat(queue);
+  } else {
+    queueIndex = -1;
+  }
+
+  if (queue.length) {
+    drainQueue();
+  }
+}
+
+cleanUpNextTick._r = [2];
+
+function drainQueue() {
+  if (draining) {
+    return;
+  }
+
+  var timeout = runTimeout(cleanUpNextTick);
+  draining = true;
+  var len = queue.length;
+
+  while (len) {
+    currentQueue = queue;
+    queue = [];
+
+    while (++queueIndex < len) {
+      if (currentQueue) {
+        currentQueue[queueIndex].run();
+      }
+    }
+
+    queueIndex = -1;
+    len = queue.length;
+  }
+
+  currentQueue = null;
+  draining = false;
+  runClearTimeout(timeout);
+}
+
+drainQueue._r = [2];
+ // v8 likes predictible objects
 
 
 
@@ -3529,23 +3573,12 @@ Item.prototype.run = function () {
 
  // from https://github.com/kumavis/browser-process-hrtime/blob/master/index.js
 
-// see http://nodejs.org/api/process.html#process_process_hrtime
+var performance = global$1.performance || {};
 
-/**
- * Copyright 2014-2015, Facebook, Inc.
- * All rights reserved.
- *
- * This source code is licensed under the BSD-style license found in the
- * LICENSE file in the root directory of this source tree. An additional grant
- * of patent rights can be found in the PATENTS file in the same directory.
- */
-'use strict';
-/**
- * Similar to invariant but only logs a warning if the condition is not met.
- * This can be used to log issues in development environments in critical
- * paths. Removing the logging code for production environments will keep the
- * same logic and follow the same code paths.
- */
+var performanceNow = performance.now || performance.mozNow || performance.msNow || performance.oNow || performance.webkitNow || function () {
+  return new Date().getTime();
+}; // generate timestamp or delta
+// see http://nodejs.org/api/process.html#process_process_hrtime
 
 var warning = function warning() {};
 
@@ -3678,7 +3711,7 @@ var SheetsManager_1 = createCommonjsModule(function (module, exports) {
 
         if (index === -1) {
           // eslint-ignore-next-line no-console
-          (0, _warning2['default'])('SheetsManager: can\'t find sheet to unmanage');
+          (0, _warning2['default'])(false, 'SheetsManager: can\'t find sheet to unmanage');
           return;
         }
 
@@ -3687,6 +3720,11 @@ var SheetsManager_1 = createCommonjsModule(function (module, exports) {
           if (this.refs[index] === 0) this.sheets[index].detach();
         }
       }
+    }, {
+      key: 'size',
+      get: function get() {
+        return this.keys.length;
+      }
     }]);
 
     return SheetsManager;
@@ -3694,7 +3732,6 @@ var SheetsManager_1 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = SheetsManager;
 });
-unwrapExports(SheetsManager_1);
 
 var toCssValue_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -3727,7 +3764,54 @@ var toCssValue_1 = createCommonjsModule(function (module, exports) {
     return value.join(', ');
   }
 });
-unwrapExports(toCssValue_1);
+
+var ponyfill = function symbolObservablePonyfill(root) {
+  var result;
+  var _Symbol = root.Symbol;
+
+  if (typeof _Symbol === 'function') {
+    if (_Symbol.observable) {
+      result = _Symbol.observable;
+    } else {
+      result = _Symbol('observable');
+      _Symbol.observable = result;
+    }
+  } else {
+    result = '@@observable';
+  }
+
+  return result;
+};
+
+ponyfill._r = [2];
+
+var symbolObservable = ponyfill(commonjsGlobal || window || commonjsGlobal);
+
+var isObservable = function isObservable(fn) {
+  return Boolean(fn && fn[symbolObservable]);
+};
+
+isObservable._r = [2];
+
+var isDynamicValue = createCommonjsModule(function (module, exports) {
+  'use strict';
+
+  Object.defineProperty(exports, "__esModule", {
+    value: true
+  });
+
+  var _isObservable2 = _interopRequireDefault(isObservable);
+
+  function _interopRequireDefault(obj) {
+    return obj && obj.__esModule ? obj : {
+      'default': obj
+    };
+  }
+
+  exports['default'] = function (value) {
+    return typeof value === 'function' || (0, _isObservable2['default'])(value);
+  };
+});
 
 var toCss_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -3738,6 +3822,8 @@ var toCss_1 = createCommonjsModule(function (module, exports) {
   exports['default'] = toCss;
 
   var _toCssValue2 = _interopRequireDefault(toCssValue_1);
+
+  var _isDynamicValue2 = _interopRequireDefault(isDynamicValue);
 
   function _interopRequireDefault(obj) {
     return obj && obj.__esModule ? obj : {
@@ -3799,14 +3885,14 @@ var toCss_1 = createCommonjsModule(function (module, exports) {
         }
     }
 
-    var hasFunctionValue = false;
+    var hasDynamicValue = false;
 
     for (var _prop2 in style) {
       var _value2 = style[_prop2];
 
-      if (typeof _value2 === 'function') {
+      if ((0, _isDynamicValue2['default'])(_value2)) {
         _value2 = style['$' + _prop2];
-        hasFunctionValue = true;
+        hasDynamicValue = true;
       }
 
       if (_value2 != null && _prop2 !== 'fallbacks') {
@@ -3814,13 +3900,12 @@ var toCss_1 = createCommonjsModule(function (module, exports) {
       }
     }
 
-    if (!result && !hasFunctionValue) return result;
+    if (!result && !hasDynamicValue) return result;
     indent--;
     result = indentStr(selector + ' {' + result + '\n', indent) + indentStr('}', indent);
     return result;
   }
 });
-unwrapExports(toCss_1);
 
 var StyleRule_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -3853,9 +3938,13 @@ var StyleRule_1 = createCommonjsModule(function (module, exports) {
     };
   }();
 
+  var _warning2 = _interopRequireDefault(browser);
+
   var _toCss2 = _interopRequireDefault(toCss_1);
 
   var _toCssValue2 = _interopRequireDefault(toCssValue_1);
+
+  var _isDynamicValue2 = _interopRequireDefault(isDynamicValue);
 
   function _interopRequireDefault(obj) {
     return obj && obj.__esModule ? obj : {
@@ -3875,19 +3964,17 @@ var StyleRule_1 = createCommonjsModule(function (module, exports) {
 
       this.type = 'style';
       this.isProcessed = false;
-      var generateClassName = options.generateClassName,
-          sheet = options.sheet,
+      var sheet = options.sheet,
           Renderer = options.Renderer,
           selector = options.selector;
       this.key = key;
       this.options = options;
       this.style = style;
-      this.selectorText = selector || '.' + generateClassName(this, sheet);
+      if (selector) this.selectorText = selector;
       this.renderer = sheet ? sheet.renderer : new Renderer();
     }
     /**
      * Set selector string.
-     * TODO rewrite this #419
      * Attention: use this with caution. Most browsers didn't implement
      * selectorText setter, so this may result in rerendering of entire Style Sheet.
      */
@@ -3900,31 +3987,29 @@ var StyleRule_1 = createCommonjsModule(function (module, exports) {
        * Get or set a style property.
        */
       value: function prop(name, nextValue) {
-        var $name = typeof this.style[name] === 'function' ? '$' + name : name;
-        var currValue = this.style[$name]; // Its a setter.
+        // The result of a dynamic value is prefixed with $ and is not innumerable in
+        // order to be ignored by all plugins or during stringification.
+        var $name = (0, _isDynamicValue2['default'])(this.style[name]) ? '$' + name : name; // Its a setter.
 
         if (nextValue != null) {
           // Don't do anything if the value has not changed.
-          if (currValue !== nextValue) {
+          if (this.style[$name] !== nextValue) {
             nextValue = this.options.jss.plugins.onChangeValue(nextValue, name, this);
             Object.defineProperty(this.style, $name, {
               value: nextValue,
               writable: true
-            }); // Defined if StyleSheet option `link` is true.
+            }); // Renderable is defined if StyleSheet option `link` is true.
 
-            if (this.renderable) this.renderer.setStyle(this.renderable, name, nextValue);
+            if (this.renderable) this.renderer.setStyle(this.renderable, name, nextValue);else {
+              var sheet = this.options.sheet;
+
+              if (sheet && sheet.attached) {
+                (0, _warning2['default'])(false, 'Rule is not linked. Missing sheet option "link: true".');
+              }
+            }
           }
 
           return this;
-        } // Its a getter, read the value from the DOM if its not cached.
-
-
-        if (this.renderable && currValue == null) {
-          // Cache the value after we have got it from the DOM first time.
-          Object.defineProperty(this.style, $name, {
-            value: this.renderer.getStyle(this.renderable, name),
-            writable: true
-          });
         }
 
         return this.style[$name];
@@ -3957,8 +4042,7 @@ var StyleRule_1 = createCommonjsModule(function (module, exports) {
 
         for (var prop in this.style) {
           var value = this.style[prop];
-          var type = typeof value === 'undefined' ? 'undefined' : _typeof(value);
-          if (type === 'function') json[prop] = this.style['$' + prop];else if (type !== 'object') json[prop] = value;else if (Array.isArray(value)) json[prop] = (0, _toCssValue2['default'])(value);
+          if ((0, _isDynamicValue2['default'])(value)) json[prop] = this.style['$' + prop];else if ((typeof value === 'undefined' ? 'undefined' : _typeof(value)) !== 'object') json[prop] = value;else if (Array.isArray(value)) json[prop] = (0, _toCssValue2['default'])(value);
         }
 
         return json;
@@ -3975,32 +4059,16 @@ var StyleRule_1 = createCommonjsModule(function (module, exports) {
     }, {
       key: 'selector',
       set: function set$$1(selector) {
-        var sheet = this.options.sheet; // After we modify a selector, ref by old selector needs to be removed.
-
-        if (sheet) sheet.rules.unregister(this);
+        if (selector === this.selectorText) return;
         this.selectorText = selector;
 
-        if (!this.renderable) {
-          // Register the rule with new selector.
-          if (sheet) sheet.rules.register(this);
-          return;
-        }
+        if (this.renderable) {
+          var hasChanged = this.renderer.setSelector(this.renderable, selector); // If selector setter is not implemented, rerender the rule.
 
-        var changed = this.renderer.setSelector(this.renderable, selector);
-
-        if (changed && sheet) {
-          sheet.rules.register(this);
-          return;
-        } // If selector setter is not implemented, rerender the sheet.
-        // We need to delete renderable from the rule, because when sheet.deploy()
-        // calls rule.toString, it will get the old selector.
-
-
-        delete this.renderable;
-
-        if (sheet) {
-          sheet.rules.register(this);
-          sheet.deploy().link();
+          if (!hasChanged && this.renderable) {
+            var renderable = this.renderer.replaceRule(this.renderable, this);
+            if (renderable) this.renderable = renderable;
+          }
         }
       }
       /**
@@ -4008,10 +4076,6 @@ var StyleRule_1 = createCommonjsModule(function (module, exports) {
        */
       ,
       get: function get$$1() {
-        if (this.renderable) {
-          return this.renderer.getSelector(this.renderable);
-        }
-
         return this.selectorText;
       }
     }]);
@@ -4021,7 +4085,6 @@ var StyleRule_1 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = StyleRule;
 });
-unwrapExports(StyleRule_1);
 
 var cloneStyle_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -4036,7 +4099,16 @@ var cloneStyle_1 = createCommonjsModule(function (module, exports) {
     return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : _typeof$1(obj);
   };
 
-  exports.default = cloneStyle;
+  exports['default'] = cloneStyle;
+
+  var _isObservable2 = _interopRequireDefault(isObservable);
+
+  function _interopRequireDefault(obj) {
+    return obj && obj.__esModule ? obj : {
+      'default': obj
+    };
+  }
+
   var isArray = Array.isArray;
 
   function cloneStyle(style) {
@@ -4052,7 +4124,7 @@ var cloneStyle_1 = createCommonjsModule(function (module, exports) {
     for (var name in style) {
       var value = style[name];
 
-      if ((typeof value === 'undefined' ? 'undefined' : _typeof(value)) === 'object') {
+      if ((typeof value === 'undefined' ? 'undefined' : _typeof(value)) === 'object' && !(0, _isObservable2['default'])(value)) {
         newStyle[name] = cloneStyle(value);
         continue;
       }
@@ -4063,7 +4135,6 @@ var cloneStyle_1 = createCommonjsModule(function (module, exports) {
     return newStyle;
   }
 });
-unwrapExports(cloneStyle_1);
 
 var createRule_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -4105,9 +4176,8 @@ var createRule_1 = createCommonjsModule(function (module, exports) {
     return new _StyleRule2['default'](name, declCopy, options);
   }
 });
-unwrapExports(createRule_1);
 
-var updateRule = createCommonjsModule(function (module, exports) {
+var updateStyle = createCommonjsModule(function (module, exports) {
   'use strict';
 
   Object.defineProperty(exports, "__esModule", {
@@ -4128,7 +4198,6 @@ var updateRule = createCommonjsModule(function (module, exports) {
     }
   };
 });
-unwrapExports(updateRule);
 
 var linkRule_1 = createCommonjsModule(function (module, exports) {
   "use strict";
@@ -4146,7 +4215,6 @@ var linkRule_1 = createCommonjsModule(function (module, exports) {
     if (rule.rules && cssRule.cssRules) rule.rules.link(cssRule.cssRules);
   }
 });
-unwrapExports(linkRule_1);
 
 var RuleList_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -4189,7 +4257,7 @@ var RuleList_1 = createCommonjsModule(function (module, exports) {
 
   var _createRule2$$1 = _interopRequireDefault(createRule_1);
 
-  var _updateRule2 = _interopRequireDefault(updateRule);
+  var _updateStyle2 = _interopRequireDefault(updateStyle);
 
   var _linkRule2 = _interopRequireDefault(linkRule_1);
 
@@ -4250,10 +4318,21 @@ var RuleList_1 = createCommonjsModule(function (module, exports) {
           Renderer: Renderer,
           generateClassName: generateClassName
         }, options);
-        if (!options.selector && this.classes[name]) options.selector = '.' + this.classes[name];
+
+        if (!options.selector && this.classes[name]) {
+          options.selector = '.' + this.classes[name];
+        }
+
         this.raw[name] = decl;
         var rule = (0, _createRule2$$1['default'])(name, decl, options);
-        this.register(rule);
+        var className = void 0;
+
+        if (!options.selector && rule instanceof _StyleRule2['default']) {
+          className = generateClassName(rule, sheet);
+          rule.selector = '.' + className;
+        }
+
+        this.register(rule, className);
         var index = options.index === undefined ? this.index.length : options.index;
         this.index.splice(index, 0, rule);
         return rule;
@@ -4304,12 +4383,12 @@ var RuleList_1 = createCommonjsModule(function (module, exports) {
 
     }, {
       key: 'register',
-      value: function register(rule) {
+      value: function register(rule, className) {
         this.map[rule.key] = rule;
 
         if (rule instanceof _StyleRule2['default']) {
           this.map[rule.selector] = rule;
-          this.classes[rule.key] = rule.selector.substr(1);
+          if (className) this.classes[rule.key] = className;
         }
       }
       /**
@@ -4320,8 +4399,11 @@ var RuleList_1 = createCommonjsModule(function (module, exports) {
       key: 'unregister',
       value: function unregister(rule) {
         delete this.map[rule.key];
-        delete this.classes[rule.key];
-        if (rule instanceof _StyleRule2['default']) delete this.map[rule.selector];
+
+        if (rule instanceof _StyleRule2['default']) {
+          delete this.map[rule.selector];
+          delete this.classes[rule.key];
+        }
       }
       /**
        * Update the function values with a new data.
@@ -4331,12 +4413,12 @@ var RuleList_1 = createCommonjsModule(function (module, exports) {
       key: 'update',
       value: function update(name, data) {
         if (typeof name === 'string') {
-          (0, _updateRule2['default'])(this.get(name), data, RuleList);
+          (0, _updateStyle2['default'])(this.get(name), data, RuleList);
           return;
         }
 
         for (var index = 0; index < this.index.length; index++) {
-          (0, _updateRule2['default'])(this.index[index], name, RuleList);
+          (0, _updateStyle2['default'])(this.index[index], name, RuleList);
         }
       }
       /**
@@ -4346,9 +4428,15 @@ var RuleList_1 = createCommonjsModule(function (module, exports) {
     }, {
       key: 'link',
       value: function link(cssRules) {
+        var map = this.options.sheet.renderer.getUnescapedKeysMap(this.index);
+
         for (var i = 0; i < cssRules.length; i++) {
           var cssRule = cssRules[i];
-          var rule = this.get(this.options.sheet.renderer.getSelector(cssRule));
+
+          var _key = this.options.sheet.renderer.getKey(cssRule);
+
+          if (map[_key]) _key = map[_key];
+          var rule = this.map[_key];
           if (rule) (0, _linkRule2['default'])(rule, cssRule);
         }
       }
@@ -4379,7 +4467,6 @@ var RuleList_1 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = RuleList;
 });
-unwrapExports(RuleList_1);
 
 var sheets = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -4405,7 +4492,6 @@ var sheets = createCommonjsModule(function (module, exports) {
 
   exports['default'] = new _SheetsRegistry2['default']();
 });
-unwrapExports(sheets);
 
 var StyleSheet_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -4659,7 +4745,69 @@ var StyleSheet_1 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = StyleSheet;
 });
-unwrapExports(StyleSheet_1);
+
+var createGenerateClassName = createCommonjsModule(function (module, exports) {
+  'use strict';
+
+  Object.defineProperty(exports, "__esModule", {
+    value: true
+  });
+
+  var _warning2 = _interopRequireDefault(browser);
+
+  var _StyleSheet2 = _interopRequireDefault(StyleSheet_1);
+
+  function _interopRequireDefault(obj) {
+    return obj && obj.__esModule ? obj : {
+      'default': obj
+    };
+  }
+
+  var globalRef = typeof window === 'undefined' ? commonjsGlobal : window;
+  var ns = '2f1acc6c3a606b082e5eef5e54414ffb';
+  if (globalRef[ns] == null) globalRef[ns] = 0; // In case we have more than one JSS version.
+
+  var jssCounter = globalRef[ns]++;
+  var maxRules = 1e10;
+  var env$$1 = "development";
+  /**
+   * Returns a function which generates unique class names based on counters.
+   * When new generator function is created, rule counter is reseted.
+   * We need to reset the rule counter for SSR for each request.
+   */
+
+  exports['default'] = function () {
+    var ruleCounter = 0;
+    return function (rule, sheet) {
+      ruleCounter += 1;
+
+      if (ruleCounter > maxRules) {
+        (0, _warning2['default'])(false, 'You might have a memory leak. Rule counter is at %s.', ruleCounter);
+      }
+
+      if (env$$1 === 'production') {
+        return 'c' + jssCounter + ruleCounter;
+      }
+
+      var prefix = sheet ? sheet.options.classNamePrefix || '' : '';
+      return '' + prefix + rule.key + '-' + jssCounter + '-' + ruleCounter;
+    };
+  };
+});
+
+var _typeof$3 = typeof Symbol === "function" && _typeof$1(Symbol.iterator) === "symbol" ? function (obj) {
+  return _typeof$1(obj);
+} : function (obj) {
+  return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : _typeof$1(obj);
+};
+
+var isBrowser = (typeof window === "undefined" ? "undefined" : _typeof$3(window)) === "object" && (typeof document === "undefined" ? "undefined" : _typeof$3(document)) === 'object' && document.nodeType === 9;
+
+
+var module$1 = Object.freeze({
+	isBrowser: isBrowser,
+	default: isBrowser
+});
 
 var PluginsRegistry_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -4805,7 +4953,6 @@ var PluginsRegistry_1 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = PluginsRegistry;
 });
-unwrapExports(PluginsRegistry_1);
 
 var SimpleRule_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -4877,7 +5024,6 @@ var SimpleRule_1 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = SimpleRule;
 });
-unwrapExports(SimpleRule_1);
 
 var KeyframesRule_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -4979,7 +5125,6 @@ var KeyframesRule_1 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = KeyframesRule;
 });
-unwrapExports(KeyframesRule_1);
 
 var ConditionalRule_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -5106,7 +5251,6 @@ var ConditionalRule_1 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = ConditionalRule;
 });
-unwrapExports(ConditionalRule_1);
 
 var FontFaceRule_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -5185,7 +5329,6 @@ var FontFaceRule_1 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = FontFaceRule;
 });
-unwrapExports(FontFaceRule_1);
 
 var ViewportRule_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -5253,7 +5396,6 @@ var ViewportRule_1 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = ViewportRule;
 });
-unwrapExports(ViewportRule_1);
 
 var rules = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -5307,46 +5449,49 @@ var rules = createCommonjsModule(function (module, exports) {
     };
   });
 });
-unwrapExports(rules);
 
-var createGenerateClassName = createCommonjsModule(function (module, exports) {
+var observables = createCommonjsModule(function (module, exports) {
   'use strict';
 
   Object.defineProperty(exports, "__esModule", {
     value: true
   });
-  var globalRef = typeof window === 'undefined' ? commonjsGlobal : window;
-  var namespace = '__JSS_VERSION_COUNTER__';
-  if (globalRef[namespace] == null) globalRef[namespace] = 0; // In case we have more than one JSS version.
 
-  var jssCounter = globalRef[namespace]++;
-  /**
-   * Returns a function which generates unique class names based on counters.
-   * When new generator function is created, rule counter is reseted.
-   * We need to reset the rule counter for SSR for each request.
-   */
+  var _isObservable2 = _interopRequireDefault(isObservable);
 
-  exports['default'] = function () {
-    var ruleCounter = 0;
-    return function (rule) {
-      return rule.key + '-' + jssCounter + '-' + ruleCounter++;
+  var _StyleRule2 = _interopRequireDefault(StyleRule_1);
+
+  function _interopRequireDefault(obj) {
+    return obj && obj.__esModule ? obj : {
+      'default': obj
     };
+  }
+
+  exports['default'] = {
+    onProcessRule: function onProcessRule(rule) {
+      if (!(rule instanceof _StyleRule2['default'])) return;
+      var style = rule.style;
+
+      var _loop = function _loop(prop) {
+        var value = style[prop];
+        if (!(0, _isObservable2['default'])(value)) return 'continue';
+        value.subscribe({
+          next: function next(nextValue) {
+            // $FlowFixMe
+            rule.prop(prop, nextValue);
+          }
+        });
+      };
+
+      _loop._r = [2];
+
+      for (var prop in style) {
+        var _ret = _loop(prop);
+
+        if (_ret === 'continue') continue;
+      }
+    }
   };
-});
-unwrapExports(createGenerateClassName);
-
-var _typeof$3 = typeof Symbol === "function" && _typeof$1(Symbol.iterator) === "symbol" ? function (obj) {
-  return _typeof$1(obj);
-} : function (obj) {
-  return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : _typeof$1(obj);
-};
-
-var isBrowser = (typeof window === "undefined" ? "undefined" : _typeof$3(window)) === "object" && (typeof document === "undefined" ? "undefined" : _typeof$3(document)) === 'object' && document.nodeType === 9;
-
-
-var module$1 = Object.freeze({
-	isBrowser: isBrowser,
-	default: isBrowser
 });
 
 var DomRenderer_1 = createCommonjsModule(function (module, exports) {
@@ -5378,6 +5523,8 @@ var DomRenderer_1 = createCommonjsModule(function (module, exports) {
 
   var _sheets2 = _interopRequireDefault(sheets);
 
+  var _StyleRule2 = _interopRequireDefault(StyleRule_1);
+
   function _interopRequireDefault(obj) {
     return obj && obj.__esModule ? obj : {
       'default': obj
@@ -5394,9 +5541,9 @@ var DomRenderer_1 = createCommonjsModule(function (module, exports) {
    */
 
 
-  function getStyle(rule, prop) {
+  function getStyle(cssRule, prop) {
     try {
-      return rule.style.getPropertyValue(prop);
+      return cssRule.style.getPropertyValue(prop);
     } catch (err) {
       // IE may throw if property is unknown.
       return '';
@@ -5407,9 +5554,9 @@ var DomRenderer_1 = createCommonjsModule(function (module, exports) {
    */
 
 
-  function setStyle(rule, prop, value) {
+  function setStyle(cssRule, prop, value) {
     try {
-      rule.style.setProperty(prop, value);
+      cssRule.style.setProperty(prop, value);
     } catch (err) {
       // IE may throw if property is unknown.
       return false;
@@ -5418,46 +5565,50 @@ var DomRenderer_1 = createCommonjsModule(function (module, exports) {
     return true;
   }
 
-  function extractSelector(cssText) {
-    var from = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
-    return cssText.substr(from, cssText.indexOf('{') - 1);
-  }
-
   var CSSRuleTypes = {
     STYLE_RULE: 1,
     KEYFRAMES_RULE: 7
     /**
-     * Get the selector.
+     * Get the CSS Rule key.
      */
 
   };
 
-  function getSelector(rule) {
-    if (rule.type === CSSRuleTypes.STYLE_RULE) return rule.selectorText;
+  var getKey = function () {
+    var extractKey = function extractKey(cssText) {
+      var from = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 0;
+      return cssText.substr(from, cssText.indexOf('{') - 1);
+    };
 
-    if (rule.type === CSSRuleTypes.KEYFRAMES_RULE) {
-      var name = rule.name;
-      if (name) return '@keyframes ' + name; // There is no rule.name in the following browsers:
-      // - IE 9
-      // - Safari 7.1.8
-      // - Mobile Safari 9.0.0
+    extractKey._r = [2];
+    return function (cssRule) {
+      if (cssRule.type === CSSRuleTypes.STYLE_RULE) return cssRule.selectorText;
 
-      var cssText = rule.cssText;
-      return '@' + extractSelector(cssText, cssText.indexOf('keyframes'));
-    }
+      if (cssRule.type === CSSRuleTypes.KEYFRAMES_RULE) {
+        var name = cssRule.name;
+        if (name) return '@keyframes ' + name; // There is no rule.name in the following browsers:
+        // - IE 9
+        // - Safari 7.1.8
+        // - Mobile Safari 9.0.0
 
-    return extractSelector(rule.cssText);
-  }
+        var cssText = cssRule.cssText;
+        return '@' + extractKey(cssText, cssText.indexOf('keyframes'));
+      } // Conditionals.
+
+
+      return extractKey(cssRule.cssText);
+    };
+  }();
   /**
    * Set the selector.
    */
 
 
-  function setSelector(rule, selectorText) {
-    rule.selectorText = selectorText; // Return false if setter was not successful.
+  function setSelector(cssRule, selectorText) {
+    cssRule.selectorText = selectorText; // Return false if setter was not successful.
     // Currently works in chrome only.
 
-    return rule.selectorText === selectorText;
+    return cssRule.selectorText === selectorText;
   }
   /**
    * Gets the `head` element upon the first call and caches it.
@@ -5469,6 +5620,57 @@ var DomRenderer_1 = createCommonjsModule(function (module, exports) {
     return function () {
       if (!head) head = document.head || document.getElementsByTagName('head')[0];
       return head;
+    };
+  }();
+  /**
+   * Gets a map of rule keys, where the property is an unescaped key and value
+   * is a potentially escaped one.
+   * It is used to identify CSS rules and the corresponding JSS rules. As an identifier
+   * for CSSStyleRule we normally use `selectorText`. Though if original selector text
+   * contains escaped code points e.g. `:not(#\\20)`, CSSOM will compile it to `:not(# )`
+   * and so CSS rule's `selectorText` won't match JSS rule selector.
+   *
+   * https://www.w3.org/International/questions/qa-escapes#cssescapes
+   */
+
+
+  var getUnescapedKeysMap = function () {
+    var style = void 0;
+    var isAttached = false;
+    return function (rules) {
+      var map = {}; // https://github.com/facebook/flow/issues/2696
+
+      if (!style) style = document.createElement('style');
+
+      for (var i = 0; i < rules.length; i++) {
+        var rule = rules[i];
+        if (!(rule instanceof _StyleRule2['default'])) continue;
+        var selector = rule.selector; // Only unescape selector over CSSOM if it contains a back slash.
+
+        if (selector && selector.indexOf('\\') !== -1) {
+          // Lazilly attach when needed.
+          if (!isAttached) {
+            getHead().appendChild(style);
+            isAttached = true;
+          }
+
+          style.textContent = selector + ' {}';
+          var _style = style,
+              sheet = _style.sheet;
+
+          if (sheet) {
+            var cssRules = sheet.cssRules;
+            if (cssRules) map[cssRules[0].selectorText] = rule.key;
+          }
+        }
+      }
+
+      if (isAttached) {
+        getHead().removeChild(style);
+        isAttached = false;
+      }
+
+      return map;
     };
   }();
   /**
@@ -5585,7 +5787,8 @@ var DomRenderer_1 = createCommonjsModule(function (module, exports) {
       this.getStyle = getStyle;
       this.setStyle = setStyle;
       this.setSelector = setSelector;
-      this.getSelector = getSelector;
+      this.getKey = getKey;
+      this.getUnescapedKeysMap = getUnescapedKeysMap;
       this.hasInsertedRules = false; // There is no sheet when the renderer is used from a standalone StyleRule.
 
       if (sheet) _sheets2['default'].add(sheet);
@@ -5649,11 +5852,11 @@ var DomRenderer_1 = createCommonjsModule(function (module, exports) {
 
     }, {
       key: 'insertRule',
-      value: function insertRule(rule) {
+      value: function insertRule(rule, index) {
         var sheet = this.element.sheet;
         var cssRules = sheet.cssRules;
-        var index = cssRules.length;
         var str = rule.toString();
+        if (!index) index = cssRules.length;
         if (!str) return false;
 
         try {
@@ -5672,18 +5875,39 @@ var DomRenderer_1 = createCommonjsModule(function (module, exports) {
 
     }, {
       key: 'deleteRule',
-      value: function deleteRule(rule) {
+      value: function deleteRule(cssRule) {
         var sheet = this.element.sheet;
-        var cssRules = sheet.cssRules;
+        var index = this.indexOf(cssRule);
+        if (index === -1) return false;
+        sheet.deleteRule(index);
+        return true;
+      }
+      /**
+       * Get index of a CSS Rule.
+       */
+
+    }, {
+      key: 'indexOf',
+      value: function indexOf(cssRule) {
+        var cssRules = this.element.sheet.cssRules;
 
         for (var _index = 0; _index < cssRules.length; _index++) {
-          if (rule === cssRules[_index]) {
-            sheet.deleteRule(_index);
-            return true;
-          }
+          if (cssRule === cssRules[_index]) return _index;
         }
 
-        return false;
+        return -1;
+      }
+      /**
+       * Generate a new CSS rule and replace the existing one.
+       */
+
+    }, {
+      key: 'replaceRule',
+      value: function replaceRule(cssRule, rule) {
+        var index = this.indexOf(cssRule);
+        var newCssRule = this.insertRule(rule, index);
+        this.element.sheet.deleteRule(index);
+        return newCssRule;
       }
       /**
        * Get all rules elements.
@@ -5701,7 +5925,6 @@ var DomRenderer_1 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = DomRenderer;
 });
-unwrapExports(DomRenderer_1);
 
 var VirtualRenderer_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -5761,8 +5984,8 @@ var VirtualRenderer_1 = createCommonjsModule(function (module, exports) {
         return true;
       }
     }, {
-      key: 'getSelector',
-      value: function getSelector() {
+      key: 'getKey',
+      value: function getKey() {
         return '';
       }
     }, {
@@ -5785,8 +6008,18 @@ var VirtualRenderer_1 = createCommonjsModule(function (module, exports) {
         return true;
       }
     }, {
+      key: 'replaceRule',
+      value: function replaceRule() {
+        return false;
+      }
+    }, {
       key: 'getRules',
       value: function getRules() {}
+    }, {
+      key: 'indexOf',
+      value: function indexOf() {
+        return -1;
+      }
     }]);
 
     return VirtualRenderer;
@@ -5794,44 +6027,8 @@ var VirtualRenderer_1 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = VirtualRenderer;
 });
-unwrapExports(VirtualRenderer_1);
 
 var _isInBrowser = ( module$1 && isBrowser ) || module$1;
-
-var findRenderer_1 = createCommonjsModule(function (module, exports) {
-  'use strict';
-
-  Object.defineProperty(exports, "__esModule", {
-    value: true
-  });
-  exports['default'] = findRenderer;
-
-  var _isInBrowser2 = _interopRequireDefault(_isInBrowser);
-
-  var _DomRenderer2 = _interopRequireDefault(DomRenderer_1);
-
-  var _VirtualRenderer2 = _interopRequireDefault(VirtualRenderer_1);
-
-  function _interopRequireDefault(obj) {
-    return obj && obj.__esModule ? obj : {
-      'default': obj
-    };
-  }
-  /**
-   * Find proper renderer.
-   * Option `virtual` is used to force use of VirtualRenderer even if DOM is
-   * detected, used for testing only.
-   */
-
-
-  function findRenderer() {
-    var options = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
-    if (options.Renderer) return options.Renderer;
-    var useVirtual = options.virtual || !_isInBrowser2['default'];
-    return useVirtual ? _VirtualRenderer2['default'] : _DomRenderer2['default'];
-  }
-});
-unwrapExports(findRenderer_1);
 
 var Jss_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -5878,19 +6075,27 @@ var Jss_1 = createCommonjsModule(function (module, exports) {
     };
   }();
 
+  var _isInBrowser2 = _interopRequireDefault(_isInBrowser);
+
   var _StyleSheet2 = _interopRequireDefault(StyleSheet_1);
 
   var _PluginsRegistry2 = _interopRequireDefault(PluginsRegistry_1);
 
   var _rules2 = _interopRequireDefault(rules);
 
+  var _observables2 = _interopRequireDefault(observables);
+
   var _sheets2 = _interopRequireDefault(sheets);
+
+  var _StyleRule2 = _interopRequireDefault(StyleRule_1);
 
   var _createGenerateClassName2 = _interopRequireDefault(createGenerateClassName);
 
   var _createRule3 = _interopRequireDefault(createRule_1);
 
-  var _findRenderer2 = _interopRequireDefault(findRenderer_1);
+  var _DomRenderer2 = _interopRequireDefault(DomRenderer_1);
+
+  var _VirtualRenderer2 = _interopRequireDefault(VirtualRenderer_1);
 
   function _interopRequireDefault(obj) {
     return obj && obj.__esModule ? obj : {
@@ -5904,14 +6109,22 @@ var Jss_1 = createCommonjsModule(function (module, exports) {
     }
   }
 
+  var defaultPlugins = _rules2['default'].concat([_observables2['default']]);
+
   var Jss = function () {
     function Jss(options) {
       _classCallCheck(this, Jss);
 
-      this.version = "8.1.0";
-      this.plugins = new _PluginsRegistry2['default'](); // eslint-disable-next-line prefer-spread
+      this.version = "9.0.0";
+      this.plugins = new _PluginsRegistry2['default']();
+      this.options = {
+        createGenerateClassName: _createGenerateClassName2['default'],
+        Renderer: _isInBrowser2['default'] ? _DomRenderer2['default'] : _VirtualRenderer2['default'],
+        plugins: []
+      };
+      this.generateClassName = (0, _createGenerateClassName2['default'])(); // eslint-disable-next-line prefer-spread
 
-      this.use.apply(this, _rules2['default']);
+      this.use.apply(this, defaultPlugins);
       this.setup(options);
     }
 
@@ -5919,13 +6132,20 @@ var Jss_1 = createCommonjsModule(function (module, exports) {
       key: 'setup',
       value: function setup() {
         var options = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
-        var createGenerateClassName$$1 = options.createGenerateClassName || _createGenerateClassName2['default'];
-        this.generateClassName = createGenerateClassName$$1();
-        this.options = _extends$$1({}, options, {
-          createGenerateClassName: createGenerateClassName$$1,
-          Renderer: (0, _findRenderer2['default'])(options) // eslint-disable-next-line prefer-spread
 
-        });
+        if (options.createGenerateClassName) {
+          this.options.createGenerateClassName = options.createGenerateClassName; // $FlowFixMe
+
+          this.generateClassName = options.createGenerateClassName();
+        }
+
+        if (options.insertionPoint != null) this.options.insertionPoint = options.insertionPoint;
+
+        if (options.virtual || options.Renderer) {
+          this.options.Renderer = options.Renderer || (options.virtual ? _VirtualRenderer2['default'] : _DomRenderer2['default']);
+        } // eslint-disable-next-line prefer-spread
+
+
         if (options.plugins) this.use.apply(this, options.plugins);
         return this;
       }
@@ -5990,6 +6210,11 @@ var Jss_1 = createCommonjsModule(function (module, exports) {
         if (!ruleOptions.generateClassName) ruleOptions.generateClassName = this.generateClassName;
         if (!ruleOptions.classes) ruleOptions.classes = {};
         var rule = (0, _createRule3['default'])(name, style, ruleOptions);
+
+        if (!ruleOptions.selector && rule instanceof _StyleRule2['default']) {
+          rule.selector = '.' + ruleOptions.generateClassName(rule);
+        }
+
         this.plugins.onProcessRule(rule);
         return rule;
       }
@@ -6007,7 +6232,12 @@ var Jss_1 = createCommonjsModule(function (module, exports) {
         }
 
         plugins.forEach(function (plugin) {
-          return _this.plugins.use(plugin);
+          // Avoids applying same plugin twice, at least based on ref.
+          if (_this.options.plugins.indexOf(plugin) === -1) {
+            _this.options.plugins.push(plugin);
+
+            _this.plugins.use(plugin);
+          }
         });
         return this;
       }
@@ -6018,15 +6248,14 @@ var Jss_1 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = Jss;
 });
-unwrapExports(Jss_1);
 
-var lib = createCommonjsModule(function (module, exports) {
+var lib$1 = createCommonjsModule(function (module, exports) {
   'use strict';
 
   Object.defineProperty(exports, "__esModule", {
     value: true
   });
-  exports.create = exports.sheets = exports.RuleList = exports.SheetsManager = exports.SheetsRegistry = exports.getDynamicStyles = undefined;
+  exports.create = exports.createGenerateClassName = exports.sheets = exports.RuleList = exports.SheetsManager = exports.SheetsRegistry = exports.getDynamicStyles = undefined;
   Object.defineProperty(exports, 'getDynamicStyles', {
     enumerable: true,
     get: function get() {
@@ -6057,6 +6286,12 @@ var lib = createCommonjsModule(function (module, exports) {
       return _interopRequireDefault(sheets)['default'];
     }
   });
+  Object.defineProperty(exports, 'createGenerateClassName', {
+    enumerable: true,
+    get: function get() {
+      return _interopRequireDefault(createGenerateClassName)['default'];
+    }
+  });
 
   var _Jss2 = _interopRequireDefault(Jss_1);
 
@@ -6080,10 +6315,9 @@ var lib = createCommonjsModule(function (module, exports) {
 
   exports['default'] = create();
 });
-unwrapExports(lib);
-var lib_1 = lib.create;
+var lib_1 = lib$1.create;
 
-var lib$1 = createCommonjsModule(function (module, exports) {
+var lib$2 = createCommonjsModule(function (module, exports) {
   "use strict";
 
   Object.defineProperty(exports, "__esModule", {
@@ -6147,9 +6381,9 @@ var lib$1 = createCommonjsModule(function (module, exports) {
     };
   }
 });
-var jssCamel = unwrapExports(lib$1);
+var jssCamel = unwrapExports(lib$2);
 
-var lib$2 = createCommonjsModule(function (module, exports) {
+var lib$3 = createCommonjsModule(function (module, exports) {
   'use strict';
 
   Object.defineProperty(exports, "__esModule", {
@@ -6206,7 +6440,7 @@ var lib$2 = createCommonjsModule(function (module, exports) {
       this.type = 'global';
       this.key = key;
       this.options = options;
-      this.rules = new lib.RuleList(_extends({}, options, {
+      this.rules = new lib$1.RuleList(_extends({}, options, {
         parent: this
       }));
 
@@ -6369,9 +6603,9 @@ var lib$2 = createCommonjsModule(function (module, exports) {
     };
   }
 });
-var jssGlobal = unwrapExports(lib$2);
+var jssGlobal = unwrapExports(lib$3);
 
-var lib$3 = createCommonjsModule(function (module, exports) {
+var lib$4 = createCommonjsModule(function (module, exports) {
   'use strict';
 
   Object.defineProperty(exports, "__esModule", {
@@ -6400,21 +6634,6 @@ var lib$3 = createCommonjsModule(function (module, exports) {
     return obj && obj.__esModule ? obj : {
       default: obj
     };
-  }
-
-  function _defineProperty(obj, key, value) {
-    if (key in obj) {
-      Object.defineProperty(obj, key, {
-        value: value,
-        enumerable: true,
-        configurable: true,
-        writable: true
-      });
-    } else {
-      obj[key] = value;
-    }
-
-    return obj;
   }
 
   var separatorRegExp = /\s*,\s*/g;
@@ -6499,8 +6718,10 @@ var lib$3 = createCommonjsModule(function (module, exports) {
             selector: selector
           }));
         } else if (isNestedConditional) {
-          // Place conditional right after the parent rule to ensure right ordering.
-          container.addRule(prop, _defineProperty({}, rule.key, style[prop]), options);
+          container // Place conditional right after the parent rule to ensure right ordering.
+          .addRule(prop, null, options).addRule(rule.key, style[prop], {
+            selector: rule.selector
+          });
         }
 
         delete style[prop];
@@ -6514,7 +6735,7 @@ var lib$3 = createCommonjsModule(function (module, exports) {
     };
   }
 });
-var jssNested = unwrapExports(lib$3);
+var jssNested = unwrapExports(lib$4);
 
 var _class$1;
 
@@ -6611,6 +6832,292 @@ var BrowserLocationStore = (_class$1 = function (_AbstractLocationStor) {
 }(AbstractLocationStore), (_applyDecoratedDescriptor$2(_class$1.prototype, "location", [memkey], Object.getOwnPropertyDescriptor(_class$1.prototype, "location"), _class$1.prototype)), _class$1);
 BrowserLocationStore._r = [0, [Location, History]];
 
+var _class2$1;
+var _class4;
+var _temp$1;
+
+function _applyDecoratedDescriptor$3(target, property, decorators, descriptor, context) {
+  var desc = {};
+  Object['ke' + 'ys'](descriptor).forEach(function (key) {
+    desc[key] = descriptor[key];
+  });
+  desc.enumerable = !!desc.enumerable;
+  desc.configurable = !!desc.configurable;
+
+  if ('value' in desc || desc.initializer) {
+    desc.writable = true;
+  }
+
+  desc = decorators.slice().reverse().reduce(function (desc, decorator) {
+    return decorator(target, property, desc) || desc;
+  }, desc);
+
+  if (context && desc.initializer !== void 0) {
+    desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
+    desc.initializer = undefined;
+  }
+
+  if (desc.initializer === void 0) {
+    Object['define' + 'Property'](target, property, desc);
+    desc = null;
+  }
+
+  return desc;
+}
+
+var HttpError = function (_Error) {
+  inheritsLoose$1(HttpError, _Error);
+
+  function HttpError(statusCode, message, errorCode, localizedMessage, params) {
+    var _this;
+
+    _this = _Error.call(this, message) || this // $FlowFixMe new.target
+    ;
+    _this.statusCode = void 0;
+    _this.message = void 0;
+    _this.stack = void 0;
+    _this.localizedMessage = void 0;
+    _this.errorCode = void 0;
+    _this.params = void 0;
+    _this['__proto__'] = new.target.prototype;
+    _this.params = params || null;
+    _this.statusCode = statusCode;
+    _this.errorCode = errorCode || null;
+    _this.localizedMessage = localizedMessage || null;
+    return _this;
+  }
+
+  return HttpError;
+}(Error);
+HttpError._r = [0, [Number, String, "IErrorParams"]];
+
+function timeoutPromise(promise, timeout, params) {
+  if (!timeout) return promise;
+  var tm = timeout;
+  return Promise.race([promise, new Promise(function (resolve, reject) {
+    setTimeout(function () {
+      return reject(new HttpError(408, 'Request timeout client emulation: ' + tm / 1000 + 's', null, null, params));
+    }, tm);
+  })]);
+}
+
+timeoutPromise._r = [2, [null, "IErrorParams"]];
+var FetcherResponse = (_class2$1 = function () {
+  function FetcherResponse(url, init, state, ptr, fetcher) {
+    var _this2 = this;
+
+    this._url = void 0;
+    this._init = void 0;
+    this._state = void 0;
+    this._ptr = void 0;
+    this._fetcher = void 0;
+
+    this._end = function (e) {
+      if (_this2._ptr) {
+        _this2._ptr.endFetch(_this2, e instanceof Error ? e : undefined);
+      }
+    };
+
+    this._url = url;
+    this._init = init;
+    this._state = state;
+    this._ptr = ptr;
+    this._fetcher = fetcher;
+  }
+
+  var _proto = FetcherResponse.prototype;
+
+  _proto._getState = function _getState() {
+    var state = this._state;
+    this._state = undefined;
+
+    if (state !== undefined) {
+      return state;
+    }
+  };
+
+  _proto.text = function text(next, force$$1) {
+    var _this3 = this;
+
+    var state = this._getState();
+
+    if (state !== undefined) {
+      if (typeof state !== 'string') throw new Error(this._url + " state need an string");
+      return state;
+    }
+
+    if (this._ptr) {
+      this._ptr.beginFetch();
+    }
+
+    var init = this._init;
+    var params = {
+      url: this._url,
+      method: init ? init.method : 'GET',
+      body: init ? init.body : ''
+    };
+    timeoutPromise(this._fetcher.request(this._url, init), init ? init.timeout : null, params).then(function (r) {
+      return r.status === 204 ? '' : r.text();
+    }).then(function (data) {
+      return _this3.text(data, true);
+    }).catch(function (e) {
+      if (!(e instanceof HttpError)) {
+        var _err = new HttpError(e.statusCode || 500, e.message, null, null, params);
+
+        _err.stack = e.stack;
+
+        _this3.text(_err, true);
+      }
+
+      _this3.text(e, true);
+
+      return e;
+    }).then(this._end);
+    throw new mem.Wait(params.method + " " + params.url);
+  };
+
+  _proto.json = function json() {
+    var state = this._getState();
+
+    if (state !== undefined) {
+      if (_typeof$1(state) !== 'object') throw new Error(this._url + " state need an object");
+      return state;
+    }
+
+    var text = this.text();
+    return text ? JSON.parse(text) : {};
+  };
+
+  return FetcherResponse;
+}(), (_applyDecoratedDescriptor$3(_class2$1.prototype, "text", [mem], Object.getOwnPropertyDescriptor(_class2$1.prototype, "text"), _class2$1.prototype)), _class2$1);
+FetcherResponse._r = [0, [String, {
+  timeout: Number
+}, "V", null, {
+  request: Function
+}]];
+var Fetcher = (_temp$1 = _class4 = function () {
+  function Fetcher(baseUrl, init, state, renderer) {
+    this._state = void 0;
+    this._baseUrl = void 0;
+    this._init = void 0;
+    this._renderer = void 0;
+    this._state = state || {};
+    this._baseUrl = baseUrl || '';
+    this._init = init;
+    this._renderer = renderer;
+  }
+
+  var _proto2 = Fetcher.prototype;
+
+  _proto2.request = function request(url, init) {
+    return fetch(url, init);
+  };
+
+  _proto2.mergeOptions = function mergeOptions(init) {
+    return this._init === undefined && init === undefined ? undefined : _extends({}, this._init || {}, init || {});
+  };
+
+  _proto2.fetch = function fetch(url, init) {
+    var method = (init ? init.method : null) || 'GET';
+    var state = this._state[url];
+
+    if (state) {
+      state = state[method];
+
+      if (state !== undefined) {
+        state[method] = undefined;
+      } else {
+        this._state[url] = undefined;
+      }
+    }
+
+    return new this.constructor.Response(this._baseUrl + url, this.mergeOptions(init), state, this._renderer, this);
+  };
+
+  return Fetcher;
+}(), _class4.Response = FetcherResponse, _temp$1);
+Fetcher._r = [0, [String, {
+  timeout: Number
+}, Object, {
+  beginFetch: Function,
+  endFetch: Function
+}]];
+var ServerRenderer = function () {
+  function ServerRenderer(render) {
+    this._size = 0;
+    this._callbacks = [];
+    this._errors = [];
+    this._error = false;
+    this._state = {};
+    this._render = void 0;
+    this._render = render;
+  }
+
+  var _proto3 = ServerRenderer.prototype;
+
+  _proto3.beginFetch = function beginFetch() {
+    this._size++;
+  };
+
+  _proto3.endFetch = function endFetch(v, e) {
+    var _ref;
+
+    this._size--;
+    var data = void 0;
+
+    if (e) {
+      data = e;
+      this._error = true;
+    } else {
+      data = v.json();
+    }
+
+    var method = (v._init ? v._init.method : null) || 'GET';
+    var result = method !== 'GET' ? (_ref = {}, _ref[method] = data, _ref) : data;
+    this._state[v._url] = result;
+
+    if (this._size === 0) {
+      if (!this._error) {
+        this._render();
+      }
+
+      if (this._size === 0) {
+        var _state = this._state;
+        var cbs = this._error ? this._errors : this._callbacks;
+
+        for (var i = 0; i < cbs.length; i++) {
+          cbs[i](_state);
+        }
+
+        this._callbacks = [];
+        this._errors = [];
+        this._error = false;
+      }
+    }
+  };
+
+  _proto3.then = function then(cb) {
+    this._callbacks.push(cb);
+
+    return this;
+  };
+
+  _proto3.catch = function _catch(cb) {
+    this._errors.push(cb);
+
+    return this;
+  };
+
+  _proto3.render = function render() {
+    this._render();
+
+    return this;
+  };
+
+  return ServerRenderer;
+}();
+ServerRenderer._r = [0, [Function]];
+
 var logger = new ConsoleLogger();
 defaultContext.setLogger(logger);
 
@@ -6623,7 +7130,7 @@ ErrorableView._r = [1];
 var jss = lib_1({
   plugins: [jssNested(), jssCamel(), jssGlobal()]
 });
-var injector = new Injector([[AbstractLocationStore, new BrowserLocationStore(location, history)]], jss);
+var injector = new Injector([[Fetcher, new Fetcher('/api')], [AbstractLocationStore, new BrowserLocationStore(location, history)]], jss);
 var lomCreateElement = createCreateElement(createReactWrapper(Component, ErrorableView, injector), h);
 global$1['lom_h'] = lomCreateElement;
 
@@ -6640,7 +7147,7 @@ function _initDefineProp$1(target, property, descriptor, context) {
   });
 }
 
-function _applyDecoratedDescriptor$3(target, property, decorators, descriptor, context) {
+function _applyDecoratedDescriptor$4(target, property, decorators, descriptor, context) {
   var desc = {};
   Object['ke' + 'ys'](descriptor).forEach(function (key) {
     desc[key] = descriptor[key];
@@ -6685,7 +7192,7 @@ var FirstCounterService = (_class$2 = function () {
       var _this = this;
 
       setTimeout(function () {
-        _this.value = 1; // this.value = new Error('loading error')
+        _this.$.value = 1; // this.value = new Error('loading error')
       }, 500);
       throw new mem.Wait();
     },
@@ -6696,10 +7203,10 @@ var FirstCounterService = (_class$2 = function () {
     }
   }]);
   return FirstCounterService;
-}(), (_descriptor$1 = _applyDecoratedDescriptor$3(_class$2.prototype, "$", [force], {
+}(), (_descriptor$1 = _applyDecoratedDescriptor$4(_class$2.prototype, "$", [force], {
   enumerable: true,
   initializer: null
-}), _applyDecoratedDescriptor$3(_class$2.prototype, "value", [mem], Object.getOwnPropertyDescriptor(_class$2.prototype, "value"), _class$2.prototype), _applyDecoratedDescriptor$3(_class$2.prototype, "value", [mem], Object.getOwnPropertyDescriptor(_class$2.prototype, "value"), _class$2.prototype)), _class$2);
+}), _applyDecoratedDescriptor$4(_class$2.prototype, "value", [mem], Object.getOwnPropertyDescriptor(_class$2.prototype, "value"), _class$2.prototype), _applyDecoratedDescriptor$4(_class$2.prototype, "value", [mem], Object.getOwnPropertyDescriptor(_class$2.prototype, "value"), _class$2.prototype)), _class$2);
 
 function CounterMessageView(_ref) {
   var value = _ref.value;
@@ -6719,7 +7226,7 @@ function FirstCounterView(_, counter) {
   }, counter.lang.add), lom_h("button", {
     id: "FirstCounterGenErrorButton",
     onClick: function onClick() {
-      counter.$.value = 'someStr';
+      counter.value = 'someStr';
     }
   }, counter.lang.error));
 }
@@ -6916,10 +7423,6 @@ globToRegexp._r = [2];
 var isarray = Array.isArray || function (arr) {
   return Object.prototype.toString.call(arr) == '[object Array]';
 };
-
-/**
- * Expose `pathToRegexp`.
- */
 
 var pathToRegexp_1 = pathToRegexp;
 var parse_1 = parse;
@@ -7389,8 +7892,6 @@ pathToRegexp_1.compile = compile_1;
 pathToRegexp_1.tokensToFunction = tokensToFunction_1;
 pathToRegexp_1.tokensToRegExp = tokensToRegExp_1;
 
-'use strict';
-
 var _extends$2 = Object.assign || function (target) {
   for (var i = 1; i < arguments.length; i++) {
     var source = arguments[i];
@@ -7611,8 +8112,6 @@ var compileRoute = function compileRoute(route, Request, HeadersConstructor) {
 
 compileRoute._r = [2];
 
-'use strict';
-
 var _typeof$4 = typeof Symbol === "function" && _typeof$1(Symbol.iterator) === "symbol" ? function (obj) {
   return _typeof$1(obj);
 } : function (obj) {
@@ -7832,6 +8331,13 @@ FetchMock.prototype.mockResponse = function (url, responseConfig, fetchOpts, res
   if (opts.sendAsJson && responseConfig.body != null && (typeof body === 'undefined' ? 'undefined' : _typeof$4(body)) === 'object') {
     //eslint-disable-line
     body = JSON.stringify(body);
+  } // add a Content-Length header if we need to
+
+
+  opts.includeContentLength = responseConfig.includeContentLength === undefined ? FetchMock.config.includeContentLength : responseConfig.includeContentLength;
+
+  if (opts.includeContentLength && typeof body === 'string' && !opts.headers.has('Content-Length')) {
+    opts.headers.set('Content-Length', body.length.toString());
   } // On the server we need to manually construct the readable stream for the
   // Response object (on the client this is done automatically)
 
@@ -7855,6 +8361,17 @@ FetchMock.prototype.mockResponse = function (url, responseConfig, fetchOpts, res
     response = Object.create(response, {
       redirected: {
         value: true
+      },
+      url: {
+        value: responseConfig.__redirectUrl
+      },
+      // TODO extend to all other methods as requested by users
+      // Such a nasty hack
+      text: {
+        value: response.text.bind(response)
+      },
+      json: {
+        value: response.json.bind(response)
       }
     });
   }
@@ -7975,6 +8492,7 @@ FetchMock.prototype.done = function (name) {
 };
 
 FetchMock.config = {
+  includeContentLength: false,
   sendAsJson: true
 };
 
@@ -8036,8 +8554,6 @@ FetchMock.prototype.sandbox = function (Promise) {
   };
 });
 var fetchMock$1 = FetchMock;
-
-'use strict';
 
 var statusTextMap = {
   '100': 'Continue',
@@ -8105,8 +8621,6 @@ var statusTextMap = {
 };
 var statusText = statusTextMap;
 
-'use strict';
-
 var theGlobal = typeof window !== 'undefined' ? window : self;
 fetchMock$1.global = theGlobal;
 fetchMock$1.statusTextMap = statusText;
@@ -8120,7 +8634,7 @@ var client = new fetchMock$1();
 
 var _class$4;
 
-function _applyDecoratedDescriptor$5(target, property, decorators, descriptor, context) {
+function _applyDecoratedDescriptor$6(target, property, decorators, descriptor, context) {
   var desc = {};
   Object['ke' + 'ys'](descriptor).forEach(function (key) {
     desc[key] = descriptor[key];
@@ -8221,7 +8735,7 @@ var Locale = (_class$4 = function () {
   }
 
   return Locale;
-}(), (_applyDecoratedDescriptor$5(_class$4.prototype, "lang", [mem], Object.getOwnPropertyDescriptor(_class$4.prototype, "lang"), _class$4.prototype), _applyDecoratedDescriptor$5(_class$4.prototype, "lang", [mem], Object.getOwnPropertyDescriptor(_class$4.prototype, "lang"), _class$4.prototype)), _class$4);
+}(), (_applyDecoratedDescriptor$6(_class$4.prototype, "lang", [mem], Object.getOwnPropertyDescriptor(_class$4.prototype, "lang"), _class$4.prototype), _applyDecoratedDescriptor$6(_class$4.prototype, "lang", [mem], Object.getOwnPropertyDescriptor(_class$4.prototype, "lang"), _class$4.prototype)), _class$4);
 Locale._r = [0, [String]];
 var BrowserLocalStorage = function () {
   function BrowserLocalStorage(storage, key) {
@@ -8281,7 +8795,7 @@ mockFetch._r = [2, [Storage]];
 
 var _class$3;
 var _descriptor$2;
-var _class3;
+var _class3$1;
 var _descriptor2;
 
 function _initDefineProp$2(target, property, descriptor, context) {
@@ -8294,7 +8808,7 @@ function _initDefineProp$2(target, property, descriptor, context) {
   });
 }
 
-function _applyDecoratedDescriptor$4(target, property, decorators, descriptor, context) {
+function _applyDecoratedDescriptor$5(target, property, decorators, descriptor, context) {
   var desc = {};
   Object['ke' + 'ys'](descriptor).forEach(function (key) {
     desc[key] = descriptor[key];
@@ -8325,13 +8839,13 @@ function _applyDecoratedDescriptor$4(target, property, decorators, descriptor, c
 
 var Hello = (_class$3 = function Hello() {
   _initDefineProp$2(this, "name", _descriptor$2, this);
-}, (_descriptor$2 = _applyDecoratedDescriptor$4(_class$3.prototype, "name", [mem], {
+}, (_descriptor$2 = _applyDecoratedDescriptor$5(_class$3.prototype, "name", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return 'test';
   }
 })), _class$3);
-var HelloOptions = (_class3 = function () {
+var HelloOptions = (_class3$1 = function () {
   function HelloOptions() {
     _initDefineProp$2(this, "_props", _descriptor2, this);
   }
@@ -8344,10 +8858,10 @@ var HelloOptions = (_class3 = function () {
     set: function set$$1(name) {}
   }]);
   return HelloOptions;
-}(), (_descriptor2 = _applyDecoratedDescriptor$4(_class3.prototype, "_props", [mem, props], {
+}(), (_descriptor2 = _applyDecoratedDescriptor$5(_class3$1.prototype, "_props", [mem, props], {
   enumerable: true,
   initializer: null
-}), _applyDecoratedDescriptor$4(_class3.prototype, "actionName", [mem], Object.getOwnPropertyDescriptor(_class3.prototype, "actionName"), _class3.prototype), _applyDecoratedDescriptor$4(_class3.prototype, "actionName", [mem], Object.getOwnPropertyDescriptor(_class3.prototype, "actionName"), _class3.prototype)), _class3);
+}), _applyDecoratedDescriptor$5(_class3$1.prototype, "actionName", [mem], Object.getOwnPropertyDescriptor(_class3$1.prototype, "actionName"), _class3$1.prototype), _applyDecoratedDescriptor$5(_class3$1.prototype, "actionName", [mem], Object.getOwnPropertyDescriptor(_class3$1.prototype, "actionName"), _class3$1.prototype)), _class3$1);
 
 var SomeService = function () {
   function SomeService(opts) {
@@ -8549,6 +9063,7 @@ todoMocks._r = [2, [Storage]];
 
 var _class2$2;
 var _descriptor$3;
+var _descriptor2$1;
 
 function _initDefineProp$3(target, property, descriptor, context) {
   if (!descriptor) return;
@@ -8560,7 +9075,7 @@ function _initDefineProp$3(target, property, descriptor, context) {
   });
 }
 
-function _applyDecoratedDescriptor$6(target, property, decorators, descriptor, context) {
+function _applyDecoratedDescriptor$7(target, property, decorators, descriptor, context) {
   var desc = {};
   Object['ke' + 'ys'](descriptor).forEach(function (key) {
     desc[key] = descriptor[key];
@@ -8611,7 +9126,7 @@ var TodoModel = function () {
 
   var _proto = TodoModel.prototype;
 
-  _proto.destroy = function destroy() {
+  _proto.remove = function remove() {
     this._store.remove(this.id);
   };
 
@@ -8619,6 +9134,10 @@ var TodoModel = function () {
     this.completed = !this.completed;
 
     this._store.saveTodo(this.toJSON());
+  };
+
+  _proto.update = function update(data) {
+    this._store.saveTodo(data);
   };
 
   _proto.toJSON = function toJSON() {
@@ -8645,8 +9164,14 @@ var TodoModel = function () {
 
 TodoModel._r = [0, [TodoService]];
 var TodoService = (_class2$2 = function () {
-  function TodoService() {
+  function TodoService(fetcher) {
     _initDefineProp$3(this, "opCount", _descriptor$3, this);
+
+    this._fetcher = void 0;
+
+    _initDefineProp$3(this, "$", _descriptor2$1, this);
+
+    this._fetcher = fetcher;
   }
 
   var _proto2 = TodoService.prototype;
@@ -8655,12 +9180,10 @@ var TodoService = (_class2$2 = function () {
     var _this = this;
 
     if (info !== undefined && !(info instanceof Error)) return info;
-    fetch("/api/todo/" + id + "/info", {
-      method: 'GET'
-    }).then(toJson).then(function (info) {
-      _this.todoExtInfo(id, info);
-    }).catch(function (error) {
-      _this.todoExtInfo(id, error);
+    fetch("/api/todo/" + id + "/info").then(toJson).then(function (data) {
+      _this.$.todoExtInfo(id, data);
+    }).catch(function (e) {
+      _this.$.todoExtInfo(id, e);
     });
     throw new mem.Wait();
   };
@@ -8689,7 +9212,7 @@ var TodoService = (_class2$2 = function () {
       method: 'PUT',
       body: JSON.stringify(todo)
     }).then(toJson).then(function (updatedTodo) {
-      _this3.todos = _this3.todos.map(function (t) {
+      _this3.$.todos = _this3.todos.map(function (t) {
         return t.id === todo.id ? new TodoModel(updatedTodo, _this3) : t;
       });
     }));
@@ -8775,14 +9298,12 @@ var TodoService = (_class2$2 = function () {
     get: function get$$1() {
       var _this6 = this;
 
-      fetch('/api/todos', {
-        method: 'GET'
-      }).then(toJson).then(function (todos) {
-        _this6.todos = todos.map(function (todo) {
+      fetch('/api/todos').then(toJson).then(function (data) {
+        _this6.$.todos = data.map(function (todo) {
           return new TodoModel(todo, _this6);
         });
       }).catch(function (e) {
-        _this6.todos = e;
+        _this6.$.todos = e;
       });
       throw new mem.Wait();
     },
@@ -8801,16 +9322,20 @@ var TodoService = (_class2$2 = function () {
     }
   }]);
   return TodoService;
-}(), (_descriptor$3 = _applyDecoratedDescriptor$6(_class2$2.prototype, "opCount", [mem], {
+}(), (_descriptor$3 = _applyDecoratedDescriptor$7(_class2$2.prototype, "opCount", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return 0;
   }
-}), _applyDecoratedDescriptor$6(_class2$2.prototype, "todoExtInfo", [memkey], Object.getOwnPropertyDescriptor(_class2$2.prototype, "todoExtInfo"), _class2$2.prototype), _applyDecoratedDescriptor$6(_class2$2.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "todos"), _class2$2.prototype), _applyDecoratedDescriptor$6(_class2$2.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "todos"), _class2$2.prototype), _applyDecoratedDescriptor$6(_class2$2.prototype, "activeTodoCount", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "activeTodoCount"), _class2$2.prototype), _applyDecoratedDescriptor$6(_class2$2.prototype, "remove", [action], Object.getOwnPropertyDescriptor(_class2$2.prototype, "remove"), _class2$2.prototype), _applyDecoratedDescriptor$6(_class2$2.prototype, "toggleAll", [action], Object.getOwnPropertyDescriptor(_class2$2.prototype, "toggleAll"), _class2$2.prototype)), _class2$2);
+}), _descriptor2$1 = _applyDecoratedDescriptor$7(_class2$2.prototype, "$", [force], {
+  enumerable: true,
+  initializer: null
+}), _applyDecoratedDescriptor$7(_class2$2.prototype, "todoExtInfo", [memkey], Object.getOwnPropertyDescriptor(_class2$2.prototype, "todoExtInfo"), _class2$2.prototype), _applyDecoratedDescriptor$7(_class2$2.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "todos"), _class2$2.prototype), _applyDecoratedDescriptor$7(_class2$2.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "todos"), _class2$2.prototype), _applyDecoratedDescriptor$7(_class2$2.prototype, "activeTodoCount", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "activeTodoCount"), _class2$2.prototype), _applyDecoratedDescriptor$7(_class2$2.prototype, "toggleAll", [action], Object.getOwnPropertyDescriptor(_class2$2.prototype, "toggleAll"), _class2$2.prototype)), _class2$2);
+TodoService._r = [0, [Fetcher]];
 
 var _class$5;
 
-function _applyDecoratedDescriptor$7(target, property, decorators, descriptor, context) {
+function _applyDecoratedDescriptor$8(target, property, decorators, descriptor, context) {
   var desc = {};
   Object['ke' + 'ys'](descriptor).forEach(function (key) {
     desc[key] = descriptor[key];
@@ -8885,7 +9410,7 @@ var TodoFilterService = (_class$5 = function () {
     }
   }]);
   return TodoFilterService;
-}(), (_applyDecoratedDescriptor$7(_class$5.prototype, "filteredTodos", [mem], Object.getOwnPropertyDescriptor(_class$5.prototype, "filteredTodos"), _class$5.prototype)), _class$5);
+}(), (_applyDecoratedDescriptor$8(_class$5.prototype, "filteredTodos", [mem], Object.getOwnPropertyDescriptor(_class$5.prototype, "filteredTodos"), _class$5.prototype)), _class$5);
 TodoFilterService._r = [0, [TodoService, AbstractLocationStore]];
 
 var _class$6;
@@ -8901,7 +9426,7 @@ function _initDefineProp$4(target, property, descriptor, context) {
   });
 }
 
-function _applyDecoratedDescriptor$8(target, property, decorators, descriptor, context) {
+function _applyDecoratedDescriptor$9(target, property, decorators, descriptor, context) {
   var desc = {};
   Object['ke' + 'ys'](descriptor).forEach(function (key) {
     desc[key] = descriptor[key];
@@ -8962,12 +9487,12 @@ var TodoToAdd = (_class$6 = function () {
     }
   }]);
   return TodoToAdd;
-}(), (_descriptor$4 = _applyDecoratedDescriptor$8(_class$6.prototype, "title", [mem], {
+}(), (_descriptor$4 = _applyDecoratedDescriptor$9(_class$6.prototype, "title", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return '';
   }
-}), _applyDecoratedDescriptor$8(_class$6.prototype, "props", [props], Object.getOwnPropertyDescriptor(_class$6.prototype, "props"), _class$6.prototype), _applyDecoratedDescriptor$8(_class$6.prototype, "onInput", [action], Object.getOwnPropertyDescriptor(_class$6.prototype, "onInput"), _class$6.prototype)), _class$6);
+}), _applyDecoratedDescriptor$9(_class$6.prototype, "props", [props], Object.getOwnPropertyDescriptor(_class$6.prototype, "props"), _class$6.prototype), _applyDecoratedDescriptor$9(_class$6.prototype, "onInput", [action], Object.getOwnPropertyDescriptor(_class$6.prototype, "onInput"), _class$6.prototype)), _class$6);
 
 function TodoHeaderTheme() {
   var _newTodo;
@@ -9009,7 +9534,7 @@ TodoHeaderView._r = [1, [{
 
 var _class$7;
 var _descriptor$5;
-var _descriptor2$1;
+var _descriptor2$2;
 var _descriptor3;
 
 function _initDefineProp$5(target, property, descriptor, context) {
@@ -9022,7 +9547,7 @@ function _initDefineProp$5(target, property, descriptor, context) {
   });
 }
 
-function _applyDecoratedDescriptor$9(target, property, decorators, descriptor, context) {
+function _applyDecoratedDescriptor$10(target, property, decorators, descriptor, context) {
   var desc = {};
   Object['ke' + 'ys'](descriptor).forEach(function (key) {
     desc[key] = descriptor[key];
@@ -9059,7 +9584,7 @@ var TodoItemStore = (_class$7 = function () {
 
     _initDefineProp$5(this, "todoBeingEditedId", _descriptor$5, this);
 
-    _initDefineProp$5(this, "editText", _descriptor2$1, this);
+    _initDefineProp$5(this, "editText", _descriptor2$2, this);
 
     _initDefineProp$5(this, "props", _descriptor3, this);
 
@@ -9111,7 +9636,7 @@ var TodoItemStore = (_class$7 = function () {
     };
 
     this.handleDestroy = function () {
-      _this.props.todo.destroy();
+      _this.props.todo.remove();
 
       _this.todoBeingEditedId = null;
     };
@@ -9125,20 +9650,20 @@ var TodoItemStore = (_class$7 = function () {
   };
 
   return TodoItemStore;
-}(), (_descriptor$5 = _applyDecoratedDescriptor$9(_class$7.prototype, "todoBeingEditedId", [mem], {
+}(), (_descriptor$5 = _applyDecoratedDescriptor$10(_class$7.prototype, "todoBeingEditedId", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return null;
   }
-}), _descriptor2$1 = _applyDecoratedDescriptor$9(_class$7.prototype, "editText", [mem], {
+}), _descriptor2$2 = _applyDecoratedDescriptor$10(_class$7.prototype, "editText", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return '';
   }
-}), _descriptor3 = _applyDecoratedDescriptor$9(_class$7.prototype, "props", [props], {
+}), _descriptor3 = _applyDecoratedDescriptor$10(_class$7.prototype, "props", [props], {
   enumerable: true,
   initializer: null
-}), _applyDecoratedDescriptor$9(_class$7.prototype, "setText", [action], Object.getOwnPropertyDescriptor(_class$7.prototype, "setText"), _class$7.prototype)), _class$7);
+}), _applyDecoratedDescriptor$10(_class$7.prototype, "setText", [action], Object.getOwnPropertyDescriptor(_class$7.prototype, "setText"), _class$7.prototype)), _class$7);
 
 function TodoItemTheme() {
   var itemBase = {
@@ -9272,8 +9797,9 @@ function TodoItemView(_ref2, _ref3) {
   }), lom_h("label", {
     "class": todo.completed ? theme.viewLabelCompleted : theme.viewLabelRegular,
     id: "beginEdit",
+    title: info.description,
     onDblClick: itemStore.beginEdit
-  }, todo.title, ", desc: ", info.description), lom_h("button", {
+  }, todo.title), lom_h("button", {
     "class": theme.destroy,
     id: "destroy",
     onClick: itemStore.handleDestroy
@@ -9555,139 +10081,12 @@ TodoApp._r = [1, [{
   theme: TodoAppTheme
 }]];
 
-var _class$8;
+var _class2$3;
 var _descriptor$6;
+var _descriptor2$3;
+var _descriptor3$1;
 
 function _initDefineProp$6(target, property, descriptor, context) {
-  if (!descriptor) return;
-  Object.defineProperty(target, property, {
-    enumerable: descriptor.enumerable,
-    configurable: descriptor.configurable,
-    writable: descriptor.writable,
-    value: descriptor.initializer ? descriptor.initializer.call(context) : void 0
-  });
-}
-
-function _applyDecoratedDescriptor$10(target, property, decorators, descriptor, context) {
-  var desc = {};
-  Object['ke' + 'ys'](descriptor).forEach(function (key) {
-    desc[key] = descriptor[key];
-  });
-  desc.enumerable = !!desc.enumerable;
-  desc.configurable = !!desc.configurable;
-
-  if ('value' in desc || desc.initializer) {
-    desc.writable = true;
-  }
-
-  desc = decorators.slice().reverse().reduce(function (desc, decorator) {
-    return decorator(target, property, desc) || desc;
-  }, desc);
-
-  if (context && desc.initializer !== void 0) {
-    desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
-    desc.initializer = undefined;
-  }
-
-  if (desc.initializer === void 0) {
-    Object['define' + 'Property'](target, property, desc);
-    desc = null;
-  }
-
-  return desc;
-}
-
-var AutocompleteService = (_class$8 = function () {
-  function AutocompleteService() {
-    var _this = this;
-
-    _initDefineProp$6(this, "nameToSearch", _descriptor$6, this);
-
-    this._handler = 0;
-
-    this.setValue = function (e) {
-      _this.nameToSearch = e.target.value;
-    };
-  }
-
-  var _proto = AutocompleteService.prototype;
-
-  _proto._destroy = function _destroy() {
-    clearTimeout(this._handler);
-  };
-
-  createClass$1(AutocompleteService, [{
-    key: "props",
-    set: function set$$1(_ref) {
-      var initialValue = _ref.initialValue;
-      this.nameToSearch = initialValue;
-    }
-  }, {
-    key: "searchResults",
-    get: function get$$1() {
-      var _this2 = this;
-
-      clearTimeout(this._handler);
-      var name = this.nameToSearch;
-      this._handler = setTimeout(function () {
-        fetch("/api/autocomplete?q=" + name).then(function (r) {
-          return r.json();
-        }).then(function (data) {
-          _this2.searchResults = data;
-        }).catch(function (e) {
-          _this2.searchResults = e;
-        });
-      }, 500);
-      throw new mem.Wait();
-    },
-    set: function set$$1(searchResults) {}
-  }]);
-  return AutocompleteService;
-}(), (_descriptor$6 = _applyDecoratedDescriptor$10(_class$8.prototype, "nameToSearch", [mem], {
-  enumerable: true,
-  initializer: null
-}), _applyDecoratedDescriptor$10(_class$8.prototype, "props", [props], Object.getOwnPropertyDescriptor(_class$8.prototype, "props"), _class$8.prototype), _applyDecoratedDescriptor$10(_class$8.prototype, "searchResults", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "searchResults"), _class$8.prototype), _applyDecoratedDescriptor$10(_class$8.prototype, "searchResults", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "searchResults"), _class$8.prototype)), _class$8);
-
-function AutocompleteResultsView(_ref2) {
-  var searchResults = _ref2.searchResults;
-  return lom_h("ul", null, searchResults.map(function (result, i) {
-    return lom_h("li", {
-      key: result + i
-    }, result);
-  }));
-}
-
-AutocompleteResultsView._r = [1];
-function AutocompleteView(_, service) {
-  return lom_h("div", null, lom_h("div", null, "Filter:", lom_h("input", {
-    value: service.nameToSearch,
-    onInput: service.setValue
-  })), "Values:", lom_h(AutocompleteResultsView, {
-    searchResults: service.searchResults
-  }));
-}
-AutocompleteView._r = [1, [AutocompleteService]];
-function autocompleteMocks(rawStorage) {
-  var fixture = ['John Doe', 'Vasia Pupkin'];
-  return [{
-    method: 'GET',
-    matcher: new RegExp('/api/autocomplete'),
-    response: function response(url, params) {
-      // eslint-disable-line
-      var names = url.match(new RegExp('/api/autocomplete\\?q=(.+)'));
-      var name = names && names.length ? names[1] : '';
-      return name ? fixture.filter(function (userName) {
-        return userName.indexOf(name) === 0;
-      }) : fixture;
-    }
-  }];
-}
-autocompleteMocks._r = [2, [Storage]];
-
-var _class$9;
-var _descriptor$7;
-
-function _initDefineProp$7(target, property, descriptor, context) {
   if (!descriptor) return;
   Object.defineProperty(target, property, {
     enumerable: descriptor.enumerable,
@@ -9726,14 +10125,166 @@ function _applyDecoratedDescriptor$11(target, property, decorators, descriptor, 
   return desc;
 }
 
-var Store$1 = (_class$9 = function Store() {
+var Timeout = function () {
+  function Timeout(fn, timeout) {
+    this._handler = null;
+    this._handler = setTimeout(fn, timeout);
+  }
+
+  var _proto = Timeout.prototype;
+
+  _proto.destructor = function destructor() {
+    clearTimeout(this._handler);
+  };
+
+  return Timeout;
+}();
+
+Timeout._r = [0, [Function, Number]];
+var AutocompleteService = (_class2$3 = function () {
+  function AutocompleteService() {
+    var _this = this;
+
+    _initDefineProp$6(this, "$", _descriptor$6, this);
+
+    _initDefineProp$6(this, "nameToSearch", _descriptor2$3, this);
+
+    _initDefineProp$6(this, "_handler", _descriptor3$1, this);
+
+    this.setValue = function (e) {
+      _this.$.nameToSearch = e.target.value;
+    };
+  }
+
+  createClass$1(AutocompleteService, [{
+    key: "props",
+    set: function set$$1(_ref) {
+      var initialValue = _ref.initialValue;
+      this.nameToSearch = initialValue;
+    }
+  }, {
+    key: "searchResults",
+    get: function get$$1() {
+      var _this2 = this;
+
+      var name = this.nameToSearch;
+      this._handler = new Timeout(function () {
+        fetch("/api/autocomplete?q=" + name).then(function (r) {
+          return r.json();
+        }).then(function (data) {
+          _this2.$.searchResults = data;
+        }).catch(function (e) {
+          _this2.$.searchResults = e;
+        });
+      }, 500);
+      throw new mem.Wait();
+    },
+    set: function set$$1(searchResults) {}
+  }]);
+  return AutocompleteService;
+}(), (_descriptor$6 = _applyDecoratedDescriptor$11(_class2$3.prototype, "$", [force], {
+  enumerable: true,
+  initializer: null
+}), _descriptor2$3 = _applyDecoratedDescriptor$11(_class2$3.prototype, "nameToSearch", [mem], {
+  enumerable: true,
+  initializer: function initializer() {
+    return '';
+  }
+}), _applyDecoratedDescriptor$11(_class2$3.prototype, "props", [props], Object.getOwnPropertyDescriptor(_class2$3.prototype, "props"), _class2$3.prototype), _descriptor3$1 = _applyDecoratedDescriptor$11(_class2$3.prototype, "_handler", [mem], {
+  enumerable: true,
+  initializer: function initializer() {
+    return null;
+  }
+}), _applyDecoratedDescriptor$11(_class2$3.prototype, "searchResults", [mem], Object.getOwnPropertyDescriptor(_class2$3.prototype, "searchResults"), _class2$3.prototype), _applyDecoratedDescriptor$11(_class2$3.prototype, "searchResults", [mem], Object.getOwnPropertyDescriptor(_class2$3.prototype, "searchResults"), _class2$3.prototype)), _class2$3);
+
+function AutocompleteResultsView(_ref2) {
+  var searchResults = _ref2.searchResults;
+  return lom_h("ul", null, searchResults.map(function (result, i) {
+    return lom_h("li", {
+      key: result + i
+    }, result);
+  }));
+}
+
+AutocompleteResultsView._r = [1];
+function AutocompleteView(_, service) {
+  var results = service.searchResults;
+  var name = service.nameToSearch;
+  return lom_h("div", null, lom_h("div", null, "Filter:", lom_h("input", {
+    value: name,
+    onInput: service.setValue
+  })), "Values:", lom_h(AutocompleteResultsView, {
+    searchResults: results
+  }));
+}
+AutocompleteView._r = [1, [AutocompleteService]];
+function autocompleteMocks(rawStorage) {
+  var fixture = ['John Doe', 'Vasia Pupkin'];
+  return [{
+    method: 'GET',
+    matcher: new RegExp('/api/autocomplete'),
+    response: function response(url, params) {
+      // eslint-disable-line
+      var names = url.match(new RegExp('/api/autocomplete\\?q=(.+)'));
+      var name = names && names.length ? names[1] : '';
+      return name ? fixture.filter(function (userName) {
+        return userName.indexOf(name) === 0;
+      }) : fixture;
+    }
+  }];
+}
+autocompleteMocks._r = [2, [Storage]];
+
+var _class$8;
+var _descriptor$7;
+
+function _initDefineProp$7(target, property, descriptor, context) {
+  if (!descriptor) return;
+  Object.defineProperty(target, property, {
+    enumerable: descriptor.enumerable,
+    configurable: descriptor.configurable,
+    writable: descriptor.writable,
+    value: descriptor.initializer ? descriptor.initializer.call(context) : void 0
+  });
+}
+
+function _applyDecoratedDescriptor$12(target, property, decorators, descriptor, context) {
+  var desc = {};
+  Object['ke' + 'ys'](descriptor).forEach(function (key) {
+    desc[key] = descriptor[key];
+  });
+  desc.enumerable = !!desc.enumerable;
+  desc.configurable = !!desc.configurable;
+
+  if ('value' in desc || desc.initializer) {
+    desc.writable = true;
+  }
+
+  desc = decorators.slice().reverse().reduce(function (desc, decorator) {
+    return decorator(target, property, desc) || desc;
+  }, desc);
+
+  if (context && desc.initializer !== void 0) {
+    desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
+    desc.initializer = undefined;
+  }
+
+  if (desc.initializer === void 0) {
+    Object['define' + 'Property'](target, property, desc);
+    desc = null;
+  }
+
+  return desc;
+}
+
+var Store$1 = (_class$8 = function Store() {
   _initDefineProp$7(this, "red", _descriptor$7, this);
-}, (_descriptor$7 = _applyDecoratedDescriptor$11(_class$9.prototype, "red", [mem], {
+}, (_descriptor$7 = _applyDecoratedDescriptor$12(_class$8.prototype, "red", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return 140;
   }
-})), _class$9);
+})), _class$8);
 
 function CssChangeTheme(store) {
   return {
@@ -9827,19 +10378,20 @@ var Store = (_class = (_temp = _class2 = function () {
       return this._locationStore.location('page') || this.pages[0];
     },
     set: function set$$1(page) {
-      return this._locationStore.location('page', page, true);
+      return this._locationStore.location('page', page);
     }
   }]);
   return Store;
 }(), _class2.deps = [AbstractLocationStore], _temp), (_descriptor = _applyDecoratedDescriptor(_class.prototype, "name", [mem], {
   enumerable: true,
   initializer: function initializer() {
-    return 'vvv';
+    return 'John';
   }
 })), _class);
 Store._r = [0, [AbstractLocationStore]];
 
 function AppView(_ref, _ref2) {
+  var lang = _ref.lang;
   var store = _ref2.store;
   var page = void 0;
 
@@ -9898,7 +10450,7 @@ function AppView(_ref, _ref2) {
       padding: '1em',
       margin: '0 1em'
     }
-  }, lom_h("h1", null, store.page), page), lom_h(ItemView, null, lom_h(ItemView.Key, null, "APPName:"), lom_h(ItemView.Value, null, lom_h("input", {
+  }, lom_h("h1", null, store.page), page), lom_h(ItemView, null, lom_h(ItemView.Key, null, "Some initial value:"), lom_h(ItemView.Value, null, lom_h("input", {
     value: store.name,
     onInput: function onInput(_ref3) {
       var target = _ref3.target;

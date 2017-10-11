@@ -10,6 +10,7 @@ import jssGlobal from 'jss-global'
 import jssNested from 'jss-nested'
 
 import {BrowserLocationStore, AbstractLocationStore} from './common-todomvc'
+import Fetcher from '../Fetcher'
 
 const logger = new ConsoleLogger()
 defaultContext.setLogger(logger)
@@ -45,9 +46,10 @@ const jss = createJss({
 
 const injector = new Injector(
     [
+        [Fetcher, new Fetcher('/api')],
         [AbstractLocationStore, new BrowserLocationStore(location, history)]
     ],
-    jss
+    (jss: any)
 )
 
 

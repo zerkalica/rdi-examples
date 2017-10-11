@@ -33,10 +33,10 @@ class Store {
     }
 
     set page(page: string) {
-        return this._locationStore.location('page', page, true)
+        return this._locationStore.location('page', page)
     }
 
-    @mem name = 'vvv'
+    @mem name = 'John'
 }
 
 interface AppProps {
@@ -90,12 +90,14 @@ function AppView(
             <h1>{store.page}</h1>
             {page}
         </div>
+
         <ItemView>
-            <ItemView.Key>APPName:</ItemView.Key>
+            <ItemView.Key>Some initial value:</ItemView.Key>
             <ItemView.Value><input value={store.name} onInput={({target}: Event) => {
                 store.name = (target: any).value
             }} /></ItemView.Value>
         </ItemView>
+
     </div>
 }
 
