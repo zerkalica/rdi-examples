@@ -76,9 +76,9 @@
     "jss-camel-case": "^6.0.0",
     "jss-global": "^3.0.0",
     "jss-nested": "^6.0.1",
-    "lom_atom": "^2.0.1",
+    "lom_atom": "^2.0.2",
     "preact": "^8.2.5",
-    "reactive-di": "^4.0.18",
+    "reactive-di": "^4.0.19",
     "todomvc-common": "^1.0.4"
   }
 }

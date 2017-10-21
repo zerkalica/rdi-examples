@@ -172,22 +172,11 @@ export default class Fetcher {
             : {...(this._init || {}), ...(init || {})}
     }
 
-    fetch<V: any>(url: string, init?: IRequestOptions): FetcherResponse<V> {
-        const method = (init ? init.method : null) || 'GET'
-        let state: any = this._state[url]
-        if (state) {
-            state = state[method]
-            if (state !== undefined) {
-                state[method] = undefined
-            } else {
-                this._state[url] = undefined
-            }
-        }
-
+    @mem.key fetch<V: any>(url: string): FetcherResponse<V> {
         return new this.constructor.Response(
             this._baseUrl + url,
-            this.mergeOptions(init),
-            state,
+            this._init,
+            this._state,
             this._renderer,
             (this: IFetcher)
         )

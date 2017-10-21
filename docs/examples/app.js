@@ -134,24 +134,6 @@ function createMock(error) {
 
 createMock._r = [2];
 
-function defaultNormalize(next, prev) {
-  if (next === prev) return next;
-
-  if (next instanceof Array && prev instanceof Array && next.length === prev.length) {
-    for (var i = 0; i < next.length; i++) {
-      if (next[i] !== prev[i]) {
-        return next;
-      }
-    }
-
-    return prev;
-  }
-
-  return next;
-}
-
-defaultNormalize._r = [2];
-
 var AtomWait = function (_Error) {
   inheritsLoose(AtomWait, _Error);
 
@@ -169,6 +151,53 @@ var AtomWait = function (_Error) {
   return AtomWait;
 }(Error);
 
+var handlers = new Map([[Array, function arrayHandler(target, source, stack) {
+  var equal = target.length === source.length;
+
+  for (var i = 0; i < target.length; ++i) {
+    var conformed = target[i] = conform(target[i], source[i], stack);
+    if (equal && conformed !== source[i]) equal = false;
+  }
+
+  return equal ? source : target;
+}], [Object, function objectHandler(target, source, stack) {
+  var count = 0;
+  var equal = true;
+
+  for (var key in target) {
+    var conformed = target[key] = conform(target[key], source[key], stack);
+    if (equal && conformed !== source[key]) equal = false;
+    ++count;
+  }
+
+  for (var _key in source) {
+    if (--count < 0) break;
+  }
+
+  return equal && count === 0 ? source : target;
+}], [Date, function dateHandler(target, source) {
+  return target.getTime() === source.getTime() ? source : target;
+}], [RegExp, function dateHandler(target, source) {
+  return target.toString() === source.toString() ? source : target;
+}]]);
+
+function conform(target, source) {
+  var stack = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : [];
+  if (target === source) return source;
+  if (!target || _typeof(target) !== 'object') return target;
+  if (!source || _typeof(source) !== 'object') return target;
+  if (target.constructor !== source.constructor) return target;
+  var conformHandler = handlers.get(target.constructor);
+  if (!conformHandler) return target;
+  if (stack.indexOf(target) !== -1) return target;
+  stack.push(target);
+  var res = conformHandler(target, source, stack);
+  stack.pop();
+  return res;
+}
+
+conform._r = [2];
+
 function checkSlave(slave) {
   slave.check();
 }
@@ -182,12 +211,15 @@ function obsoleteSlave(slave) {
 obsoleteSlave._r = [2];
 
 function disleadThis(master) {
+  this;
   master.dislead(this);
 }
 
 disleadThis._r = [2];
 
 function actualizeMaster(master) {
+  this;
+
   if (this.status === ATOM_STATUS_CHECKING) {
     master.actualize();
   }
@@ -196,7 +228,7 @@ function actualizeMaster(master) {
 actualizeMaster._r = [2];
 
 var Atom = function () {
-  function Atom(field, owner, context, hostAtoms, normalize, key, keyHash, isComponent) {
+  function Atom(field, owner, context, hostAtoms, key, keyHash, isComponent) {
     this._masters = null;
     this._slaves = null;
     this._keyHash = keyHash;
@@ -204,9 +236,10 @@ var Atom = function () {
     this.field = field;
     this.owner = owner;
     this.isComponent = isComponent || false;
-    this._normalize = normalize || defaultNormalize;
     this._context = context;
     this.value = context.create(this);
+    this._next = undefined;
+    this._ignore = undefined;
     this._hostAtoms = hostAtoms;
     this.status = this.value === undefined ? ATOM_STATUS_OBSOLETE : ATOM_STATUS_ACTUAL;
   }
@@ -232,18 +265,17 @@ var Atom = function () {
 
     this._checkSlaves();
 
-    var hostAtoms = this._hostAtoms;
-
-    if (hostAtoms instanceof WeakMap) {
-      hostAtoms.delete(this.owner);
-    } else if (this._keyHash) {
-      hostAtoms.delete(this._keyHash);
-    }
+    this._hostAtoms.delete(this._keyHash || this.owner);
 
     this._context.destroyHost(this);
 
     this.value = undefined;
+    this._next = undefined;
+    this._ignore = undefined;
     this.status = ATOM_STATUS_DESTROYED;
+    this._hostAtoms = undefined;
+    this.key = undefined;
+    this._keyHash = undefined;
   };
 
   Atom.prototype.get = function get$$1(force) {
@@ -263,7 +295,7 @@ var Atom = function () {
     }
 
     if (force) {
-      this._pullPush(undefined, true);
+      this._push(this._pull(true));
     } else {
       this.actualize();
     }
@@ -271,44 +303,28 @@ var Atom = function () {
     return this.value;
   };
 
-  Atom.prototype.set = function set$$1(v, force) {
-    var oldValue = this.value;
+  Atom.prototype.set = function set$$1(next, force) {
+    if (force) return this._push(next);
+    var normalized = conform(next, this._ignore);
 
-    var normalized = this._normalize(v, oldValue);
-
-    if (oldValue === normalized) {
-      return normalized;
+    if (normalized === this._ignore) {
+      return this.value;
     }
 
-    if (normalized === undefined) {
-      return oldValue;
-    }
-
-    if (force || normalized instanceof Error) {
-      this.status = ATOM_STATUS_ACTUAL;
-      this.value = normalized instanceof Error ? createMock(normalized) : normalized;
-
-      this._context.newValue(this, oldValue, normalized);
-
-      if (this._slaves) {
-        this._slaves.forEach(obsoleteSlave);
-      }
-    } else {
-      this.obsolete();
-      this.actualize(normalized);
-    }
-
+    normalized = conform(next, this.value);
+    if (normalized === this.value) return this.value;
+    this._ignore = this._next = normalized;
+    this.obsolete();
+    this.actualize();
     return this.value;
   };
 
-  Atom.prototype.actualize = function actualize(proposedValue) {
+  Atom.prototype.actualize = function actualize() {
     if (this.status === ATOM_STATUS_PULLING) {
       throw new Error("Cyclic atom dependency of " + String(this));
     }
 
-    if (this.status === ATOM_STATUS_ACTUAL) {
-      return;
-    }
+    if (this.status === ATOM_STATUS_ACTUAL) return;
 
     if (this.status === ATOM_STATUS_CHECKING) {
       if (this._masters) {
@@ -321,11 +337,36 @@ var Atom = function () {
     }
 
     if (this.status !== ATOM_STATUS_ACTUAL) {
-      this._pullPush(proposedValue);
+      this._push(this._pull());
     }
   };
 
-  Atom.prototype._pullPush = function _pullPush(proposedValue, force) {
+  Atom.prototype._push = function _push(nextRaw) {
+    this.status = ATOM_STATUS_ACTUAL;
+
+    if (!(nextRaw instanceof AtomWait)) {
+      this._ignore = this._next;
+      this._next = undefined;
+    }
+
+    var prev = this.value;
+    if (nextRaw === undefined) return prev;
+    var next = nextRaw instanceof Error ? createMock(nextRaw) : prev instanceof Error ? nextRaw : conform(nextRaw, prev);
+
+    if (prev !== next) {
+      this.value = next;
+
+      this._context.newValue(this, prev, next, true);
+
+      if (this._slaves) {
+        this._slaves.forEach(obsoleteSlave);
+      }
+    }
+
+    return next;
+  };
+
+  Atom.prototype._pull = function _pull(force) {
     if (this._masters) {
       this._masters.forEach(disleadThis, this);
     }
@@ -335,31 +376,20 @@ var Atom = function () {
     var context = this._context;
     var slave = context.last;
     context.last = this;
-    var value = this.value;
 
     try {
-      newValue = this._normalize(this.key === undefined ? this.owner[this.field + '$'](proposedValue, force, value) : this.owner[this.field + '$'](this.key, proposedValue, force, value), value);
+      newValue = this.key === undefined ? this.owner[this.field + '$'](this._next, force, this.value) : this.owner[this.field + '$'](this.key, this._next, force, this.value);
     } catch (error) {
       if (error[catchedId] === undefined) {
         error[catchedId] = true;
         console.error(error.stack || error);
       }
 
-      newValue = createMock(error);
+      newValue = error instanceof Error ? error : new Error(error.stack || error);
     }
 
     context.last = slave;
-    this.status = ATOM_STATUS_ACTUAL;
-
-    if (newValue !== undefined && value !== newValue) {
-      this.value = newValue;
-
-      this._context.newValue(this, value, newValue, true);
-
-      if (this._slaves) {
-        this._slaves.forEach(obsoleteSlave);
-      }
-    }
+    return newValue;
   };
 
   Atom.prototype.dislead = function dislead(slave) {
@@ -440,6 +470,8 @@ var BaseLogger = function () {
 
   BaseLogger.prototype.onDestruct = function onDestruct(atom, namespace) {};
 
+  BaseLogger.prototype.sync = function sync() {};
+
   BaseLogger.prototype.status = function status(_status, atom, namespace) {};
 
   BaseLogger.prototype.error = function error(atom, err, namespace) {};
@@ -455,6 +487,10 @@ var ConsoleLogger = function (_BaseLogger) {
   function ConsoleLogger() {
     return _BaseLogger.apply(this, arguments) || this;
   }
+
+  ConsoleLogger.prototype.sync = function sync() {
+    console.log('sync');
+  };
 
   ConsoleLogger.prototype.status = function status(_status2, atom, namespace) {
     console.log(namespace, _status2, atom.displayName);
@@ -503,14 +539,16 @@ var Context = function () {
     }
   };
 
-  Context.prototype.destroyHost = function destroyHost(atom) {
-    var from = atom.value;
-
+  Context.prototype._destroyValue = function _destroyValue(atom, from) {
     if (from && !(from instanceof Error) && _typeof(from) === 'object' && typeof from.destructor === 'function' && this._owners.get(from) === atom) {
       from.destructor();
 
       this._owners.delete(from);
     }
+  };
+
+  Context.prototype.destroyHost = function destroyHost(atom) {
+    this._destroyValue(atom, atom.value);
 
     if (this._logger !== undefined) {
       this._logger.onDestruct(atom, this._namespace);
@@ -522,11 +560,7 @@ var Context = function () {
   };
 
   Context.prototype.newValue = function newValue(atom, from, to, isActualize) {
-    if (from && !(from instanceof Error) && _typeof(from) === 'object' && typeof from.destructor === 'function' && this._owners.get(from) === atom) {
-      from.destructor();
-
-      this._owners.delete(from);
-    }
+    this._destroyValue(atom, from);
 
     if (to && !(to instanceof Error) && _typeof(to) === 'object' && typeof to.destructor === 'function') {
       this._owners.set(to, atom);
@@ -538,7 +572,7 @@ var Context = function () {
       } else if (to instanceof Error) {
         this._logger.error(atom, to, this._namespace);
       } else {
-        this._logger.newValue(atom, from, to, isActualize, this._namespace);
+        this._logger.newValue(atom, from instanceof Error ? undefined : from, to, isActualize, this._namespace);
       }
     }
   };
@@ -580,6 +614,10 @@ var Context = function () {
     var reaping = this._reaping;
     var updating = this._updating;
     var start = this._start;
+
+    if (this._logger !== undefined) {
+      this._logger.sync();
+    }
 
     do {
       var end = updating.length;
@@ -636,7 +674,7 @@ function getId(t, hk) {
 
 getId._r = [2];
 
-function memMethod(proto, rname, descr, normalize, isComponent) {
+function memMethod(proto, rname, descr, isComponent) {
   var name = getId(proto, rname);
 
   if (descr.value === undefined) {
@@ -665,7 +703,7 @@ function memMethod(proto, rname, descr, normalize, isComponent) {
       var atom = hostAtoms.get(this);
 
       if (atom === undefined) {
-        atom = new Atom(name, this, defaultContext, hostAtoms, normalize, undefined, undefined, isComponent);
+        atom = new Atom(name, this, defaultContext, hostAtoms, undefined, undefined, isComponent);
         hostAtoms.set(this, atom);
       }
 
@@ -708,7 +746,7 @@ function setFunctionName(fn, name) {
 
 setFunctionName._r = [2];
 
-function memProp(proto, rname, descr, normalize) {
+function memProp(proto, rname, descr) {
   var name = getId(proto, rname);
   var handlerKey = name + "$";
 
@@ -734,7 +772,7 @@ function memProp(proto, rname, descr, normalize) {
       var atom = hostAtoms.get(this);
 
       if (atom === undefined) {
-        atom = new Atom(name, this, defaultContext, hostAtoms, normalize);
+        atom = new Atom(name, this, defaultContext, hostAtoms);
         hostAtoms.set(this, atom);
       }
 
@@ -749,7 +787,7 @@ function memProp(proto, rname, descr, normalize) {
       var atom = hostAtoms.get(this);
 
       if (atom === undefined) {
-        atom = new Atom(name, this, defaultContext, hostAtoms, normalize);
+        atom = new Atom(name, this, defaultContext, hostAtoms);
         hostAtoms.set(this, atom);
       }
 
@@ -790,7 +828,7 @@ function getKey(params) {
 
 getKey._r = [2];
 
-function memKeyMethod(proto, rname, descr, normalize) {
+function memKeyMethod(proto, rname, descr) {
   var name = getId(proto, rname);
   var handler = descr.value;
 
@@ -828,7 +866,7 @@ function memKeyMethod(proto, rname, descr, normalize) {
       var atom = atomMap.get(key);
 
       if (atom === undefined) {
-        atom = new Atom(name, this, defaultContext, atomMap, normalize, rawKey, key);
+        atom = new Atom(name, this, defaultContext, atomMap, rawKey, key);
         atomMap.set(key, atom);
       }
 
@@ -844,9 +882,8 @@ function memkey() {
     return memKeyMethod(arguments[0], arguments[1], arguments[2]);
   }
 
-  var normalize = arguments[0];
   return function (proto, name, descr) {
-    return memKeyMethod(proto, name, descr, normalize);
+    return memKeyMethod(proto, name, descr);
   };
 }
 
@@ -895,7 +932,7 @@ function force(proto, name, descr) {
 force._r = [2];
 
 function detached(proto, name, descr) {
-  return memMethod(proto, name, descr, undefined, true);
+  return memMethod(proto, name, descr, true);
 }
 
 detached._r = [2];
@@ -1044,9 +1081,8 @@ function mem() {
     return arguments[2].value === undefined ? memProp(arguments[0], arguments[1], arguments[2]) : memMethod(arguments[0], arguments[1], arguments[2]);
   }
 
-  var normalize = arguments[0];
   return function (proto, name, descr) {
-    return descr.value === undefined ? memProp(proto, name, descr, normalize) : memMethod(proto, name, descr, normalize);
+    return descr.value === undefined ? memProp(proto, name, descr) : memMethod(proto, name, descr);
   };
 }
 
@@ -3250,7 +3286,7 @@ var devtools = createCommonjsModule(function (module, exports) {
     }
 
     initDevTools();
-  }); //# sourceMappingURL=devtools.js.map
+  }); 
 
 });
 
@@ -3415,6 +3451,8 @@ var SheetsRegistry_1 = createCommonjsModule(function (module, exports) {
   exports['default'] = SheetsRegistry;
 });
 
+// shim for using process in browser
+// based off https://github.com/defunctzombie/node-process/blob/master/browser.js
 function defaultSetTimout() {
   throw new Error('setTimeout has not been defined');
 }
@@ -3579,6 +3617,13 @@ var performanceNow = performance.now || performance.mozNow || performance.msNow 
   return new Date().getTime();
 }; // generate timestamp or delta
 // see http://nodejs.org/api/process.html#process_process_hrtime
+
+/**
+ * Similar to invariant but only logs a warning if the condition is not met.
+ * This can be used to log issues in development environments in critical
+ * paths. Removing the logging code for production environments will keep the
+ * same logic and follow the same code paths.
+ */
 
 var warning = function warning() {};
 
@@ -6833,7 +6878,9 @@ var BrowserLocationStore = (_class$1 = function (_AbstractLocationStor) {
 BrowserLocationStore._r = [0, [Location, History]];
 
 var _class2$1;
+var _dec;
 var _class4;
+var _class5;
 var _temp$1;
 
 function _applyDecoratedDescriptor$3(target, property, decorators, descriptor, context) {
@@ -6995,7 +7042,7 @@ FetcherResponse._r = [0, [String, {
 }, "V", null, {
   request: Function
 }]];
-var Fetcher = (_temp$1 = _class4 = function () {
+var Fetcher = (_dec = mem.key, (_class4 = (_temp$1 = _class5 = function () {
   function Fetcher(baseUrl, init, state, renderer) {
     this._state = void 0;
     this._baseUrl = void 0;
@@ -7017,25 +7064,12 @@ var Fetcher = (_temp$1 = _class4 = function () {
     return this._init === undefined && init === undefined ? undefined : _extends({}, this._init || {}, init || {});
   };
 
-  _proto2.fetch = function fetch(url, init) {
-    var method = (init ? init.method : null) || 'GET';
-    var state = this._state[url];
-
-    if (state) {
-      state = state[method];
-
-      if (state !== undefined) {
-        state[method] = undefined;
-      } else {
-        this._state[url] = undefined;
-      }
-    }
-
-    return new this.constructor.Response(this._baseUrl + url, this.mergeOptions(init), state, this._renderer, this);
+  _proto2.fetch = function fetch(url) {
+    return new this.constructor.Response(this._baseUrl + url, this._init, this._state, this._renderer, this);
   };
 
   return Fetcher;
-}(), _class4.Response = FetcherResponse, _temp$1);
+}(), _class5.Response = FetcherResponse, _temp$1), (_applyDecoratedDescriptor$3(_class4.prototype, "fetch", [_dec], Object.getOwnPropertyDescriptor(_class4.prototype, "fetch"), _class4.prototype)), _class4));
 Fetcher._r = [0, [String, {
   timeout: Number
 }, Object, {
@@ -7423,6 +7457,10 @@ globToRegexp._r = [2];
 var isarray = Array.isArray || function (arr) {
   return Object.prototype.toString.call(arr) == '[object Array]';
 };
+
+/**
+ * Expose `pathToRegexp`.
+ */
 
 var pathToRegexp_1 = pathToRegexp;
 var parse_1 = parse;
@@ -10125,22 +10163,22 @@ function _applyDecoratedDescriptor$11(target, property, decorators, descriptor, 
   return desc;
 }
 
-var Timeout = function () {
-  function Timeout(fn, timeout) {
+var TimeoutHandler = function () {
+  function TimeoutHandler(fn, timeout) {
     this._handler = null;
     this._handler = setTimeout(fn, timeout);
   }
 
-  var _proto = Timeout.prototype;
+  var _proto = TimeoutHandler.prototype;
 
   _proto.destructor = function destructor() {
     clearTimeout(this._handler);
   };
 
-  return Timeout;
+  return TimeoutHandler;
 }();
 
-Timeout._r = [0, [Function, Number]];
+TimeoutHandler._r = [0, [Function, Number]];
 var AutocompleteService = (_class2$3 = function () {
   function AutocompleteService() {
     var _this = this;
@@ -10168,7 +10206,7 @@ var AutocompleteService = (_class2$3 = function () {
       var _this2 = this;
 
       var name = this.nameToSearch;
-      this._handler = new Timeout(function () {
+      this._handler = new TimeoutHandler(function () {
         fetch("/api/autocomplete?q=" + name).then(function (r) {
           return r.json();
         }).then(function (data) {
