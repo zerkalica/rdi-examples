@@ -1,6 +1,7 @@
 // @flow
 
-import {props, mem, force} from 'lom_atom'
+import {mem, force} from 'lom_atom'
+import {props} from 'reactive-di'
 
 interface IAutocompleteProps {
     initialValue: string;
@@ -43,8 +44,7 @@ class AutocompleteService {
         throw new mem.Wait()
     }
 
-    @mem
-    set searchResults(searchResults: string[] | Error) {}
+    @mem set searchResults(searchResults: string[] | Error) {}
 
     setValue = (e: Event) => {
         this.$.nameToSearch = (e.target: any).value

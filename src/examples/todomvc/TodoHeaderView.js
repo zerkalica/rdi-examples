@@ -1,7 +1,6 @@
 // @flow
-
-import {action, props, mem} from 'lom_atom'
-import type {NamesOf} from 'lom_atom'
+import {action, mem} from 'lom_atom'
+import {props, theme} from 'reactive-di'
 
 interface IStore {
     addTodo(title: string): void;
@@ -32,40 +31,41 @@ class TodoToAdd {
     }
 }
 
-function TodoHeaderTheme() {
-    return {
-        newTodo: {
-            position: 'relative',
-            margin: '0',
-            width: '100%',
-            fontSize: '24px',
-            fontFamily: 'inherit',
-            fontWeight: 'inherit',
-            lineHeight: '1.4em',
-            border: '0',
-            color: 'inherit',
-            padding: '16px 16px 16px 60px',
-            border: 'none',
-            background: 'rgba(0, 0, 0, 0.003)',
-            boxShadow: 'inset 0 -2px 1px rgba(0,0,0,0.03)',
-            boxSizing: 'border-box',
-            '-webkit-font-smoothing': 'antialiased',
-            '-moz-osx-font-smoothing': 'grayscale'
+class TodoHeaderTheme {
+    @theme get css() {
+        return {
+            newTodo: {
+                position: 'relative',
+                margin: '0',
+                width: '100%',
+                fontSize: '24px',
+                fontFamily: 'inherit',
+                fontWeight: 'inherit',
+                lineHeight: '1.4em',
+                border: '0',
+                color: 'inherit',
+                padding: '16px 16px 16px 60px',
+                border: 'none',
+                background: 'rgba(0, 0, 0, 0.003)',
+                boxShadow: 'inset 0 -2px 1px rgba(0,0,0,0.03)',
+                boxSizing: 'border-box',
+                '-webkit-font-smoothing': 'antialiased',
+                '-moz-osx-font-smoothing': 'grayscale'
+            }
         }
     }
 }
-TodoHeaderTheme.theme = true
 
 export default function TodoHeaderView(
     _: ITodoHeaderProps,
-    {todoToAdd, theme}: {
-        theme: NamesOf<typeof TodoHeaderTheme>;
+    {todoToAdd, theme: {css}}: {
+        theme: TodoHeaderTheme;
         todoToAdd: TodoToAdd;
     }
 ) {
     return <header>
         <input
-            class={theme.newTodo}
+            class={css.newTodo}
             placeholder="What needs to be done?"
             onInput={todoToAdd.onInput}
             value={todoToAdd.title}

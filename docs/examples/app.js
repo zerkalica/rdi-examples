@@ -1,4 +1,3 @@
-(function(l, i, v, e) { v = l.createElement(i); v.async = 1; v.src = '//' + (location.host || 'localhost').split(':')[0] + ':35729/livereload.js?snipver=1'; e = l.getElementsByTagName(i)[0]; e.parentNode.insertBefore(v, e)})(document, 'script');
 (function () {
 'use strict';
 
@@ -81,6 +80,9 @@ var objectDestructuringEmpty = function (obj) {
 };
 
 // eslint-disable-line
+var ATOM_FORCE_NONE = 0;
+var ATOM_FORCE_CACHE = 1;
+var ATOM_FORCE_UPDATE = 2;
 var ATOM_STATUS_DESTROYED = 0;
 var ATOM_STATUS_OBSOLETE = 1;
 var ATOM_STATUS_CHECKING = 2;
@@ -155,7 +157,7 @@ var handlers = new Map([[Array, function arrayHandler(target, source, stack) {
   var equal = target.length === source.length;
 
   for (var i = 0; i < target.length; ++i) {
-    var conformed = target[i] = conform(target[i], source[i], stack);
+    var conformed = target[i] = conform(target[i], source[i], false, stack);
     if (equal && conformed !== source[i]) equal = false;
   }
 
@@ -165,7 +167,7 @@ var handlers = new Map([[Array, function arrayHandler(target, source, stack) {
   var equal = true;
 
   for (var key in target) {
-    var conformed = target[key] = conform(target[key], source[key], stack);
+    var conformed = target[key] = conform(target[key], source[key], false, stack);
     if (equal && conformed !== source[key]) equal = false;
     ++count;
   }
@@ -181,12 +183,10 @@ var handlers = new Map([[Array, function arrayHandler(target, source, stack) {
   return target.toString() === source.toString() ? source : target;
 }]]);
 
-function conform(target, source) {
-  var stack = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : [];
+function conform(target, source, isComponent) {
+  var stack = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : [];
   if (target === source) return source;
-  if (!target || _typeof(target) !== 'object') return target;
-  if (!source || _typeof(source) !== 'object') return target;
-  if (target.constructor !== source.constructor) return target;
+  if (isComponent || !target || _typeof(target) !== 'object' || !source || _typeof(source) !== 'object' || target.constructor !== source.constructor) return target;
   var conformHandler = handlers.get(target.constructor);
   if (!conformHandler) return target;
   if (stack.indexOf(target) !== -1) return target;
@@ -237,11 +237,11 @@ var Atom = function () {
     this.owner = owner;
     this.isComponent = isComponent || false;
     this._context = context;
-    this.value = context.create(this);
+    this.current = context.create(this);
     this._next = undefined;
-    this._ignore = undefined;
+    this._suggested = undefined;
     this._hostAtoms = hostAtoms;
-    this.status = this.value === undefined ? ATOM_STATUS_OBSOLETE : ATOM_STATUS_ACTUAL;
+    this.status = this.current === undefined ? ATOM_STATUS_OBSOLETE : ATOM_STATUS_ACTUAL;
   }
 
   Atom.prototype.toString = function toString() {
@@ -251,7 +251,7 @@ var Atom = function () {
   };
 
   Atom.prototype.toJSON = function toJSON() {
-    return this.value;
+    return this.current;
   };
 
   Atom.prototype.destructor = function destructor() {
@@ -269,16 +269,16 @@ var Atom = function () {
 
     this._context.destroyHost(this);
 
-    this.value = undefined;
+    this.current = undefined;
     this._next = undefined;
-    this._ignore = undefined;
+    this._suggested = undefined;
     this.status = ATOM_STATUS_DESTROYED;
     this._hostAtoms = undefined;
     this.key = undefined;
     this._keyHash = undefined;
   };
 
-  Atom.prototype.get = function get$$1(force) {
+  Atom.prototype._get = function _get(force) {
     var slave = this._context.last;
 
     if (slave && (!slave.isComponent || !this.isComponent)) {
@@ -295,28 +295,27 @@ var Atom = function () {
     }
 
     if (force) {
-      this._push(this._pull(true));
+      this._push(this._pull(force));
     } else {
       this.actualize();
     }
 
-    return this.value;
+    return this.current;
   };
 
-  Atom.prototype.set = function set$$1(next, force) {
-    if (force) return this._push(next);
-    var normalized = conform(next, this._ignore);
+  Atom.prototype.value = function value(next, force) {
+    if (next === undefined) return this._get(force);
+    if (force === ATOM_FORCE_CACHE) return this._push(next);
+    var normalized = conform(next, this._suggested, this.isComponent);
+    if (normalized === this._suggested) return this._get(force);
 
-    if (normalized === this._ignore) {
-      return this.value;
+    if (!(this.current instanceof Error)) {
+      normalized = conform(next, this.current, this.isComponent);
+      if (normalized === this.current) return this._get(force);
     }
 
-    normalized = conform(next, this.value);
-    if (normalized === this.value) return this.value;
-    this._ignore = this._next = normalized;
-    this.obsolete();
-    this.actualize();
-    return this.value;
+    this._suggested = this._next = normalized;
+    return this._push(this._pull(ATOM_FORCE_UPDATE));
   };
 
   Atom.prototype.actualize = function actualize() {
@@ -345,16 +344,16 @@ var Atom = function () {
     this.status = ATOM_STATUS_ACTUAL;
 
     if (!(nextRaw instanceof AtomWait)) {
-      this._ignore = this._next;
+      this._suggested = this._next;
       this._next = undefined;
     }
 
-    var prev = this.value;
+    var prev = this.current;
     if (nextRaw === undefined) return prev;
-    var next = nextRaw instanceof Error ? createMock(nextRaw) : prev instanceof Error ? nextRaw : conform(nextRaw, prev);
+    var next = nextRaw instanceof Error ? createMock(nextRaw) : prev instanceof Error ? nextRaw : conform(nextRaw, prev, this.isComponent);
 
     if (prev !== next) {
-      this.value = next;
+      this.current = next;
 
       this._context.newValue(this, prev, next, true);
 
@@ -378,7 +377,7 @@ var Atom = function () {
     context.last = this;
 
     try {
-      newValue = this.key === undefined ? this.owner[this.field + '$'](this._next, force, this.value) : this.owner[this.field + '$'](this.key, this._next, force, this.value);
+      newValue = this.key === undefined ? this.owner[this.field + '$'](this._next, force, this.current) : this.owner[this.field + '$'](this.key, this._next, force, this.current);
     } catch (error) {
       if (error[catchedId] === undefined) {
         error[catchedId] = true;
@@ -548,7 +547,7 @@ var Context = function () {
   };
 
   Context.prototype.destroyHost = function destroyHost(atom) {
-    this._destroyValue(atom, atom.value);
+    this._destroyValue(atom, atom.current);
 
     if (this._logger !== undefined) {
       this._logger.onDestruct(atom, this._namespace);
@@ -690,7 +689,7 @@ function memMethod(proto, rname, descr, isComponent) {
   });
 
   var forcedFn = function forcedFn(next, force) {
-    return this[rname](next, force === undefined ? true : force);
+    return this[rname](next, force === undefined ? ATOM_FORCE_CACHE : force);
   };
 
   forcedFn._r = [2];
@@ -707,7 +706,7 @@ function memMethod(proto, rname, descr, isComponent) {
         hostAtoms.set(this, atom);
       }
 
-      return next === undefined ? atom.get(force) : atom.set(next, force);
+      return atom.value(next, force);
     }
   };
 }
@@ -734,7 +733,6 @@ function createValueHandler(initializer) {
 }
 
 createValueHandler._r = [2];
-var isForced = false;
 
 function setFunctionName(fn, name) {
   Object.defineProperty(fn, 'name', {
@@ -745,6 +743,7 @@ function setFunctionName(fn, name) {
 }
 
 setFunctionName._r = [2];
+var propForced = ATOM_FORCE_NONE;
 
 function memProp(proto, rname, descr) {
   var name = getId(proto, rname);
@@ -776,12 +775,9 @@ function memProp(proto, rname, descr) {
         hostAtoms.set(this, atom);
       }
 
-      if (isForced) {
-        isForced = false;
-        return atom.get(true);
-      }
-
-      return atom.get();
+      var forced = propForced;
+      propForced = ATOM_FORCE_NONE;
+      return atom.value(undefined, forced);
     },
     set: function set$$1(val) {
       var atom = hostAtoms.get(this);
@@ -791,13 +787,9 @@ function memProp(proto, rname, descr) {
         hostAtoms.set(this, atom);
       }
 
-      if (isForced) {
-        isForced = false;
-        atom.set(val, true);
-        return;
-      }
-
-      atom.set(val);
+      var forced = propForced;
+      propForced = ATOM_FORCE_NONE;
+      atom.value(val, forced);
     }
   };
 }
@@ -845,7 +837,7 @@ function memKeyMethod(proto, rname, descr) {
   });
 
   var forcedFn = function forcedFn(rawKey, next, force) {
-    return this[rname](rawKey, next, force === undefined ? true : force);
+    return this[rname](rawKey, next, force === undefined ? ATOM_FORCE_CACHE : force);
   };
 
   forcedFn._r = [2];
@@ -870,7 +862,7 @@ function memKeyMethod(proto, rname, descr) {
         atomMap.set(key, atom);
       }
 
-      return next === undefined ? atom.get(force) : atom.set(next, force);
+      return atom.value(next, force);
     }
   };
 }
@@ -890,19 +882,20 @@ function memkey() {
 memkey._r = [2];
 var forceProxyOpts = {
   get: function get$$1(t, name) {
-    var forceFn = t[name + "*"]; // is property or get/set magic ?
+    var forceFn = t[name + "*"];
 
     if (forceFn === undefined) {
-      isForced = true;
+      // get/set handler
+      propForced = ATOM_FORCE_CACHE;
       return t[name];
     }
 
     return forceFn.bind(t);
   },
   set: function set$$1(t, name, val) {
-    // is property or get/set magic ?
     if (t[name + "*"] === undefined) {
-      isForced = true;
+      // get/set handler
+      propForced = ATOM_FORCE_CACHE;
       t[name] = val;
       return true;
     }
@@ -1087,19 +1080,108 @@ function mem() {
 }
 
 mem._r = [2];
-
-function props(proto, name, descr) {
-  proto.constructor.__lom_prop = name;
-
-  if (!descr.value && !descr.set) {
-    descr.writable = true;
-  }
-}
-
-props._r = [2];
 mem.Wait = AtomWait;
 mem.key = memkey;
 mem.detached = detached;
+
+var DisposableSheet = function () {
+  function DisposableSheet(key, sheet, remover) {
+    this.__lom_key = key;
+    this.__lom_sheet = sheet;
+    this.__lom_remover = remover;
+
+    if (sheet.classes.destructor) {
+      throw new Error("Rename property name in " + key + " result");
+    }
+
+    Object.assign(this, sheet.classes);
+  }
+
+  DisposableSheet.prototype.destructor = function destructor() {
+    this.__lom_remover.remove(this);
+  };
+
+  return DisposableSheet;
+}();
+
+var SheetManager = function () {
+  function SheetManager(sheetProcessor) {
+    this._cache = new Map();
+    this._sheetProcessor = sheetProcessor;
+  }
+
+  SheetManager.prototype.sheet = function sheet(key, css, memoized) {
+    var result = memoized ? null : this._cache.get(key);
+
+    if (!result) {
+      var _sheet = this._sheetProcessor.createStyleSheet(css);
+
+      _sheet.attach();
+
+      result = new DisposableSheet(key, _sheet, this);
+
+      if (!memoized) {
+        this._cache.set(key, result);
+      }
+    }
+
+    return result;
+  };
+
+  SheetManager.prototype.remove = function remove(sheet) {
+    this._cache.delete(sheet.__lom_key);
+
+    this._sheetProcessor.removeStyleSheet(sheet.__lom_sheet);
+  };
+
+  return SheetManager;
+}();
+
+var lastThemeId = 0;
+var fakeSheet = {};
+
+function themeProp(proto, name, descr, isInstance) {
+  var className = proto.constructor.displayName || proto.constructor.name;
+  var getSheet = descr.get;
+  var value = descr.value;
+
+  if (getSheet === undefined && value === undefined) {
+    throw new Error("Need " + className + " { @theme get " + name + "() }");
+  }
+
+  var themeId = className + "." + name + "#" + ++lastThemeId;
+  var atomId = className + "." + name + "()";
+
+  if (getSheet) {
+    proto[themeId] = getSheet;
+  }
+
+  return {
+    enumerable: descr.enumerable,
+    configurable: descr.configurable,
+    get: function get$$1() {
+      this;
+      var sm = theme.sheetManager;
+      return sm === undefined ? fakeSheet : sm.sheet(isInstance ? themeId + "[" + this.__lom_di.instance + "]" : themeId, value || this[themeId](), !!this[atomId]);
+    }
+  };
+}
+
+themeProp._r = [2];
+
+function themeSelf(proto, name, descr) {
+  return themeProp(proto, name, descr, true);
+}
+
+themeSelf._r = [2];
+
+function theme(proto, name, descr) {
+  return themeProp(proto, name, descr);
+}
+
+theme._r = [2];
+theme.self = themeSelf;
+theme.sheetManager = undefined;
 
 var _typeof$2 = typeof Symbol === "function" && _typeof$1(Symbol.iterator) === "symbol" ? function (obj) {
   return _typeof$1(obj);
@@ -1108,9 +1190,9 @@ var _typeof$2 = typeof Symbol === "function" && _typeof$1(Symbol.iterator) === "
 };
 
 var createClass$2 = function () {
-  function defineProperties(target, props$$1) {
-    for (var i = 0; i < props$$1.length; i++) {
-      var descriptor = props$$1[i];
+  function defineProperties(target, props) {
+    for (var i = 0; i < props.length; i++) {
+      var descriptor = props[i];
       descriptor.enumerable = descriptor.enumerable || false;
       descriptor.configurable = true;
       if ("value" in descriptor) descriptor.writable = true;
@@ -1132,98 +1214,6 @@ var inheritsLoose$2 = function inheritsLoose(subClass, superClass) {
 };
 
 inheritsLoose$2._r = [2];
-
-var _class3;
-
-function _applyDecoratedDescriptor$1(target, property, decorators, descriptor, context) {
-  var desc = {};
-  Object['ke' + 'ys'](descriptor).forEach(function (key) {
-    desc[key] = descriptor[key];
-  });
-  desc.enumerable = !!desc.enumerable;
-  desc.configurable = !!desc.configurable;
-
-  if ('value' in desc || desc.initializer) {
-    desc.writable = true;
-  }
-
-  desc = decorators.slice().reverse().reduce(function (desc, decorator) {
-    return decorator(target, property, desc) || desc;
-  }, desc);
-
-  if (context && desc.initializer !== void 0) {
-    desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
-    desc.initializer = undefined;
-  }
-
-  if (desc.initializer === void 0) {
-    Object['define' + 'Property'](target, property, desc);
-    desc = null;
-  }
-
-  return desc;
-}
-
-_applyDecoratedDescriptor$1._r = [2];
-
-var FakeSheet = function () {
-  function FakeSheet() {
-    this.classes = {};
-  }
-
-  FakeSheet.prototype.update = function update(name, props$$1) {
-    return this;
-  };
-
-  FakeSheet.prototype.attach = function attach() {
-    return this;
-  };
-
-  FakeSheet.prototype.detach = function detach() {
-    return this;
-  };
-
-  return FakeSheet;
-}();
-
-var defaultSheetProcessor = {
-  createStyleSheet: function createStyleSheet(cssProps) {
-    return new FakeSheet();
-  },
-  removeStyleSheet: function removeStyleSheet(sheet) {}
-};
-
-var DisposableSheet = function () {
-  function DisposableSheet(sheet, sheetProcessor) {
-    this.classes = sheet.classes;
-    this._sheet = sheet;
-    this._sheetProcessor = sheetProcessor;
-  }
-
-  DisposableSheet.prototype.destructor = function destructor() {
-    this._sheetProcessor.removeStyleSheet(this._sheet);
-  };
-
-  return DisposableSheet;
-}();
-
-var SheetManager = (_class3 = function () {
-  function SheetManager(sheetProcessor, injector) {
-    this._sheetProcessor = sheetProcessor || defaultSheetProcessor;
-    this._injector = injector;
-  }
-
-  SheetManager.prototype.sheet = function sheet(key, value, force$$1) {
-    if (value !== undefined) return value;
-
-    var newValue = this._sheetProcessor.createStyleSheet(this._injector.invoke(key));
-
-    newValue.attach();
-    return new DisposableSheet(newValue, this._sheetProcessor);
-  };
-
-  return SheetManager;
-}(), _applyDecoratedDescriptor$1(_class3.prototype, "sheet", [memkey], Object.getOwnPropertyDescriptor(_class3.prototype, "sheet"), _class3.prototype), _class3);
 var depId = 0;
 
 var Alias = function Alias(dest) {
@@ -1238,9 +1228,13 @@ var Injector = function () {
     this._resolved = false;
     this._listeners = undefined;
     this._state = state;
-    this._instance = instance || 0;
+    this.instance = instance || 0;
     this.displayName = displayName || '$';
-    this._sheetManager = sheetProcessor instanceof SheetManager ? sheetProcessor : new SheetManager(sheetProcessor, this);
+
+    if (sheetProcessor) {
+      theme.sheetManager = new SheetManager(sheetProcessor);
+    }
+
     var map = this._cache = cache || Object.create(null);
 
     if (items !== undefined) {
@@ -1292,8 +1286,9 @@ var Injector = function () {
 
     if (value === undefined) {
       value = this._cache[id] = this.invoke(key);
-      var depName = (key.displayName || key.name) + (this._instance > 0 ? '[' + this._instance + ']' : '');
+      var depName = (key.displayName || key.name) + (this.instance > 0 ? '[' + this.instance + ']' : '');
       value.displayName = this.displayName + "." + depName;
+      value.__lom_di = this;
       var state = this._state === undefined ? undefined : this._state[depName];
 
       if (state && _typeof$2(state) === 'object') {
@@ -1311,7 +1306,6 @@ var Injector = function () {
   Injector.prototype.destructor = function destructor() {
     this._cache = undefined;
     this._listeners = undefined;
-    this._sheetManager = undefined;
   };
 
   Injector.prototype.invoke = function invoke(key) {
@@ -1397,23 +1391,20 @@ var Injector = function () {
     return newKey;
   };
 
-  Injector.prototype.invokeWithProps = function invokeWithProps(key, props$$1, propsChanged) {
+  Injector.prototype.invokeWithProps = function invokeWithProps(key, props, propsChanged) {
     var deps = key.deps || (key._r === undefined ? undefined : key._r[1]);
 
     if (deps === undefined) {
-      return key(props$$1);
+      return key(props);
     }
 
     var a = this.resolve(deps);
+    var listeners = this._listeners;
 
-    if (propsChanged === true) {
-      var listeners = this._listeners;
-
-      if (listeners !== undefined) {
-        for (var i = 0; i < listeners.length; i++) {
-          var listener = listeners[i];
-          listener[listener.constructor.__lom_prop] = props$$1;
-        }
+    if (propsChanged === true && listeners !== undefined) {
+      for (var i = 0; i < listeners.length; i++) {
+        var listener = listeners[i];
+        listener[listener.constructor.__lom_prop] = props;
       }
     }
 
@@ -1421,93 +1412,78 @@ var Injector = function () {
 
     switch (a.length) {
       case 0:
-        return key(props$$1);
+        return key(props);
 
       case 1:
-        return key(props$$1, a[0]);
+        return key(props, a[0]);
 
       case 2:
-        return key(props$$1, a[0], a[1]);
+        return key(props, a[0], a[1]);
 
       case 3:
-        return key(props$$1, a[0], a[1], a[2]);
+        return key(props, a[0], a[1], a[2]);
 
       case 4:
-        return key(props$$1, a[0], a[1], a[2], a[3]);
+        return key(props, a[0], a[1], a[2], a[3]);
 
       case 5:
-        return key(props$$1, a[0], a[1], a[2], a[3], a[4]);
+        return key(props, a[0], a[1], a[2], a[3], a[4]);
 
       case 6:
-        return key(props$$1, a[0], a[1], a[2], a[3], a[4], a[5]);
+        return key(props, a[0], a[1], a[2], a[3], a[4], a[5]);
 
       case 7:
-        return key(props$$1, a[0], a[1], a[2], a[3], a[4], a[5], a[6]);
+        return key(props, a[0], a[1], a[2], a[3], a[4], a[5], a[6]);
 
       default:
-        return key.apply(undefined, [props$$1].concat(a));
+        return key.apply(undefined, [props].concat(a));
     }
   };
 
-  Injector.prototype.copy = function copy(items, displayName, instance) {
-    return new Injector(items, this._sheetManager, this._state, this.displayName + '.' + displayName, instance, Object.create(this._cache));
+  Injector.prototype.copy = function copy(displayName, instance, items) {
+    return new Injector(items, null, this._state, this.displayName + '.' + displayName, instance, Object.create(this._cache));
   };
 
   Injector.prototype.resolve = function resolve(argDeps) {
     var result = [];
-    var map = this._cache;
+    if (argDeps === undefined) return result;
+    var resolved = this._resolved;
 
-    if (argDeps !== undefined) {
-      var sm = this._sheetManager;
-      var resolved = this._resolved;
+    for (var i = 0, l = argDeps.length; i < l; i++) {
+      var argDep = argDeps[i];
 
-      for (var i = 0, l = argDeps.length; i < l; i++) {
-        var argDep = argDeps[i];
+      if (_typeof$2(argDep) === 'object') {
+        var obj = {};
 
-        if (_typeof$2(argDep) === 'object') {
-          var obj = {};
+        for (var prop in argDep) {
+          // eslint-disable-line
+          var key = argDep[prop];
+          var dep = this.value(key);
 
-          if (!resolved) {
-            for (var prop in argDep) {
-              // eslint-disable-line
-              var key = argDep[prop];
-
-              if (key.theme !== undefined) {
-                obj[prop] = sm.sheet(key).classes;
-              }
-            }
-          }
-
-          for (var _prop in argDep) {
-            // eslint-disable-line
-            var _key = argDep[_prop];
-            var dep = _key.theme === undefined ? this.value(_key) : sm.sheet(_key).classes;
-
-            if (resolved === false && _key.__lom_prop !== undefined) {
-              if (this._listeners === undefined) {
-                this._listeners = [];
-              }
-
-              this._listeners.push(dep);
-            }
-
-            obj[_prop] = dep;
-          }
-
-          result.push(obj);
-        } else {
-          var _dep = argDep.theme === undefined ? this.value(argDep) : sm.sheet(argDep).classes;
-
-          if (resolved === false && argDep.__lom_prop !== undefined) {
+          if (resolved === false && key.__lom_prop !== undefined) {
             if (this._listeners === undefined) {
               this._listeners = [];
             }
 
-            this._listeners.push(_dep);
+            this._listeners.push(dep);
           }
 
-          result.push(_dep);
+          obj[prop] = dep;
         }
+
+        result.push(obj);
+      } else {
+        var _dep = this.value(argDep);
+
+        if (resolved === false && argDep.__lom_prop !== undefined) {
+          if (this._listeners === undefined) {
+            this._listeners = [];
+          }
+
+          this._listeners.push(_dep);
+        }
+
+        result.push(_dep);
       }
     }
 
@@ -1517,7 +1493,7 @@ var Injector = function () {
   return Injector;
 }();
 
-function _applyDecoratedDescriptor$1$1(target, property, decorators, descriptor, context) {
+function _applyDecoratedDescriptor$1(target, property, decorators, descriptor, context) {
   var desc = {};
   Object['ke' + 'ys'](descriptor).forEach(function (key) {
     desc[key] = descriptor[key];
@@ -1546,7 +1522,7 @@ function _applyDecoratedDescriptor$1$1(target, property, decorators, descriptor,
   return desc;
 }
 
-_applyDecoratedDescriptor$1$1._r = [2];
+_applyDecoratedDescriptor$1._r = [2];
 var parentContext = undefined;
 
 function createCreateElement(atomize, createElement) {
@@ -1637,16 +1613,16 @@ function createReactWrapper(BaseComponent, defaultFromError) {
   var AtomizedComponent = (_class = function (_BaseComponent) {
     inheritsLoose$2(AtomizedComponent, _BaseComponent);
 
-    function AtomizedComponent(props$$1, reactContext) {
+    function AtomizedComponent(props, reactContext) {
       var _this;
 
-      _this = _BaseComponent.call(this, props$$1, reactContext) || this;
+      _this = _BaseComponent.call(this, props, reactContext) || this;
       _this._propsChanged = true;
       _this._el = undefined;
-      _this._keys = props$$1 ? Object.keys(props$$1) : undefined;
+      _this._keys = props ? Object.keys(props) : undefined;
       var cns = _this.constructor;
       _this._render = cns.render;
-      _this._injector = (props$$1.__lom_ctx || rootInjector).copy(_this._render.aliases, cns.displayName + (cns.instance ? '[' + cns.instance + ']' : ''), cns.instance);
+      _this._injector = (props.__lom_ctx || rootInjector).copy(cns.displayName + (cns.instance ? '[' + cns.instance + ']' : ''), cns.instance, _this._render.aliases);
       cns.instance++;
       return _this;
     }
@@ -1655,7 +1631,7 @@ function createReactWrapper(BaseComponent, defaultFromError) {
       return this._injector.displayName;
     };
 
-    AtomizedComponent.prototype.shouldComponentUpdate = function shouldComponentUpdate(props$$1) {
+    AtomizedComponent.prototype.shouldComponentUpdate = function shouldComponentUpdate(props) {
       var keys = this._keys;
       if (!keys) return false;
       var oldProps = this.props;
@@ -1664,7 +1640,7 @@ function createReactWrapper(BaseComponent, defaultFromError) {
         // eslint-disable-line
         var k = keys[i];
 
-        if (oldProps[k] !== props$$1[k]) {
+        if (oldProps[k] !== props[k]) {
           this._propsChanged = true;
           return true;
         }
@@ -1698,7 +1674,7 @@ function createReactWrapper(BaseComponent, defaultFromError) {
       parentContext = this._injector;
 
       try {
-        data = parentContext.invokeWithProps(render, this.props, force$$1);
+        data = parentContext.invokeWithProps(render, this.props, this._propsChanged);
       } catch (error) {
         data = parentContext.invokeWithProps(render.onError || defaultFromError, {
           error: error
@@ -1707,7 +1683,7 @@ function createReactWrapper(BaseComponent, defaultFromError) {
 
       parentContext = prevContext;
 
-      if (!force$$1) {
+      if (!this._propsChanged) {
         this._el = data;
         this.forceUpdate();
         this._el = undefined;
@@ -1718,7 +1694,7 @@ function createReactWrapper(BaseComponent, defaultFromError) {
     };
 
     AtomizedComponent.prototype.render = function render() {
-      return this._el === undefined ? this.r(undefined, this._propsChanged) : this._el;
+      return this._el === undefined ? this.r(undefined, this._propsChanged ? ATOM_FORCE_CACHE : ATOM_FORCE_NONE) : this._el;
     };
 
     createClass$2(AtomizedComponent, [{
@@ -1728,12 +1704,12 @@ function createReactWrapper(BaseComponent, defaultFromError) {
       }
     }]);
     return AtomizedComponent;
-  }(BaseComponent), _applyDecoratedDescriptor$1$1(_class.prototype, "r", [detached], Object.getOwnPropertyDescriptor(_class.prototype, "r"), _class.prototype), _class);
+  }(BaseComponent), _applyDecoratedDescriptor$1(_class.prototype, "r", [detached], Object.getOwnPropertyDescriptor(_class.prototype, "r"), _class.prototype), _class);
   return function reactWrapper(render) {
     var displayName = render.displayName || render.name;
 
-    var WrappedComponent = function WrappedComponent(props$$1, context) {
-      AtomizedComponent.call(this, props$$1, context);
+    var WrappedComponent = function WrappedComponent(props, context) {
+      AtomizedComponent.call(this, props, context);
     };
 
     WrappedComponent._r = [2];
@@ -1803,6 +1779,16 @@ function cloneComponent(fn, aliases, name) {
 }
 
 cloneComponent._r = [2];
+
+function props(proto, name, descr) {
+  proto.constructor.__lom_prop = name;
+
+  if (!descr.value && !descr.set) {
+    descr.writable = true;
+  }
+}
+
+props._r = [2];
 
 /** Virtual DOM Node */
 function VNode() {}
@@ -2857,7 +2843,7 @@ var commonjsGlobal = typeof window !== 'undefined' ? window : typeof global !== 
 
 
 function unwrapExports (x) {
-	return x && x.__esModule ? x['default'] : x;
+	return x && x.__esModule && Object.prototype.hasOwnProperty.call(x, 'default') ? x['default'] : x;
 }
 
 function createCommonjsModule(fn, module) {
@@ -3335,6 +3321,7 @@ var getDynamicStyles = createCommonjsModule(function (module, exports) {
     return extract(styles);
   };
 });
+unwrapExports(getDynamicStyles);
 
 var SheetsRegistry_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -3450,6 +3437,7 @@ var SheetsRegistry_1 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = SheetsRegistry;
 });
+unwrapExports(SheetsRegistry_1);
 
 // shim for using process in browser
 // based off https://github.com/defunctzombie/node-process/blob/master/browser.js
@@ -3777,6 +3765,7 @@ var SheetsManager_1 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = SheetsManager;
 });
+unwrapExports(SheetsManager_1);
 
 var toCssValue_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -3809,6 +3798,7 @@ var toCssValue_1 = createCommonjsModule(function (module, exports) {
     return value.join(', ');
   }
 });
+unwrapExports(toCssValue_1);
 
 var ponyfill = function symbolObservablePonyfill(root) {
   var result;
@@ -3857,6 +3847,7 @@ var isDynamicValue = createCommonjsModule(function (module, exports) {
     return typeof value === 'function' || (0, _isObservable2['default'])(value);
   };
 });
+unwrapExports(isDynamicValue);
 
 var toCss_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -3951,6 +3942,7 @@ var toCss_1 = createCommonjsModule(function (module, exports) {
     return result;
   }
 });
+unwrapExports(toCss_1);
 
 var StyleRule_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -4130,6 +4122,7 @@ var StyleRule_1 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = StyleRule;
 });
+unwrapExports(StyleRule_1);
 
 var cloneStyle_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -4180,6 +4173,7 @@ var cloneStyle_1 = createCommonjsModule(function (module, exports) {
     return newStyle;
   }
 });
+unwrapExports(cloneStyle_1);
 
 var createRule_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -4221,6 +4215,7 @@ var createRule_1 = createCommonjsModule(function (module, exports) {
     return new _StyleRule2['default'](name, declCopy, options);
   }
 });
+unwrapExports(createRule_1);
 
 var updateStyle = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -4243,6 +4238,7 @@ var updateStyle = createCommonjsModule(function (module, exports) {
     }
   };
 });
+unwrapExports(updateStyle);
 
 var linkRule_1 = createCommonjsModule(function (module, exports) {
   "use strict";
@@ -4260,6 +4256,7 @@ var linkRule_1 = createCommonjsModule(function (module, exports) {
     if (rule.rules && cssRule.cssRules) rule.rules.link(cssRule.cssRules);
   }
 });
+unwrapExports(linkRule_1);
 
 var RuleList_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -4512,6 +4509,7 @@ var RuleList_1 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = RuleList;
 });
+unwrapExports(RuleList_1);
 
 var sheets = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -4537,6 +4535,7 @@ var sheets = createCommonjsModule(function (module, exports) {
 
   exports['default'] = new _SheetsRegistry2['default']();
 });
+unwrapExports(sheets);
 
 var StyleSheet_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -4790,6 +4789,7 @@ var StyleSheet_1 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = StyleSheet;
 });
+unwrapExports(StyleSheet_1);
 
 var createGenerateClassName = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -4839,6 +4839,7 @@ var createGenerateClassName = createCommonjsModule(function (module, exports) {
     };
   };
 });
+unwrapExports(createGenerateClassName);
 
 var _typeof$3 = typeof Symbol === "function" && _typeof$1(Symbol.iterator) === "symbol" ? function (obj) {
   return _typeof$1(obj);
@@ -4998,6 +4999,7 @@ var PluginsRegistry_1 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = PluginsRegistry;
 });
+unwrapExports(PluginsRegistry_1);
 
 var SimpleRule_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -5069,6 +5071,7 @@ var SimpleRule_1 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = SimpleRule;
 });
+unwrapExports(SimpleRule_1);
 
 var KeyframesRule_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -5170,6 +5173,7 @@ var KeyframesRule_1 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = KeyframesRule;
 });
+unwrapExports(KeyframesRule_1);
 
 var ConditionalRule_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -5296,6 +5300,7 @@ var ConditionalRule_1 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = ConditionalRule;
 });
+unwrapExports(ConditionalRule_1);
 
 var FontFaceRule_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -5374,6 +5379,7 @@ var FontFaceRule_1 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = FontFaceRule;
 });
+unwrapExports(FontFaceRule_1);
 
 var ViewportRule_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -5441,6 +5447,7 @@ var ViewportRule_1 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = ViewportRule;
 });
+unwrapExports(ViewportRule_1);
 
 var rules = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -5494,6 +5501,7 @@ var rules = createCommonjsModule(function (module, exports) {
     };
   });
 });
+unwrapExports(rules);
 
 var observables = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -5538,6 +5546,7 @@ var observables = createCommonjsModule(function (module, exports) {
     }
   };
 });
+unwrapExports(observables);
 
 var DomRenderer_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -5970,6 +5979,7 @@ var DomRenderer_1 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = DomRenderer;
 });
+unwrapExports(DomRenderer_1);
 
 var VirtualRenderer_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -6072,6 +6082,7 @@ var VirtualRenderer_1 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = VirtualRenderer;
 });
+unwrapExports(VirtualRenderer_1);
 
 var _isInBrowser = ( module$1 && isBrowser ) || module$1;
 
@@ -6293,6 +6304,7 @@ var Jss_1 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = Jss;
 });
+unwrapExports(Jss_1);
 
 var lib$1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -6360,6 +6372,7 @@ var lib$1 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = create();
 });
+unwrapExports(lib$1);
 var lib_1 = lib$1.create;
 
 var lib$2 = createCommonjsModule(function (module, exports) {
@@ -8671,6 +8684,7 @@ fetchMock$1.setImplementations({
 var client = new fetchMock$1();
 
 var _class$4;
+var _class2$2;
 
 function _applyDecoratedDescriptor$6(target, property, decorators, descriptor, context) {
   var desc = {};
@@ -8701,28 +8715,33 @@ function _applyDecoratedDescriptor$6(target, property, decorators, descriptor, c
   return desc;
 }
 
-function KeyValueTheme() {
-  return {
-    item: {
-      display: 'flex'
-    },
-    key: {
-      width: '20%'
-    },
-    value: {
-      width: '80%'
-    }
-  };
-}
+var KeyValueTheme = (_class$4 = function () {
+  function KeyValueTheme() {}
 
-KeyValueTheme._r = [2];
-KeyValueTheme.theme = true;
+  createClass$1(KeyValueTheme, [{
+    key: "css",
+    get: function get$$1() {
+      return {
+        item: {
+          display: 'flex'
+        },
+        key: {
+          width: '20%'
+        },
+        value: {
+          width: '80%'
+        }
+      };
+    }
+  }]);
+  return KeyValueTheme;
+}(), (_applyDecoratedDescriptor$6(_class$4.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class$4.prototype, "css"), _class$4.prototype)), _class$4);
 
 function KeyView(_ref, _ref2) {
   var children = _ref.children;
-  var theme = _ref2.theme;
+  var css = _ref2.theme.css;
   return lom_h("div", {
-    "class": theme.key
+    "class": css.key
   }, children);
 }
 
@@ -8732,9 +8751,9 @@ KeyView._r = [1, [{
 
 function ValueView(_ref3, _ref4) {
   var children = _ref3.children;
-  var theme = _ref4.theme;
+  var css = _ref4.theme.css;
   return lom_h("div", {
-    "class": theme.value
+    "class": css.value
   }, children);
 }
 
@@ -8743,9 +8762,9 @@ ValueView._r = [1, [{
 }]];
 function ItemView(_ref5, _ref6) {
   var children = _ref5.children;
-  var theme = _ref6.theme;
+  var css = _ref6.theme.css;
   return lom_h("div", {
-    "class": theme.item
+    "class": css.item
   }, children);
 }
 ItemView._r = [1, [{
@@ -8753,7 +8772,7 @@ ItemView._r = [1, [{
 }]];
 ItemView.Key = KeyView;
 ItemView.Value = ValueView;
-var Locale = (_class$4 = function () {
+var Locale = (_class2$2 = function () {
   createClass$1(Locale, [{
     key: "lang",
     get: function get$$1() {
@@ -8773,7 +8792,7 @@ var Locale = (_class$4 = function () {
   }
 
   return Locale;
-}(), (_applyDecoratedDescriptor$6(_class$4.prototype, "lang", [mem], Object.getOwnPropertyDescriptor(_class$4.prototype, "lang"), _class$4.prototype), _applyDecoratedDescriptor$6(_class$4.prototype, "lang", [mem], Object.getOwnPropertyDescriptor(_class$4.prototype, "lang"), _class$4.prototype)), _class$4);
+}(), (_applyDecoratedDescriptor$6(_class2$2.prototype, "lang", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "lang"), _class2$2.prototype), _applyDecoratedDescriptor$6(_class2$2.prototype, "lang", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "lang"), _class2$2.prototype)), _class2$2);
 Locale._r = [0, [String]];
 var BrowserLocalStorage = function () {
   function BrowserLocalStorage(storage, key) {
@@ -8833,7 +8852,7 @@ mockFetch._r = [2, [Storage]];
 
 var _class$3;
 var _descriptor$2;
-var _class3$1;
+var _class3;
 var _descriptor2;
 
 function _initDefineProp$2(target, property, descriptor, context) {
@@ -8883,7 +8902,7 @@ var Hello = (_class$3 = function Hello() {
     return 'test';
   }
 })), _class$3);
-var HelloOptions = (_class3$1 = function () {
+var HelloOptions = (_class3 = function () {
   function HelloOptions() {
     _initDefineProp$2(this, "_props", _descriptor2, this);
   }
@@ -8896,10 +8915,10 @@ var HelloOptions = (_class3$1 = function () {
     set: function set$$1(name) {}
   }]);
   return HelloOptions;
-}(), (_descriptor2 = _applyDecoratedDescriptor$5(_class3$1.prototype, "_props", [mem, props], {
+}(), (_descriptor2 = _applyDecoratedDescriptor$5(_class3.prototype, "_props", [mem, props], {
   enumerable: true,
   initializer: null
-}), _applyDecoratedDescriptor$5(_class3$1.prototype, "actionName", [mem], Object.getOwnPropertyDescriptor(_class3$1.prototype, "actionName"), _class3$1.prototype), _applyDecoratedDescriptor$5(_class3$1.prototype, "actionName", [mem], Object.getOwnPropertyDescriptor(_class3$1.prototype, "actionName"), _class3$1.prototype)), _class3$1);
+}), _applyDecoratedDescriptor$5(_class3.prototype, "actionName", [mem], Object.getOwnPropertyDescriptor(_class3.prototype, "actionName"), _class3.prototype), _applyDecoratedDescriptor$5(_class3.prototype, "actionName", [mem], Object.getOwnPropertyDescriptor(_class3.prototype, "actionName"), _class3.prototype)), _class3);
 
 var SomeService = function () {
   function SomeService(opts) {
@@ -9099,7 +9118,7 @@ function todoMocks(rawStorage) {
 }
 todoMocks._r = [2, [Storage]];
 
-var _class2$2;
+var _class2$3;
 var _descriptor$3;
 var _descriptor2$1;
 
@@ -9113,7 +9132,7 @@ function _initDefineProp$3(target, property, descriptor, context) {
   });
 }
 
-function _applyDecoratedDescriptor$7(target, property, decorators, descriptor, context) {
+function _applyDecoratedDescriptor$8(target, property, decorators, descriptor, context) {
   var desc = {};
   Object['ke' + 'ys'](descriptor).forEach(function (key) {
     desc[key] = descriptor[key];
@@ -9201,7 +9220,7 @@ var TodoModel = function () {
 }();
 
 TodoModel._r = [0, [TodoService]];
-var TodoService = (_class2$2 = function () {
+var TodoService = (_class2$3 = function () {
   function TodoService(fetcher) {
     _initDefineProp$3(this, "opCount", _descriptor$3, this);
 
@@ -9360,20 +9379,20 @@ var TodoService = (_class2$2 = function () {
     }
   }]);
   return TodoService;
-}(), (_descriptor$3 = _applyDecoratedDescriptor$7(_class2$2.prototype, "opCount", [mem], {
+}(), (_descriptor$3 = _applyDecoratedDescriptor$8(_class2$3.prototype, "opCount", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return 0;
   }
-}), _descriptor2$1 = _applyDecoratedDescriptor$7(_class2$2.prototype, "$", [force], {
+}), _descriptor2$1 = _applyDecoratedDescriptor$8(_class2$3.prototype, "$", [force], {
   enumerable: true,
   initializer: null
-}), _applyDecoratedDescriptor$7(_class2$2.prototype, "todoExtInfo", [memkey], Object.getOwnPropertyDescriptor(_class2$2.prototype, "todoExtInfo"), _class2$2.prototype), _applyDecoratedDescriptor$7(_class2$2.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "todos"), _class2$2.prototype), _applyDecoratedDescriptor$7(_class2$2.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "todos"), _class2$2.prototype), _applyDecoratedDescriptor$7(_class2$2.prototype, "activeTodoCount", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "activeTodoCount"), _class2$2.prototype), _applyDecoratedDescriptor$7(_class2$2.prototype, "toggleAll", [action], Object.getOwnPropertyDescriptor(_class2$2.prototype, "toggleAll"), _class2$2.prototype)), _class2$2);
+}), _applyDecoratedDescriptor$8(_class2$3.prototype, "todoExtInfo", [memkey], Object.getOwnPropertyDescriptor(_class2$3.prototype, "todoExtInfo"), _class2$3.prototype), _applyDecoratedDescriptor$8(_class2$3.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class2$3.prototype, "todos"), _class2$3.prototype), _applyDecoratedDescriptor$8(_class2$3.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class2$3.prototype, "todos"), _class2$3.prototype), _applyDecoratedDescriptor$8(_class2$3.prototype, "activeTodoCount", [mem], Object.getOwnPropertyDescriptor(_class2$3.prototype, "activeTodoCount"), _class2$3.prototype), _applyDecoratedDescriptor$8(_class2$3.prototype, "toggleAll", [action], Object.getOwnPropertyDescriptor(_class2$3.prototype, "toggleAll"), _class2$3.prototype)), _class2$3);
 TodoService._r = [0, [Fetcher]];
 
-var _class$5;
+var _class$6;
 
-function _applyDecoratedDescriptor$8(target, property, decorators, descriptor, context) {
+function _applyDecoratedDescriptor$9(target, property, decorators, descriptor, context) {
   var desc = {};
   Object['ke' + 'ys'](descriptor).forEach(function (key) {
     desc[key] = descriptor[key];
@@ -9407,7 +9426,7 @@ var TODO_FILTER = {
   COMPLETE: 'complete',
   ACTIVE: 'active'
 };
-var TodoFilterService = (_class$5 = function () {
+var TodoFilterService = (_class$6 = function () {
   function TodoFilterService(todoService, locationStore) {
     this._todoService = void 0;
     this._locationStore = void 0;
@@ -9448,134 +9467,14 @@ var TodoFilterService = (_class$5 = function () {
     }
   }]);
   return TodoFilterService;
-}(), (_applyDecoratedDescriptor$8(_class$5.prototype, "filteredTodos", [mem], Object.getOwnPropertyDescriptor(_class$5.prototype, "filteredTodos"), _class$5.prototype)), _class$5);
+}(), (_applyDecoratedDescriptor$9(_class$6.prototype, "filteredTodos", [mem], Object.getOwnPropertyDescriptor(_class$6.prototype, "filteredTodos"), _class$6.prototype)), _class$6);
 TodoFilterService._r = [0, [TodoService, AbstractLocationStore]];
 
-var _class$6;
+var _class$7;
 var _descriptor$4;
+var _class3$1;
 
 function _initDefineProp$4(target, property, descriptor, context) {
-  if (!descriptor) return;
-  Object.defineProperty(target, property, {
-    enumerable: descriptor.enumerable,
-    configurable: descriptor.configurable,
-    writable: descriptor.writable,
-    value: descriptor.initializer ? descriptor.initializer.call(context) : void 0
-  });
-}
-
-function _applyDecoratedDescriptor$9(target, property, decorators, descriptor, context) {
-  var desc = {};
-  Object['ke' + 'ys'](descriptor).forEach(function (key) {
-    desc[key] = descriptor[key];
-  });
-  desc.enumerable = !!desc.enumerable;
-  desc.configurable = !!desc.configurable;
-
-  if ('value' in desc || desc.initializer) {
-    desc.writable = true;
-  }
-
-  desc = decorators.slice().reverse().reduce(function (desc, decorator) {
-    return decorator(target, property, desc) || desc;
-  }, desc);
-
-  if (context && desc.initializer !== void 0) {
-    desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
-    desc.initializer = undefined;
-  }
-
-  if (desc.initializer === void 0) {
-    Object['define' + 'Property'](target, property, desc);
-    desc = null;
-  }
-
-  return desc;
-}
-
-var TodoToAdd = (_class$6 = function () {
-  function TodoToAdd() {
-    var _this = this;
-
-    _initDefineProp$4(this, "title", _descriptor$4, this);
-
-    this._todoService = void 0;
-
-    this.onKeyDown = function (e) {
-      if (e.keyCode === 13 && _this.title) {
-        _this._todoService.addTodo(_this.title);
-
-        _this.title = '';
-      }
-    };
-  }
-
-  var _proto = TodoToAdd.prototype;
-
-  _proto.onInput = function onInput(_ref) {
-    var target = _ref.target;
-    this.title = target.value;
-  };
-
-  createClass$1(TodoToAdd, [{
-    key: "props",
-    set: function set$$1(_ref2) {
-      var todoService = _ref2.todoService;
-      this._todoService = todoService;
-    }
-  }]);
-  return TodoToAdd;
-}(), (_descriptor$4 = _applyDecoratedDescriptor$9(_class$6.prototype, "title", [mem], {
-  enumerable: true,
-  initializer: function initializer() {
-    return '';
-  }
-}), _applyDecoratedDescriptor$9(_class$6.prototype, "props", [props], Object.getOwnPropertyDescriptor(_class$6.prototype, "props"), _class$6.prototype), _applyDecoratedDescriptor$9(_class$6.prototype, "onInput", [action], Object.getOwnPropertyDescriptor(_class$6.prototype, "onInput"), _class$6.prototype)), _class$6);
-
-function TodoHeaderTheme() {
-  var _newTodo;
-
-  return {
-    newTodo: (_newTodo = {
-      position: 'relative',
-      margin: '0',
-      width: '100%',
-      fontSize: '24px',
-      fontFamily: 'inherit',
-      fontWeight: 'inherit',
-      lineHeight: '1.4em',
-      border: '0',
-      color: 'inherit',
-      padding: '16px 16px 16px 60px'
-    }, _newTodo["border"] = 'none', _newTodo.background = 'rgba(0, 0, 0, 0.003)', _newTodo.boxShadow = 'inset 0 -2px 1px rgba(0,0,0,0.03)', _newTodo.boxSizing = 'border-box', _newTodo['-webkit-font-smoothing'] = 'antialiased', _newTodo['-moz-osx-font-smoothing'] = 'grayscale', _newTodo)
-  };
-}
-
-TodoHeaderTheme._r = [2];
-TodoHeaderTheme.theme = true;
-function TodoHeaderView(_, _ref3) {
-  var todoToAdd = _ref3.todoToAdd,
-      theme = _ref3.theme;
-  return lom_h("header", null, lom_h("input", {
-    "class": theme.newTodo,
-    placeholder: "What needs to be done?",
-    onInput: todoToAdd.onInput,
-    value: todoToAdd.title,
-    onKeyDown: todoToAdd.onKeyDown,
-    autoFocus: true
-  }));
-}
-TodoHeaderView._r = [1, [{
-  theme: TodoHeaderTheme,
-  todoToAdd: TodoToAdd
-}]];
-
-var _class$7;
-var _descriptor$5;
-var _descriptor2$2;
-var _descriptor3;
-
-function _initDefineProp$5(target, property, descriptor, context) {
   if (!descriptor) return;
   Object.defineProperty(target, property, {
     enumerable: descriptor.enumerable,
@@ -9614,9 +9513,135 @@ function _applyDecoratedDescriptor$10(target, property, decorators, descriptor, 
   return desc;
 }
 
+var TodoToAdd = (_class$7 = function () {
+  function TodoToAdd() {
+    var _this = this;
+
+    _initDefineProp$4(this, "title", _descriptor$4, this);
+
+    this._todoService = void 0;
+
+    this.onKeyDown = function (e) {
+      if (e.keyCode === 13 && _this.title) {
+        _this._todoService.addTodo(_this.title);
+
+        _this.title = '';
+      }
+    };
+  }
+
+  var _proto = TodoToAdd.prototype;
+
+  _proto.onInput = function onInput(_ref) {
+    var target = _ref.target;
+    this.title = target.value;
+  };
+
+  createClass$1(TodoToAdd, [{
+    key: "props",
+    set: function set$$1(_ref2) {
+      var todoService = _ref2.todoService;
+      this._todoService = todoService;
+    }
+  }]);
+  return TodoToAdd;
+}(), (_descriptor$4 = _applyDecoratedDescriptor$10(_class$7.prototype, "title", [mem], {
+  enumerable: true,
+  initializer: function initializer() {
+    return '';
+  }
+}), _applyDecoratedDescriptor$10(_class$7.prototype, "props", [props], Object.getOwnPropertyDescriptor(_class$7.prototype, "props"), _class$7.prototype), _applyDecoratedDescriptor$10(_class$7.prototype, "onInput", [action], Object.getOwnPropertyDescriptor(_class$7.prototype, "onInput"), _class$7.prototype)), _class$7);
+var TodoHeaderTheme = (_class3$1 = function () {
+  function TodoHeaderTheme() {}
+
+  createClass$1(TodoHeaderTheme, [{
+    key: "css",
+    get: function get$$1() {
+      var _newTodo;
+
+      return {
+        newTodo: (_newTodo = {
+          position: 'relative',
+          margin: '0',
+          width: '100%',
+          fontSize: '24px',
+          fontFamily: 'inherit',
+          fontWeight: 'inherit',
+          lineHeight: '1.4em',
+          border: '0',
+          color: 'inherit',
+          padding: '16px 16px 16px 60px'
+        }, _newTodo["border"] = 'none', _newTodo.background = 'rgba(0, 0, 0, 0.003)', _newTodo.boxShadow = 'inset 0 -2px 1px rgba(0,0,0,0.03)', _newTodo.boxSizing = 'border-box', _newTodo['-webkit-font-smoothing'] = 'antialiased', _newTodo['-moz-osx-font-smoothing'] = 'grayscale', _newTodo)
+      };
+    }
+  }]);
+  return TodoHeaderTheme;
+}(), (_applyDecoratedDescriptor$10(_class3$1.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class3$1.prototype, "css"), _class3$1.prototype)), _class3$1);
+function TodoHeaderView(_, _ref3) {
+  var todoToAdd = _ref3.todoToAdd,
+      css = _ref3.theme.css;
+  return lom_h("header", null, lom_h("input", {
+    "class": css.newTodo,
+    placeholder: "What needs to be done?",
+    onInput: todoToAdd.onInput,
+    value: todoToAdd.title,
+    onKeyDown: todoToAdd.onKeyDown,
+    autoFocus: true
+  }));
+}
+TodoHeaderView._r = [1, [{
+  theme: TodoHeaderTheme,
+  todoToAdd: TodoToAdd
+}]];
+
+var _class$9;
+var _descriptor$5;
+var _descriptor2$2;
+var _descriptor3;
+var _class3$2;
+
+function _initDefineProp$5(target, property, descriptor, context) {
+  if (!descriptor) return;
+  Object.defineProperty(target, property, {
+    enumerable: descriptor.enumerable,
+    configurable: descriptor.configurable,
+    writable: descriptor.writable,
+    value: descriptor.initializer ? descriptor.initializer.call(context) : void 0
+  });
+}
+
+function _applyDecoratedDescriptor$12(target, property, decorators, descriptor, context) {
+  var desc = {};
+  Object['ke' + 'ys'](descriptor).forEach(function (key) {
+    desc[key] = descriptor[key];
+  });
+  desc.enumerable = !!desc.enumerable;
+  desc.configurable = !!desc.configurable;
+
+  if ('value' in desc || desc.initializer) {
+    desc.writable = true;
+  }
+
+  desc = decorators.slice().reverse().reduce(function (desc, decorator) {
+    return decorator(target, property, desc) || desc;
+  }, desc);
+
+  if (context && desc.initializer !== void 0) {
+    desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
+    desc.initializer = undefined;
+  }
+
+  if (desc.initializer === void 0) {
+    Object['define' + 'Property'](target, property, desc);
+    desc = null;
+  }
+
+  return desc;
+}
+
 var ESCAPE_KEY = 27;
 var ENTER_KEY = 13;
-var TodoItemStore = (_class$7 = function () {
+var TodoItemStore = (_class$9 = function () {
   function TodoItemStore() {
     var _this = this;
 
@@ -9688,157 +9713,169 @@ var TodoItemStore = (_class$7 = function () {
   };
 
   return TodoItemStore;
-}(), (_descriptor$5 = _applyDecoratedDescriptor$10(_class$7.prototype, "todoBeingEditedId", [mem], {
+}(), (_descriptor$5 = _applyDecoratedDescriptor$12(_class$9.prototype, "todoBeingEditedId", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return null;
   }
-}), _descriptor2$2 = _applyDecoratedDescriptor$10(_class$7.prototype, "editText", [mem], {
+}), _descriptor2$2 = _applyDecoratedDescriptor$12(_class$9.prototype, "editText", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return '';
   }
-}), _descriptor3 = _applyDecoratedDescriptor$10(_class$7.prototype, "props", [props], {
+}), _descriptor3 = _applyDecoratedDescriptor$12(_class$9.prototype, "props", [props], {
   enumerable: true,
   initializer: null
-}), _applyDecoratedDescriptor$10(_class$7.prototype, "setText", [action], Object.getOwnPropertyDescriptor(_class$7.prototype, "setText"), _class$7.prototype)), _class$7);
+}), _applyDecoratedDescriptor$12(_class$9.prototype, "setText", [action], Object.getOwnPropertyDescriptor(_class$9.prototype, "setText"), _class$9.prototype)), _class$9);
+var TodoItemTheme = (_class3$2 = function () {
+  function TodoItemTheme() {}
 
-function TodoItemTheme() {
-  var itemBase = {
-    position: 'relative',
-    fontSize: '24px',
-    borderBottom: '1px solid #ededed',
-    '&:last-child': {
-      borderBottom: 'none'
-    },
-    '&:hover $destroy': {
-      display: 'block'
+  var _proto2 = TodoItemTheme.prototype;
+
+  _proto2.label = function label(isCompleted) {
+    var css = this.css;
+    return isCompleted ? css.viewLabelCompleted : css.viewLabelRegular;
+  };
+
+  createClass$1(TodoItemTheme, [{
+    key: "css",
+    get: function get$$1() {
+      var itemBase = {
+        position: 'relative',
+        fontSize: '24px',
+        borderBottom: '1px solid #ededed',
+        '&:last-child': {
+          borderBottom: 'none'
+        },
+        '&:hover $destroy': {
+          display: 'block'
+        }
+      };
+      var viewLabelBase = {
+        wordBreak: 'break-all',
+        padding: '15px 15px 15px 60px',
+        display: 'block',
+        lineHeight: '1.2',
+        transition: 'color 0.4s'
+      };
+      return {
+        regular: _extends({}, itemBase),
+        completed: _extends({}, itemBase),
+        editing: {
+          borderBottom: 'none',
+          padding: 0,
+          '&:last-child': {
+            marginBottom: '-1px'
+          }
+        },
+        edit: {
+          backgroundColor: '#F2FFAB',
+          display: 'block',
+          border: 0,
+          position: 'relative',
+          fontSize: '24px',
+          fontFamily: 'inherit',
+          fontWeight: 'inherit',
+          lineHeight: '1.4em',
+          width: '406px',
+          padding: '12px 16px',
+          margin: '0 0 0 43px'
+        },
+        toggle: {
+          textAlign: 'center',
+          width: '40px',
+
+          /* auto, since non-WebKit browsers doesn't support input styling */
+          height: 'auto',
+          position: 'absolute',
+          top: 0,
+          bottom: 0,
+          margin: 'auto 0',
+          border: 'none',
+
+          /* Mobile Safari */
+          '-webkit-appearance': 'none',
+          appearance: 'none',
+          opacity: 0,
+          '& + label': {
+            /*
+                Firefox requires `#` to be escaped - https://bugzilla.mozilla.org/show_bug.cgi?id=922433
+                IE and Edge requires *everything* to be escaped to render, so we do that instead of just the `#` - https://developer.microsoft.com/en-us/microsoft-edge/platform/issues/7157459/
+            */
+            backgroundImage: "url('data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2240%22%20height%3D%2240%22%20viewBox%3D%22-10%20-18%20100%20135%22%3E%3Ccircle%20cx%3D%2250%22%20cy%3D%2250%22%20r%3D%2250%22%20fill%3D%22none%22%20stroke%3D%22%23ededed%22%20stroke-width%3D%223%22/%3E%3C/svg%3E')",
+            backgroundRepeat: 'no-repeat',
+            backgroundPosition: 'center left'
+          },
+          '&:checked + label': {
+            backgroundImage: "url('data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2240%22%20height%3D%2240%22%20viewBox%3D%22-10%20-18%20100%20135%22%3E%3Ccircle%20cx%3D%2250%22%20cy%3D%2250%22%20r%3D%2250%22%20fill%3D%22none%22%20stroke%3D%22%23bddad5%22%20stroke-width%3D%223%22/%3E%3Cpath%20fill%3D%22%235dc2af%22%20d%3D%22M72%2025L42%2071%2027%2056l-4%204%2020%2020%2034-52z%22/%3E%3C/svg%3E')"
+          }
+        },
+        viewLabelRegular: _extends({}, viewLabelBase),
+        viewLabelCompleted: _extends({}, viewLabelBase, {
+          color: '#d9d9d9',
+          textDecoration: 'line-through'
+        }),
+        destroy: {
+          padding: 0,
+          border: 0,
+          background: 'none',
+          verticalAlign: 'baseline',
+          display: 'none',
+          position: 'absolute',
+          right: '10px',
+          top: 0,
+          bottom: 0,
+          width: '40px',
+          height: '40px',
+          fontSize: '30px',
+          margin: 'auto 0',
+          color: '#cc9a9a',
+          marginBottom: '11px',
+          transition: 'color 0.2s ease-out',
+          '&:hover': {
+            color: '#af5b5e'
+          },
+          '&:after': {
+            content: '\'×\''
+          }
+        }
+      };
     }
-  };
-  var viewLabelBase = {
-    wordBreak: 'break-all',
-    padding: '15px 15px 15px 60px',
-    display: 'block',
-    lineHeight: '1.2',
-    transition: 'color 0.4s'
-  };
-  return {
-    regular: _extends({}, itemBase),
-    completed: _extends({}, itemBase),
-    editing: {
-      borderBottom: 'none',
-      padding: 0,
-      '&:last-child': {
-        marginBottom: '-1px'
-      }
-    },
-    edit: {
-      backgroundColor: '#F2FFAB',
-      display: 'block',
-      border: 0,
-      position: 'relative',
-      fontSize: '24px',
-      fontFamily: 'inherit',
-      fontWeight: 'inherit',
-      lineHeight: '1.4em',
-      width: '406px',
-      padding: '12px 16px',
-      margin: '0 0 0 43px'
-    },
-    toggle: {
-      textAlign: 'center',
-      width: '40px',
-
-      /* auto, since non-WebKit browsers doesn't support input styling */
-      height: 'auto',
-      position: 'absolute',
-      top: 0,
-      bottom: 0,
-      margin: 'auto 0',
-      border: 'none',
-
-      /* Mobile Safari */
-      '-webkit-appearance': 'none',
-      appearance: 'none',
-      opacity: 0,
-      '& + label': {
-        /*
-            Firefox requires `#` to be escaped - https://bugzilla.mozilla.org/show_bug.cgi?id=922433
-            IE and Edge requires *everything* to be escaped to render, so we do that instead of just the `#` - https://developer.microsoft.com/en-us/microsoft-edge/platform/issues/7157459/
-        */
-        backgroundImage: "url('data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2240%22%20height%3D%2240%22%20viewBox%3D%22-10%20-18%20100%20135%22%3E%3Ccircle%20cx%3D%2250%22%20cy%3D%2250%22%20r%3D%2250%22%20fill%3D%22none%22%20stroke%3D%22%23ededed%22%20stroke-width%3D%223%22/%3E%3C/svg%3E')",
-        backgroundRepeat: 'no-repeat',
-        backgroundPosition: 'center left'
-      },
-      '&:checked + label': {
-        backgroundImage: "url('data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%2240%22%20height%3D%2240%22%20viewBox%3D%22-10%20-18%20100%20135%22%3E%3Ccircle%20cx%3D%2250%22%20cy%3D%2250%22%20r%3D%2250%22%20fill%3D%22none%22%20stroke%3D%22%23bddad5%22%20stroke-width%3D%223%22/%3E%3Cpath%20fill%3D%22%235dc2af%22%20d%3D%22M72%2025L42%2071%2027%2056l-4%204%2020%2020%2034-52z%22/%3E%3C/svg%3E')"
-      }
-    },
-    viewLabelRegular: _extends({}, viewLabelBase),
-    viewLabelCompleted: _extends({}, viewLabelBase, {
-      color: '#d9d9d9',
-      textDecoration: 'line-through'
-    }),
-    destroy: {
-      padding: 0,
-      border: 0,
-      background: 'none',
-      verticalAlign: 'baseline',
-      display: 'none',
-      position: 'absolute',
-      right: '10px',
-      top: 0,
-      bottom: 0,
-      width: '40px',
-      height: '40px',
-      fontSize: '30px',
-      margin: 'auto 0',
-      color: '#cc9a9a',
-      marginBottom: '11px',
-      transition: 'color 0.2s ease-out',
-      '&:hover': {
-        color: '#af5b5e'
-      },
-      '&:after': {
-        content: '\'×\''
-      }
-    }
-  };
-}
-
-TodoItemTheme._r = [2];
-TodoItemTheme.theme = true;
+  }]);
+  return TodoItemTheme;
+}(), (_applyDecoratedDescriptor$12(_class3$2.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class3$2.prototype, "css"), _class3$2.prototype)), _class3$2);
 function TodoItemView(_ref2, _ref3) {
   var todo = _ref2.todo;
   var itemStore = _ref3.itemStore,
-      theme = _ref3.theme,
+      theme$$1 = _ref3.theme,
       service = _ref3.service;
   var info = service.todoExtInfo(todo.id);
+  var css = theme$$1.css;
   return itemStore.todoBeingEditedId === todo.id ? lom_h("li", {
-    "class": theme.editing
+    "class": css.editing
   }, lom_h("input", {
     id: "edit",
     ref: itemStore.setEditInputRef,
-    "class": theme.edit,
+    "class": css.edit,
     value: itemStore.editText,
     onBlur: itemStore.handleSubmit,
     onInput: itemStore.setText,
     onKeyDown: itemStore.handleKeyDown
   })) : lom_h("li", {
-    "class": todo.completed ? theme.completed : theme.regular
+    "class": todo.completed ? css.completed : css.regular
   }, lom_h("input", {
     id: "toggle",
-    "class": theme.toggle,
+    "class": css.toggle,
     type: "checkbox",
     checked: todo.completed,
     onChange: itemStore.toggle
   }), lom_h("label", {
-    "class": todo.completed ? theme.viewLabelCompleted : theme.viewLabelRegular,
+    "class": theme$$1.label(todo.completed),
     id: "beginEdit",
     title: info.description,
     onDblClick: itemStore.beginEdit
   }, todo.title), lom_h("button", {
-    "class": theme.destroy,
+    "class": css.destroy,
     id: "destroy",
     onClick: itemStore.handleDestroy
   }));
@@ -9849,75 +9886,111 @@ TodoItemView._r = [1, [{
   itemStore: TodoItemStore
 }]];
 
-function TodoMainTheme() {
-  var toggleAll = {
-    outline: 'none',
-    position: 'absolute',
-    top: '-55px',
-    left: '-12px',
-    width: '60px',
-    height: '34px',
-    textAlign: 'center',
-    border: 'none',
+var _class$8;
 
-    /* Mobile Safari */
-    '&:before': {
-      content: '\'❯\'',
-      fontSize: '22px',
-      color: '#e6e6e6',
-      padding: '10px 27px 10px 27px'
-    },
-    '&:checked:before': {
-      color: '#737373'
-    }
-  };
-  return {
-    main: {
-      position: 'relative',
-      zIndex: 2,
-      borderTop: '1px solid #e6e6e6'
-    },
-    toggleAll: _extends({}, toggleAll),
-    todoList: {
-      margin: 0,
-      padding: 0,
-      listStyle: 'none'
-    },
+function _applyDecoratedDescriptor$11(target, property, decorators, descriptor, context) {
+  var desc = {};
+  Object['ke' + 'ys'](descriptor).forEach(function (key) {
+    desc[key] = descriptor[key];
+  });
+  desc.enumerable = !!desc.enumerable;
+  desc.configurable = !!desc.configurable;
 
-    /*
-    Hack to remove background from Mobile Safari.
-    Can't use it globally since it destroys checkboxes in Firefox
-    */
-    '@media screen and (-webkit-min-device-pixel-ratio:0)': {
-      toggleAll: _extends({}, toggleAll, {
-        transform: 'rotate(90deg)',
-        appearance: 'none',
-        '-webkit-appearance': 'none'
-      })
-    }
-  };
+  if ('value' in desc || desc.initializer) {
+    desc.writable = true;
+  }
+
+  desc = decorators.slice().reverse().reduce(function (desc, decorator) {
+    return decorator(target, property, desc) || desc;
+  }, desc);
+
+  if (context && desc.initializer !== void 0) {
+    desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
+    desc.initializer = undefined;
+  }
+
+  if (desc.initializer === void 0) {
+    Object['define' + 'Property'](target, property, desc);
+    desc = null;
+  }
+
+  return desc;
 }
 
-TodoMainTheme._r = [2];
-TodoMainTheme.theme = true;
+var TodoMainTheme = (_class$8 = function () {
+  function TodoMainTheme() {}
+
+  createClass$1(TodoMainTheme, [{
+    key: "css",
+    get: function get$$1() {
+      var toggleAll = {
+        outline: 'none',
+        position: 'absolute',
+        top: '-55px',
+        left: '-12px',
+        width: '60px',
+        height: '34px',
+        textAlign: 'center',
+        border: 'none',
+
+        /* Mobile Safari */
+        '&:before': {
+          content: '\'❯\'',
+          fontSize: '22px',
+          color: '#e6e6e6',
+          padding: '10px 27px 10px 27px'
+        },
+        '&:checked:before': {
+          color: '#737373'
+        }
+      };
+      return {
+        main: {
+          position: 'relative',
+          zIndex: 2,
+          borderTop: '1px solid #e6e6e6'
+        },
+        toggleAll: _extends({}, toggleAll),
+        todoList: {
+          margin: 0,
+          padding: 0,
+          listStyle: 'none'
+        },
+
+        /*
+        Hack to remove background from Mobile Safari.
+        Can't use it globally since it destroys checkboxes in Firefox
+        */
+        '@media screen and (-webkit-min-device-pixel-ratio:0)': {
+          toggleAll: _extends({}, toggleAll, {
+            transform: 'rotate(90deg)',
+            appearance: 'none',
+            '-webkit-appearance': 'none'
+          })
+        }
+      };
+    }
+  }]);
+  return TodoMainTheme;
+}(), (_applyDecoratedDescriptor$11(_class$8.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class$8.prototype, "css"), _class$8.prototype)), _class$8);
 function TodoMainView(_ref, _ref2) {
   var todoService = _ref.todoService,
       todoFilterService = _ref.todoFilterService;
-  var theme = _ref2.theme;
+  var css = _ref2.theme.css;
 
   if (!todoService.todos.length) {
     return null;
   }
 
   return lom_h("section", {
-    "class": theme.main
+    "class": css.main
   }, lom_h("input", {
-    "class": theme.toggleAll,
+    "class": css.toggleAll,
     type: "checkbox",
     onChange: todoService.toggleAll,
     checked: todoService.activeTodoCount === 0
   }), lom_h("ul", {
-    "class": theme.todoList
+    "class": css.todoList
   }, todoFilterService.filteredTodos.map(function (todo) {
     return lom_h(TodoItemView, {
       key: todo.id,
@@ -9928,6 +10001,37 @@ function TodoMainView(_ref, _ref2) {
 TodoMainView._r = [1, [{
   theme: TodoMainTheme
 }]];
+
+var _class$10;
+
+function _applyDecoratedDescriptor$13(target, property, decorators, descriptor, context) {
+  var desc = {};
+  Object['ke' + 'ys'](descriptor).forEach(function (key) {
+    desc[key] = descriptor[key];
+  });
+  desc.enumerable = !!desc.enumerable;
+  desc.configurable = !!desc.configurable;
+
+  if ('value' in desc || desc.initializer) {
+    desc.writable = true;
+  }
+
+  desc = decorators.slice().reverse().reduce(function (desc, decorator) {
+    return decorator(target, property, desc) || desc;
+  }, desc);
+
+  if (context && desc.initializer !== void 0) {
+    desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
+    desc.initializer = undefined;
+  }
+
+  if (desc.initializer === void 0) {
+    Object['define' + 'Property'](target, property, desc);
+    desc = null;
+  }
+
+  return desc;
+}
 
 var links = [{
   id: TODO_FILTER.ALL,
@@ -9948,106 +10052,117 @@ function createHandler(todoFilterService, id) {
 }
 
 createHandler._r = [2, [TodoFilterService, "V"]];
+var TodoFooterTheme = (_class$10 = function () {
+  function TodoFooterTheme() {}
 
-function TodoFooterTheme() {
-  var linkBase = {
-    color: 'inherit',
-    margin: '3px',
-    padding: '3px 7px',
-    textDecoration: 'none',
-    border: '1px solid transparent',
-    borderRadius: '3px',
-    '& :hover': {
-      borderColor: 'rgba(175, 47, 47, 0.1)'
-    }
-  };
-  return {
-    footer: {
-      color: '#777',
-      padding: '10px 15px',
-      height: '20px',
-      textAlign: 'center',
-      borderTop: '1px solid #e6e6e6',
-      '&:before': {
-        content: '\'\'',
-        position: 'absolute',
-        right: '0',
-        bottom: '0',
-        left: '0',
-        height: '50px',
-        overflow: 'hidden',
-        boxShadow: "0 1px 1px rgba(0, 0, 0, 0.2),\n                    0 8px 0 -3px #f6f6f6,\n                    0 9px 1px -3px rgba(0, 0, 0, 0.2),\n                    0 16px 0 -6px #f6f6f6,\n                    0 17px 2px -6px rgba(0, 0, 0, 0.2)"
-      }
-    },
-    todoCount: {
-      float: 'left',
-      textAlign: 'left'
-    },
-    filters: {
-      margin: 0,
-      padding: 0,
-      listStyle: 'none',
-      position: 'absolute',
-      right: 0,
-      left: 0
-    },
-    filterItem: {
-      display: 'inline'
-    },
-    linkRegular: _extends({}, linkBase),
-    linkSelected: _extends({}, linkBase, {
-      borderColor: 'rgba(175, 47, 47, 0.2)'
-    }),
-    clearCompleted: {
-      margin: 0,
-      padding: 0,
-      border: 0,
-      background: 'none',
-      fontSize: '100%',
-      verticalAlign: 'baseline',
-      appearance: 'none',
-      float: 'right',
-      position: 'relative',
-      lineHeight: '20px',
-      textDecoration: 'none',
-      cursor: 'pointer',
-      '&:hover': {
-        textDecoration: 'underline'
-      }
-    }
-  };
-}
+  var _proto = TodoFooterTheme.prototype;
 
-TodoFooterTheme._r = [2];
-TodoFooterTheme.theme = true;
+  _proto.link = function link(isSelected) {
+    return isSelected ? this.css.linkSelected : this.css.linkRegular;
+  };
+
+  createClass$1(TodoFooterTheme, [{
+    key: "css",
+    get: function get$$1() {
+      var linkBase = {
+        color: 'inherit',
+        margin: '3px',
+        padding: '3px 7px',
+        textDecoration: 'none',
+        border: '1px solid transparent',
+        borderRadius: '3px',
+        '& :hover': {
+          borderColor: 'rgba(175, 47, 47, 0.1)'
+        }
+      };
+      return {
+        footer: {
+          color: '#777',
+          padding: '10px 15px',
+          height: '20px',
+          textAlign: 'center',
+          borderTop: '1px solid #e6e6e6',
+          '&:before': {
+            content: '\'\'',
+            position: 'absolute',
+            right: '0',
+            bottom: '0',
+            left: '0',
+            height: '50px',
+            overflow: 'hidden',
+            boxShadow: "0 1px 1px rgba(0, 0, 0, 0.2),\n                        0 8px 0 -3px #f6f6f6,\n                        0 9px 1px -3px rgba(0, 0, 0, 0.2),\n                        0 16px 0 -6px #f6f6f6,\n                        0 17px 2px -6px rgba(0, 0, 0, 0.2)"
+          }
+        },
+        todoCount: {
+          float: 'left',
+          textAlign: 'left'
+        },
+        filters: {
+          margin: 0,
+          padding: 0,
+          listStyle: 'none',
+          position: 'absolute',
+          right: 0,
+          left: 0
+        },
+        filterItem: {
+          display: 'inline'
+        },
+        linkRegular: _extends({}, linkBase),
+        linkSelected: _extends({}, linkBase, {
+          borderColor: 'rgba(175, 47, 47, 0.2)'
+        }),
+        clearCompleted: {
+          margin: 0,
+          padding: 0,
+          border: 0,
+          background: 'none',
+          fontSize: '100%',
+          verticalAlign: 'baseline',
+          appearance: 'none',
+          float: 'right',
+          position: 'relative',
+          lineHeight: '20px',
+          textDecoration: 'none',
+          cursor: 'pointer',
+          '&:hover': {
+            textDecoration: 'underline'
+          }
+        }
+      };
+    }
+  }]);
+  return TodoFooterTheme;
+}(), (_applyDecoratedDescriptor$13(_class$10.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class$10.prototype, "css"), _class$10.prototype)), _class$10);
 function TodoFooterView(_ref, _ref2) {
   var todoService = _ref.todoService,
       todoFilterService = _ref.todoFilterService;
-  var theme = _ref2.theme;
+  var theme$$1 = _ref2.theme;
 
   if (!todoService.activeTodoCount && !todoService.completedCount) {
     return null;
   }
 
   var filter = todoFilterService.filter;
+  var css = theme$$1.css;
   return lom_h("footer", {
-    "class": theme.footer
+    "class": css.footer
   }, lom_h("span", {
-    "class": theme.todoCount
+    "class": css.todoCount
   }, lom_h("strong", null, todoService.activeTodoCount), " item(s) left"), lom_h("ul", {
-    "class": theme.filters
+    "class": css.filters
   }, links.map(function (link) {
     return lom_h("li", {
       key: link.id,
-      "class": theme.filterItem
+      "class": css.filterItem
     }, lom_h("a", {
       id: "todo-filter-" + link.id,
-      "class": filter === link.id ? theme.linkSelected : theme.linkRegular,
+      "class": theme$$1.link(filter === link.id),
       href: "?todo_filter=" + link.id,
       onClick: createHandler(todoFilterService, link.id)
     }, link.title));
   })), todoService.completedCount === 0 ? null : lom_h("button", {
-    "class": theme.clearCompleted,
+    "class": css.clearCompleted,
     onClick: function onClick() {
       return todoService.clearCompleted();
     }
@@ -10057,52 +10172,89 @@ TodoFooterView._r = [1, [{
   theme: TodoFooterTheme
 }]];
 
-function TodoAppTheme() {
-  return {
-    todoapp: {
-      background: '#fff',
-      position: 'relative',
-      border: '1px solid #ededed',
-      boxShadow: '0 2px 4px 0 rgba(0, 0, 0, 0.2), 0 25px 50px 0 rgba(0, 0, 0, 0.1)'
-    },
-    '@global': {
-      ':focus': {
-        outline: 0
-      },
-      html: {
-        margin: 0,
-        padding: 0
-      },
-      body: {
-        font: '14px "Helvetica Neue", Helvetica, Arial, sans-serif',
-        lineHeight: '1.4em',
-        background: '#f5f5f5',
-        color: '#4d4d4d',
-        minWidth: '230px',
-        maxWidth: '550px',
-        margin: '0 auto',
-        padding: 0,
-        '-webkit-font-smoothing': 'antialiased',
-        '-moz-osx-font-smoothing': 'grayscale',
-        fontWeight: '300'
-      }
-    }
-  };
+var _class$5;
+
+function _applyDecoratedDescriptor$7(target, property, decorators, descriptor, context) {
+  var desc = {};
+  Object['ke' + 'ys'](descriptor).forEach(function (key) {
+    desc[key] = descriptor[key];
+  });
+  desc.enumerable = !!desc.enumerable;
+  desc.configurable = !!desc.configurable;
+
+  if ('value' in desc || desc.initializer) {
+    desc.writable = true;
+  }
+
+  desc = decorators.slice().reverse().reduce(function (desc, decorator) {
+    return decorator(target, property, desc) || desc;
+  }, desc);
+
+  if (context && desc.initializer !== void 0) {
+    desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
+    desc.initializer = undefined;
+  }
+
+  if (desc.initializer === void 0) {
+    Object['define' + 'Property'](target, property, desc);
+    desc = null;
+  }
+
+  return desc;
 }
 
-TodoAppTheme._r = [2];
-TodoAppTheme.theme = true;
+var TodoAppTheme = (_class$5 = function () {
+  function TodoAppTheme() {}
+
+  createClass$1(TodoAppTheme, [{
+    key: "css",
+    get: function get$$1() {
+      return {
+        todoapp: {
+          background: '#fff',
+          position: 'relative',
+          border: '1px solid #ededed',
+          boxShadow: '0 2px 4px 0 rgba(0, 0, 0, 0.2), 0 25px 50px 0 rgba(0, 0, 0, 0.1)'
+        },
+        '@global': {
+          ':focus': {
+            outline: 0
+          },
+          html: {
+            margin: 0,
+            padding: 0
+          },
+          body: {
+            font: '14px "Helvetica Neue", Helvetica, Arial, sans-serif',
+            lineHeight: '1.4em',
+            background: '#f5f5f5',
+            color: '#4d4d4d',
+            minWidth: '230px',
+            maxWidth: '550px',
+            margin: '0 auto',
+            padding: 0,
+            '-webkit-font-smoothing': 'antialiased',
+            '-moz-osx-font-smoothing': 'grayscale',
+            fontWeight: '300'
+          }
+        }
+      };
+    }
+  }]);
+  return TodoAppTheme;
+}(), (_applyDecoratedDescriptor$7(_class$5.prototype, "css", [mem, theme], Object.getOwnPropertyDescriptor(_class$5.prototype, "css"), _class$5.prototype)), _class$5);
 function TodoApp(_ref, _ref2) {
   objectDestructuringEmpty(_ref);
   var todoService = _ref2.todoService,
       todoFilterService = _ref2.todoFilterService,
-      theme = _ref2.theme;
+      theme$$1 = _ref2.theme;
+  var css = theme$$1.css;
   return lom_h("div", null, todoService.activeTodoCount > 0 ? null : null, lom_h("div", {
     style: {
       padding: '0.3em 0.5em'
     }
   }, todoService.isOperationRunning ? 'Saving...' : 'Idle'), lom_h("div", {
-    "class": theme.todoapp
+    "class": css.todoapp
   }, lom_h(TodoHeaderView, {
     todoService: todoService
   }), lom_h(TodoMainView, {
@@ -10119,7 +10271,7 @@ TodoApp._r = [1, [{
   theme: TodoAppTheme
 }]];
 
-var _class2$3;
+var _class2$4;
 var _descriptor$6;
 var _descriptor2$3;
 var _descriptor3$1;
@@ -10134,7 +10286,7 @@ function _initDefineProp$6(target, property, descriptor, context) {
   });
 }
 
-function _applyDecoratedDescriptor$11(target, property, decorators, descriptor, context) {
+function _applyDecoratedDescriptor$14(target, property, decorators, descriptor, context) {
   var desc = {};
   Object['ke' + 'ys'](descriptor).forEach(function (key) {
     desc[key] = descriptor[key];
@@ -10179,7 +10331,7 @@ var TimeoutHandler = function () {
 }();
 
 TimeoutHandler._r = [0, [Function, Number]];
-var AutocompleteService = (_class2$3 = function () {
+var AutocompleteService = (_class2$4 = function () {
   function AutocompleteService() {
     var _this = this;
 
@@ -10220,20 +10372,20 @@ var AutocompleteService = (_class2$3 = function () {
     set: function set$$1(searchResults) {}
   }]);
   return AutocompleteService;
-}(), (_descriptor$6 = _applyDecoratedDescriptor$11(_class2$3.prototype, "$", [force], {
+}(), (_descriptor$6 = _applyDecoratedDescriptor$14(_class2$4.prototype, "$", [force], {
   enumerable: true,
   initializer: null
-}), _descriptor2$3 = _applyDecoratedDescriptor$11(_class2$3.prototype, "nameToSearch", [mem], {
+}), _descriptor2$3 = _applyDecoratedDescriptor$14(_class2$4.prototype, "nameToSearch", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return '';
   }
-}), _applyDecoratedDescriptor$11(_class2$3.prototype, "props", [props], Object.getOwnPropertyDescriptor(_class2$3.prototype, "props"), _class2$3.prototype), _descriptor3$1 = _applyDecoratedDescriptor$11(_class2$3.prototype, "_handler", [mem], {
+}), _applyDecoratedDescriptor$14(_class2$4.prototype, "props", [props], Object.getOwnPropertyDescriptor(_class2$4.prototype, "props"), _class2$4.prototype), _descriptor3$1 = _applyDecoratedDescriptor$14(_class2$4.prototype, "_handler", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return null;
   }
-}), _applyDecoratedDescriptor$11(_class2$3.prototype, "searchResults", [mem], Object.getOwnPropertyDescriptor(_class2$3.prototype, "searchResults"), _class2$3.prototype), _applyDecoratedDescriptor$11(_class2$3.prototype, "searchResults", [mem], Object.getOwnPropertyDescriptor(_class2$3.prototype, "searchResults"), _class2$3.prototype)), _class2$3);
+}), _applyDecoratedDescriptor$14(_class2$4.prototype, "searchResults", [mem], Object.getOwnPropertyDescriptor(_class2$4.prototype, "searchResults"), _class2$4.prototype), _applyDecoratedDescriptor$14(_class2$4.prototype, "searchResults", [mem], Object.getOwnPropertyDescriptor(_class2$4.prototype, "searchResults"), _class2$4.prototype)), _class2$4);
 
 function AutocompleteResultsView(_ref2) {
   var searchResults = _ref2.searchResults;
@@ -10273,8 +10425,10 @@ function autocompleteMocks(rawStorage) {
 }
 autocompleteMocks._r = [2, [Storage]];
 
-var _class$8;
+var _class$11;
 var _descriptor$7;
+var _dec$1;
+var _class3$3;
 
 function _initDefineProp$7(target, property, descriptor, context) {
   if (!descriptor) return;
@@ -10286,7 +10440,7 @@ function _initDefineProp$7(target, property, descriptor, context) {
   });
 }
 
-function _applyDecoratedDescriptor$12(target, property, decorators, descriptor, context) {
+function _applyDecoratedDescriptor$15(target, property, decorators, descriptor, context) {
   var desc = {};
   Object['ke' + 'ys'](descriptor).forEach(function (key) {
     desc[key] = descriptor[key];
@@ -10315,30 +10469,39 @@ function _applyDecoratedDescriptor$12(target, property, decorators, descriptor, 
   return desc;
 }
 
-var Store$1 = (_class$8 = function Store() {
+var Store$1 = (_class$11 = function Store() {
   _initDefineProp$7(this, "red", _descriptor$7, this);
-}, (_descriptor$7 = _applyDecoratedDescriptor$12(_class$8.prototype, "red", [mem], {
+}, (_descriptor$7 = _applyDecoratedDescriptor$15(_class$11.prototype, "red", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return 140;
   }
-})), _class$8);
+})), _class$11);
+var CssChangeTheme = (_dec$1 = theme.self, (_class3$3 = function () {
+  function CssChangeTheme(store) {
+    this._store = void 0;
+    this._store = store;
+  }
 
-function CssChangeTheme(store) {
-  return {
-    wrapper: {
-      background: "rgb(" + store.red + ", 0, 0)"
+  createClass$1(CssChangeTheme, [{
+    key: "css",
+    get: function get$$1() {
+      var store = this._store;
+      return {
+        wrapper: {
+          background: "rgb(" + store.red + ", 0, 0)"
+        }
+      };
     }
-  };
-}
-
-CssChangeTheme._r = [2, [Store$1]];
-CssChangeTheme.theme = true;
+  }]);
+  return CssChangeTheme;
+}(), (_applyDecoratedDescriptor$15(_class3$3.prototype, "css", [mem, _dec$1], Object.getOwnPropertyDescriptor(_class3$3.prototype, "css"), _class3$3.prototype)), _class3$3));
+CssChangeTheme._r = [0, [Store$1]];
 function CssChangeView(_, _ref) {
   var store = _ref.store,
-      theme = _ref.theme;
+      css = _ref.theme.css;
   return lom_h("div", {
-    className: theme.wrapper
+    className: css.wrapper
   }, "color via css ", store.red, ": ", lom_h("input", {
     type: "range",
     min: "0",

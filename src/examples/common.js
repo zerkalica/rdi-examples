@@ -1,42 +1,43 @@
 // @flow
-import type {NamesOf} from 'lom_atom'
 import {mem} from 'lom_atom'
+import {theme} from 'reactive-di'
 import fetchMock from 'fetch-mock/es5/client'
 
-function KeyValueTheme() {
-    return {
-        item: {
-            display: 'flex'
-        },
-        key: {
-            width: '20%'
-        },
-        value: {
-            width: '80%'
+class KeyValueTheme {
+    @theme get css() {
+        return {
+            item: {
+                display: 'flex'
+            },
+            key: {
+                width: '20%'
+            },
+            value: {
+                width: '80%'
+            }
         }
     }
 }
-KeyValueTheme.theme = true
 
 function KeyView(
     {children}: {children?: any},
-    {theme}: {theme: NamesOf<typeof KeyValueTheme>}
+    {theme: {css}}: {theme: KeyValueTheme}
 ) {
-    return <div class={theme.key}>{children}</div>
+    return <div class={css.key}>{children}</div>
 }
 
 function ValueView(
     {children}: {children?: any},
-    {theme}: {theme: NamesOf<typeof KeyValueTheme>}
+    {theme: {css}}: {theme: KeyValueTheme}
 ) {
-    return <div class={theme.value}>{children}</div>
+    return <div class={css.value}>{children}</div>
 }
 
 export function ItemView(
     {children}: {children?: any},
-    {theme}: {theme: NamesOf<typeof KeyValueTheme>}
+    {theme: {css}}: {theme: KeyValueTheme}
 ) {
-    return <div class={theme.item}>{children}</div>
+    return <div class={css.item}>{children}</div>
 }
 ItemView.Key = KeyView
 ItemView.Value = ValueView

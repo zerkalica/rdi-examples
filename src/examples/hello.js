@@ -1,6 +1,7 @@
 // @flow
 
-import {mem, props, force} from 'lom_atom'
+import {mem, force} from 'lom_atom'
+import {props} from 'reactive-di'
 import {ItemView, Locale} from './common'
 
 class Hello {

@@ -1,6 +1,6 @@
 // @flow
 
-import type {NamesOf} from 'lom_atom'
+import {theme} from 'reactive-di'
 import TodoService from './TodoService'
 import TodoFilterService, {TODO_FILTER} from './TodoFilterService'
 
@@ -26,91 +26,95 @@ function createHandler<V: string>(todoFilterService: TodoFilterService, id: V): 
     }
 }
 
-function TodoFooterTheme() {
-    const linkBase = {
-        color: 'inherit',
-        margin: '3px',
-        padding: '3px 7px',
-        textDecoration: 'none',
-        border: '1px solid transparent',
-        borderRadius: '3px',
-        '& :hover': {
-            borderColor: 'rgba(175, 47, 47, 0.1)'
+class TodoFooterTheme {
+    @theme get css() {
+        const linkBase = {
+            color: 'inherit',
+            margin: '3px',
+            padding: '3px 7px',
+            textDecoration: 'none',
+            border: '1px solid transparent',
+            borderRadius: '3px',
+            '& :hover': {
+                borderColor: 'rgba(175, 47, 47, 0.1)'
+            }
+        }
+        return {
+            footer: {
+                color: '#777',
+                padding: '10px 15px',
+                height: '20px',
+                textAlign: 'center',
+                borderTop: '1px solid #e6e6e6',
+                '&:before': {
+                    content: '\'\'',
+                    position: 'absolute',
+                    right: '0',
+                    bottom: '0',
+                    left: '0',
+                    height: '50px',
+                    overflow: 'hidden',
+                    boxShadow: `0 1px 1px rgba(0, 0, 0, 0.2),
+                        0 8px 0 -3px #f6f6f6,
+                        0 9px 1px -3px rgba(0, 0, 0, 0.2),
+                        0 16px 0 -6px #f6f6f6,
+                        0 17px 2px -6px rgba(0, 0, 0, 0.2)`,
+                }
+            },
+
+            todoCount: {
+                float: 'left',
+                textAlign: 'left'
+            },
+
+            filters: {
+                margin: 0,
+                padding: 0,
+                listStyle: 'none',
+                position: 'absolute',
+                right: 0,
+                left: 0
+            },
+
+            filterItem: {
+                display: 'inline'
+            },
+
+            linkRegular: {
+                ...linkBase
+            },
+
+            linkSelected: {
+                ...linkBase,
+                borderColor: 'rgba(175, 47, 47, 0.2)'
+            },
+
+            clearCompleted: {
+                margin: 0,
+                padding: 0,
+                border: 0,
+                background: 'none',
+                fontSize: '100%',
+                verticalAlign: 'baseline',
+                appearance: 'none',
+
+                float: 'right',
+                position: 'relative',
+                lineHeight: '20px',
+                textDecoration: 'none',
+                cursor: 'pointer',
+
+                '&:hover': {
+                    textDecoration: 'underline'
+                }
+            }
         }
     }
 
-    return {
-        footer: {
-            color: '#777',
-            padding: '10px 15px',
-            height: '20px',
-            textAlign: 'center',
-            borderTop: '1px solid #e6e6e6',
-            '&:before': {
-                content: '\'\'',
-                position: 'absolute',
-                right: '0',
-                bottom: '0',
-                left: '0',
-                height: '50px',
-                overflow: 'hidden',
-                boxShadow: `0 1px 1px rgba(0, 0, 0, 0.2),
-                    0 8px 0 -3px #f6f6f6,
-                    0 9px 1px -3px rgba(0, 0, 0, 0.2),
-                    0 16px 0 -6px #f6f6f6,
-                    0 17px 2px -6px rgba(0, 0, 0, 0.2)`,
-            }
-        },
-
-        todoCount: {
-            float: 'left',
-            textAlign: 'left'
-        },
-
-        filters: {
-            margin: 0,
-            padding: 0,
-            listStyle: 'none',
-            position: 'absolute',
-            right: 0,
-            left: 0
-        },
-
-        filterItem: {
-            display: 'inline'
-        },
-
-        linkRegular: {
-            ...linkBase
-        },
-
-        linkSelected: {
-            ...linkBase,
-            borderColor: 'rgba(175, 47, 47, 0.2)'
-        },
-
-        clearCompleted: {
-            margin: 0,
-            padding: 0,
-            border: 0,
-            background: 'none',
-            fontSize: '100%',
-            verticalAlign: 'baseline',
-            appearance: 'none',
-
-            float: 'right',
-            position: 'relative',
-            lineHeight: '20px',
-            textDecoration: 'none',
-            cursor: 'pointer',
-
-            '&:hover': {
-                textDecoration: 'underline'
-            }
-        }
+    link(isSelected: boolean) {
+        return isSelected ? this.css.linkSelected : this.css.linkRegular
     }
 }
-TodoFooterTheme.theme = true
 
 export default function TodoFooterView(
     {todoService, todoFilterService}: {
@@ -118,23 +122,24 @@ export default function TodoFooterView(
         todoFilterService: TodoFilterService;
     },
     {theme}: {
-        theme: NamesOf<typeof TodoFooterTheme>;
+        theme: TodoFooterTheme;
     }
 ) {
     if (!todoService.activeTodoCount && !todoService.completedCount) {
         return null
     }
     const filter = todoFilterService.filter
+    const css = theme.css
 
-    return <footer class={theme.footer}>
-        <span class={theme.todoCount}>
+    return <footer class={css.footer}>
+        <span class={css.todoCount}>
             <strong>{todoService.activeTodoCount}</strong> item(s) left
         </span>
-        <ul class={theme.filters}>
+        <ul class={css.filters}>
             {links.map((link) =>
-                <li key={link.id} class={theme.filterItem}><a
+                <li key={link.id} class={css.filterItem}><a
                     id={`todo-filter-${link.id}`}
-                    class={filter === link.id ? theme.linkSelected : theme.linkRegular}
+                    class={theme.link(filter === link.id)}
                     href={`?todo_filter=${link.id}`}
                     onClick={createHandler(todoFilterService, link.id)}
                 >{link.title}</a></li>
@@ -143,7 +148,7 @@ export default function TodoFooterView(
         {todoService.completedCount === 0
             ? null
             : <button
-                class={theme.clearCompleted}
+                class={css.clearCompleted}
                 onClick={() => todoService.clearCompleted()}>
                 Clear completed
             </button>
