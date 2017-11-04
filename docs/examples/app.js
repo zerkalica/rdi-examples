@@ -182,11 +182,13 @@ var handlers = new Map([[Array, function arrayHandler(target, source, stack) {
 }], [RegExp, function dateHandler(target, source) {
   return target.toString() === source.toString() ? source : target;
 }]]);
+var done = Symbol('lom_conform_done');
 
 function conform(target, source, isComponent) {
   var stack = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : [];
   if (target === source) return source;
-  if (isComponent || !target || _typeof(target) !== 'object' || !source || _typeof(source) !== 'object' || target.constructor !== source.constructor) return target;
+  if (isComponent || !target || _typeof(target) !== 'object' || !source || _typeof(source) !== 'object' || target instanceof Error || source instanceof Error || target.constructor !== source.constructor || target[done] !== undefined) return target;
+  target[done] = true;
   var conformHandler = handlers.get(target.constructor);
   if (!conformHandler) return target;
   if (stack.indexOf(target) !== -1) return target;
@@ -350,7 +352,7 @@ var Atom = function () {
 
     var prev = this.current;
     if (nextRaw === undefined) return prev;
-    var next = nextRaw instanceof Error ? createMock(nextRaw) : prev instanceof Error ? nextRaw : conform(nextRaw, prev, this.isComponent);
+    var next = nextRaw instanceof Error ? createMock(nextRaw) : conform(nextRaw, prev, this.isComponent);
 
     if (prev !== next) {
       this.current = next;
@@ -540,7 +542,12 @@ var Context = function () {
 
   Context.prototype._destroyValue = function _destroyValue(atom, from) {
     if (from && !(from instanceof Error) && _typeof(from) === 'object' && typeof from.destructor === 'function' && this._owners.get(from) === atom) {
-      from.destructor();
+      try {
+        from.destructor();
+      } catch (e) {
+        console.error(e);
+        if (this._logger) this._logger.error(atom, e, this._namespace);
+      }
 
       this._owners.delete(from);
     }
@@ -682,7 +689,7 @@ function memMethod(proto, rname, descr, isComponent) {
 
   proto[name + "$"] = descr.value;
   var hostAtoms = new WeakMap();
-  Object.defineProperty(proto, name + "()", {
+  Object.defineProperty(proto, rname + "()", {
     get: function get$$1() {
       return hostAtoms.get(this);
     }
@@ -802,8 +809,8 @@ function getKeyFromObj(params) {
 
   for (var i = 0; i < keys.length; i++) {
     var key = keys[i];
-    var _value = params[key];
-    result += "." + key + ":" + (_typeof(_value) === 'object' ? JSON.stringify(_value) : _value);
+    var value = params[key];
+    result += "." + key + ":" + (_typeof(value) === 'object' ? JSON.stringify(value) : value);
   }
 
   return result;
@@ -830,7 +837,7 @@ function memKeyMethod(proto, rname, descr) {
 
   proto[name + "$"] = handler;
   var hostAtoms = new WeakMap();
-  Object.defineProperty(proto, name + "()", {
+  Object.defineProperty(proto, rname + "()", {
     get: function get$$1() {
       return hostAtoms.get(this);
     }
@@ -1084,6 +1091,11 @@ mem.Wait = AtomWait;
 mem.key = memkey;
 mem.detached = detached;
 
+var ATOM_FORCE_NONE$1 = 0;
+var ATOM_FORCE_CACHE$1 = 1;
+var renderedKey = Symbol('lom_rendered');
+var diKey = Symbol('rdi_di');
+
 var DisposableSheet = function () {
   function DisposableSheet(key, sheet, remover) {
     this.__lom_key = key;
@@ -1162,7 +1174,7 @@ function themeProp(proto, name, descr, isInstance) {
     get: function get$$1() {
       this;
       var sm = theme.sheetManager;
-      return sm === undefined ? fakeSheet : sm.sheet(isInstance ? themeId + "[" + this.__lom_di.instance + "]" : themeId, value || this[themeId](), !!this[atomId]);
+      return sm === undefined ? fakeSheet : sm.sheet(isInstance ? themeId + "[" + this[diKey].instance + "]" : themeId, value || this[themeId](), !!this[atomId]);
     }
   };
 }
@@ -1215,9 +1227,10 @@ var inheritsLoose$2 = function inheritsLoose(subClass, superClass) {
 
 inheritsLoose$2._r = [2];
 var depId = 0;
+var rdiId = Symbol('rdi_id');
 
 var Alias = function Alias(dest) {
-  dest.__rdi_id = '' + ++depId;
+  dest[rdiId] = '' + ++depId;
   this.dest = dest;
 };
 
@@ -1247,21 +1260,21 @@ var Injector = function () {
           if (typeof src === 'string') {
             map[src] = item[1];
           } else {
-            if (src.__rdi_id === undefined) {
-              src.__rdi_id = '' + ++depId;
+            if (src[rdiId] === undefined) {
+              src[rdiId] = '' + ++depId;
             }
 
             var dest = item[1];
-            map[src.__rdi_id] = typeof dest === 'function' && !(dest instanceof Alias) ? new Alias(dest) : dest;
+            map[src[rdiId]] = typeof dest === 'function' && !(dest instanceof Alias) ? new Alias(dest) : dest;
           }
         } else {
           var _src = item.constructor;
 
-          if (_src.__rdi_id === undefined) {
-            _src.__rdi_id = '' + ++depId;
+          if (_src[rdiId] === undefined) {
+            _src[rdiId] = '' + ++depId;
           }
 
-          map[_src.__rdi_id] = item;
+          map[_src[rdiId]] = item;
         }
       }
     }
@@ -1276,10 +1289,10 @@ var Injector = function () {
   };
 
   Injector.prototype.value = function value(key) {
-    var id = key.__rdi_id;
+    var id = key[rdiId];
 
-    if (key.__rdi_id === undefined) {
-      id = key.__rdi_id = '' + ++depId;
+    if (key[rdiId] === undefined) {
+      id = key[rdiId] = '' + ++depId;
     }
 
     var value = this._cache[id];
@@ -1288,7 +1301,7 @@ var Injector = function () {
       value = this._cache[id] = this.invoke(key);
       var depName = (key.displayName || key.name) + (this.instance > 0 ? '[' + this.instance + ']' : '');
       value.displayName = this.displayName + "." + depName;
-      value.__lom_di = this;
+      value[diKey] = this;
       var state = this._state === undefined ? undefined : this._state[depName];
 
       if (state && _typeof$2(state) === 'object') {
@@ -1378,10 +1391,10 @@ var Injector = function () {
     var id = rawId;
 
     if (id === undefined) {
-      id = key.__rdi_id;
+      id = key[rdiId];
 
       if (id === undefined) {
-        id = key.__rdi_id = '' + ++depId;
+        id = key[rdiId] = '' + ++depId;
       }
     }
 
@@ -1526,7 +1539,7 @@ _applyDecoratedDescriptor$1._r = [2];
 var parentContext = undefined;
 
 function createCreateElement(atomize, createElement) {
-  return function lomCreateElement() {
+  function lomCreateElement() {
     var el = arguments[0];
     var attrs = arguments[1];
     var newEl = void 0;
@@ -1601,15 +1614,17 @@ function createCreateElement(atomize, createElement) {
 
         return createElement.apply(null, args);
     }
-  };
+  }
+
+  return lomCreateElement;
 }
 
 createCreateElement._r = [2];
 
-function createReactWrapper(BaseComponent, defaultFromError) {
+function createReactWrapper(BaseComponent, defaultFromError, detached) {
   var _class;
 
-  var rootInjector = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : new Injector();
+  var rootInjector = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : new Injector();
   var AtomizedComponent = (_class = function (_BaseComponent) {
     inheritsLoose$2(AtomizedComponent, _BaseComponent);
 
@@ -1650,10 +1665,6 @@ function createReactWrapper(BaseComponent, defaultFromError) {
     };
 
     AtomizedComponent.prototype.componentWillUnmount = function componentWillUnmount() {
-      this['AtomizedComponent.r()'].destructor();
-    };
-
-    AtomizedComponent.prototype.destructor = function destructor() {
       this._el = undefined;
       this._keys = undefined;
       this.props = undefined;
@@ -1665,9 +1676,11 @@ function createReactWrapper(BaseComponent, defaultFromError) {
 
         this._injector = undefined;
       }
+
+      this['r()'].destructor();
     };
 
-    AtomizedComponent.prototype.r = function r(element, force$$1) {
+    AtomizedComponent.prototype.r = function r(element, force) {
       var data = void 0;
       var render = this._render;
       var prevContext = parentContext;
@@ -1679,6 +1692,7 @@ function createReactWrapper(BaseComponent, defaultFromError) {
         data = parentContext.invokeWithProps(render.onError || defaultFromError, {
           error: error
         });
+        error[renderedKey] = true;
       }
 
       parentContext = prevContext;
@@ -1694,7 +1708,7 @@ function createReactWrapper(BaseComponent, defaultFromError) {
     };
 
     AtomizedComponent.prototype.render = function render() {
-      return this._el === undefined ? this.r(undefined, this._propsChanged ? ATOM_FORCE_CACHE : ATOM_FORCE_NONE) : this._el;
+      return this._el === undefined ? this.r(undefined, this._propsChanged ? ATOM_FORCE_CACHE$1 : ATOM_FORCE_NONE$1) : this._el;
     };
 
     createClass$2(AtomizedComponent, [{
@@ -3828,7 +3842,7 @@ var isObservable = function isObservable(fn) {
 
 isObservable._r = [2];
 
-var isDynamicValue = createCommonjsModule(function (module, exports) {
+var isDynamic = createCommonjsModule(function (module, exports) {
   'use strict';
 
   Object.defineProperty(exports, "__esModule", {
@@ -3847,7 +3861,7 @@ var isDynamicValue = createCommonjsModule(function (module, exports) {
     return typeof value === 'function' || (0, _isObservable2['default'])(value);
   };
 });
-unwrapExports(isDynamicValue);
+unwrapExports(isDynamic);
 
 var toCss_1 = createCommonjsModule(function (module, exports) {
   'use strict';
@@ -3859,7 +3873,7 @@ var toCss_1 = createCommonjsModule(function (module, exports) {
 
   var _toCssValue2 = _interopRequireDefault(toCssValue_1);
 
-  var _isDynamicValue2 = _interopRequireDefault(isDynamicValue);
+  var _isDynamic2 = _interopRequireDefault(isDynamic);
 
   function _interopRequireDefault(obj) {
     return obj && obj.__esModule ? obj : {
@@ -3921,22 +3935,25 @@ var toCss_1 = createCommonjsModule(function (module, exports) {
         }
     }
 
-    var hasDynamicValue = false;
+    var isDynamicValue = false;
 
-    for (var _prop2 in style) {
-      var _value2 = style[_prop2];
+    if (!style.isDynamic) {
+      for (var _prop2 in style) {
+        var _value2 = style[_prop2];
 
-      if ((0, _isDynamicValue2['default'])(_value2)) {
-        _value2 = style['$' + _prop2];
-        hasDynamicValue = true;
+        if ((0, _isDynamic2['default'])(_value2)) {
+          _value2 = style['$' + _prop2];
+          isDynamicValue = true;
+        }
+
+        if (_value2 != null && _prop2 !== 'fallbacks') {
+          result += '\n' + indentStr(_prop2 + ': ' + (0, _toCssValue2['default'])(_value2) + ';', indent);
+        }
       }
+    } // Allow empty style in this case, because properties will be added dynamically.
 
-      if (_value2 != null && _prop2 !== 'fallbacks') {
-        result += '\n' + indentStr(_prop2 + ': ' + (0, _toCssValue2['default'])(_value2) + ';', indent);
-      }
-    }
 
-    if (!result && !hasDynamicValue) return result;
+    if (!result && !isDynamicValue && !style.isDynamic) return result;
     indent--;
     result = indentStr(selector + ' {' + result + '\n', indent) + indentStr('}', indent);
     return result;
@@ -3981,7 +3998,7 @@ var StyleRule_1 = createCommonjsModule(function (module, exports) {
 
   var _toCssValue2 = _interopRequireDefault(toCssValue_1);
 
-  var _isDynamicValue2 = _interopRequireDefault(isDynamicValue);
+  var _isDynamic2 = _interopRequireDefault(isDynamic);
 
   function _interopRequireDefault(obj) {
     return obj && obj.__esModule ? obj : {
@@ -4026,7 +4043,7 @@ var StyleRule_1 = createCommonjsModule(function (module, exports) {
       value: function prop(name, nextValue) {
         // The result of a dynamic value is prefixed with $ and is not innumerable in
         // order to be ignored by all plugins or during stringification.
-        var $name = (0, _isDynamicValue2['default'])(this.style[name]) ? '$' + name : name; // Its a setter.
+        var $name = (0, _isDynamic2['default'])(this.style[name]) ? '$' + name : name; // Its a setter.
 
         if (nextValue != null) {
           // Don't do anything if the value has not changed.
@@ -4079,7 +4096,7 @@ var StyleRule_1 = createCommonjsModule(function (module, exports) {
 
         for (var prop in this.style) {
           var value = this.style[prop];
-          if ((0, _isDynamicValue2['default'])(value)) json[prop] = this.style['$' + prop];else if ((typeof value === 'undefined' ? 'undefined' : _typeof(value)) !== 'object') json[prop] = value;else if (Array.isArray(value)) json[prop] = (0, _toCssValue2['default'])(value);
+          if ((0, _isDynamic2['default'])(value)) json[prop] = this.style['$' + prop];else if ((typeof value === 'undefined' ? 'undefined' : _typeof(value)) !== 'object') json[prop] = value;else if (Array.isArray(value)) json[prop] = (0, _toCssValue2['default'])(value);
         }
 
         return json;
@@ -4156,7 +4173,10 @@ var cloneStyle_1 = createCommonjsModule(function (module, exports) {
     var typeOfStyle = typeof style === 'undefined' ? 'undefined' : _typeof(style);
     if (typeOfStyle === 'string' || typeOfStyle === 'number') return style; // Support array for FontFaceRule.
 
-    if (isArray(style)) return style.map(cloneStyle);
+    if (isArray(style)) return style.map(cloneStyle); // Support Observable styles.  Observables are immutable, so we don't need to
+    // copy them.
+
+    if ((0, _isObservable2['default'])(style)) return style;
     var newStyle = {};
 
     for (var name in style) {
@@ -4203,8 +4223,10 @@ var createRule_1 = createCommonjsModule(function (module, exports) {
     var name = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 'unnamed';
     var decl = arguments[1];
     var options = arguments[2];
-    var jss = options.jss;
-    var declCopy = (0, _cloneStyle2['default'])(decl);
+    var jss = options.jss; // It has `isDynamic` property if an Observable rule was used, so no need to
+    // clone it.
+
+    var declCopy = decl && decl.isDynamic ? decl : (0, _cloneStyle2['default'])(decl);
     var rule = jss.plugins.onCreateRule(name, declCopy, options);
     if (rule) return rule; // It is an at-rule and it has no instance.
 
@@ -4297,7 +4319,7 @@ var RuleList_1 = createCommonjsModule(function (module, exports) {
     };
   }();
 
-  var _createRule2$$1 = _interopRequireDefault(createRule_1);
+  var _createRule2 = _interopRequireDefault(createRule_1);
 
   var _updateStyle2 = _interopRequireDefault(updateStyle);
 
@@ -4366,7 +4388,7 @@ var RuleList_1 = createCommonjsModule(function (module, exports) {
         }
 
         this.raw[name] = decl;
-        var rule = (0, _createRule2$$1['default'])(name, decl, options);
+        var rule = (0, _createRule2['default'])(name, decl, options);
         var className = void 0;
 
         if (!options.selector && rule instanceof _StyleRule2['default']) {
@@ -5514,6 +5536,8 @@ var observables = createCommonjsModule(function (module, exports) {
 
   var _StyleRule2 = _interopRequireDefault(StyleRule_1);
 
+  var _createRule2 = _interopRequireDefault(createRule_1);
+
   function _interopRequireDefault(obj) {
     return obj && obj.__esModule ? obj : {
       'default': obj
@@ -5521,6 +5545,29 @@ var observables = createCommonjsModule(function (module, exports) {
   }
 
   exports['default'] = {
+    onCreateRule: function onCreateRule(name, decl, options) {
+      if (!(0, _isObservable2['default'])(decl)) return null; // Cast `decl` to `Observable`, since it passed the type guard.
+
+      var style$ = decl;
+      var initialStyle = {}; // It can't be enumerable, otherwise it will be rendered.
+
+      Object.defineProperty(initialStyle, 'isDynamic', {
+        value: true,
+        writable: false
+      }); // We know `rule` is a `StyleRule`, and the other types don't have a
+      // `prop` method, so we must explicitly cast to `StyleRule`.
+
+      var rule = (0, _createRule2['default'])(name, initialStyle, options); // TODO
+      // Call `stream.subscribe()` returns a subscription, which should be explicitly
+      // unsubscribed from when we know this sheet is no longer needed.
+
+      style$.subscribe(function (style) {
+        for (var prop in style) {
+          rule.prop(prop, style[prop]);
+        }
+      });
+      return rule;
+    },
     onProcessRule: function onProcessRule(rule) {
       if (!(rule instanceof _StyleRule2['default'])) return;
       var style = rule.style;
@@ -6171,7 +6218,7 @@ var Jss_1 = createCommonjsModule(function (module, exports) {
     function Jss(options) {
       _classCallCheck(this, Jss);
 
-      this.version = "9.0.0";
+      this.version = "9.1.0";
       this.plugins = new _PluginsRegistry2['default']();
       this.options = {
         createGenerateClassName: _createGenerateClassName2['default'],
@@ -7165,8 +7212,7 @@ var ServerRenderer = function () {
 }();
 ServerRenderer._r = [0, [Function]];
 
-var logger = new ConsoleLogger();
-defaultContext.setLogger(logger);
+defaultContext.setLogger(new ConsoleLogger());
 
 function ErrorableView(_ref) {
   var error = _ref.error;
@@ -7178,7 +7224,7 @@ var jss = lib_1({
   plugins: [jssNested(), jssCamel(), jssGlobal()]
 });
 var injector = new Injector([[Fetcher, new Fetcher('/api')], [AbstractLocationStore, new BrowserLocationStore(location, history)]], jss);
-var lomCreateElement = createCreateElement(createReactWrapper(Component, ErrorableView, injector), h);
+var lomCreateElement = createCreateElement(createReactWrapper(Component, ErrorableView, detached, injector), h);
 global$1['lom_h'] = lomCreateElement;
 
 var _class$2;
@@ -7333,6 +7379,84 @@ function CounterView() {
   return lom_h("ul", null, lom_h("li", null, "FirstCounter: ", lom_h(FirstCounterView, null)), lom_h("li", null, "SecondCounter extends FirstCounter: ", lom_h(SecondCounterView, null)), lom_h("li", null, "ThirdCounter extends SecondCounter: ", lom_h(ThirdCounterView, null)));
 }
 CounterView._r = [1];
+
+var _class$3;
+var _descriptor$2;
+
+function _initDefineProp$2(target, property, descriptor, context) {
+  if (!descriptor) return;
+  Object.defineProperty(target, property, {
+    enumerable: descriptor.enumerable,
+    configurable: descriptor.configurable,
+    writable: descriptor.writable,
+    value: descriptor.initializer ? descriptor.initializer.call(context) : void 0
+  });
+}
+
+function _applyDecoratedDescriptor$5(target, property, decorators, descriptor, context) {
+  var desc = {};
+  Object['ke' + 'ys'](descriptor).forEach(function (key) {
+    desc[key] = descriptor[key];
+  });
+  desc.enumerable = !!desc.enumerable;
+  desc.configurable = !!desc.configurable;
+
+  if ('value' in desc || desc.initializer) {
+    desc.writable = true;
+  }
+
+  desc = decorators.slice().reverse().reduce(function (desc, decorator) {
+    return decorator(target, property, desc) || desc;
+  }, desc);
+
+  if (context && desc.initializer !== void 0) {
+    desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
+    desc.initializer = undefined;
+  }
+
+  if (desc.initializer === void 0) {
+    Object['define' + 'Property'](target, property, desc);
+    desc = null;
+  }
+
+  return desc;
+}
+
+var HelloContext = (_class$3 = function () {
+  function HelloContext() {
+    _initDefineProp$2(this, "name", _descriptor$2, this);
+  }
+
+  createClass$1(HelloContext, [{
+    key: "props",
+    set: function set$$1(_ref) {
+      var name = _ref.name;
+      this.name = name;
+    }
+  }, {
+    key: "greet",
+    get: function get$$1() {
+      return 'Hello, ' + this.name;
+    }
+  }]);
+  return HelloContext;
+}(), (_descriptor$2 = _applyDecoratedDescriptor$5(_class$3.prototype, "name", [mem], {
+  enumerable: true,
+  initializer: null
+}), _applyDecoratedDescriptor$5(_class$3.prototype, "props", [props], Object.getOwnPropertyDescriptor(_class$3.prototype, "props"), _class$3.prototype), _applyDecoratedDescriptor$5(_class$3.prototype, "greet", [mem], Object.getOwnPropertyDescriptor(_class$3.prototype, "greet"), _class$3.prototype)), _class$3);
+function HelloView(_, _ref2) {
+  var context = _ref2.context;
+  return lom_h("div", null, context.greet, lom_h("br", null), lom_h("input", {
+    value: context.name,
+    onInput: function onInput(_ref3) {
+      var target = _ref3.target;
+      context.name = target.value;
+    }
+  }));
+}
+HelloView._r = [1, [{
+  context: HelloContext
+}]];
 
 var globToRegexp = function globToRegexp(glob, opts) {
   if (typeof glob !== 'string') {
@@ -8850,118 +8974,6 @@ function mockFetch(storage) {
 }
 mockFetch._r = [2, [Storage]];
 
-var _class$3;
-var _descriptor$2;
-var _class3;
-var _descriptor2;
-
-function _initDefineProp$2(target, property, descriptor, context) {
-  if (!descriptor) return;
-  Object.defineProperty(target, property, {
-    enumerable: descriptor.enumerable,
-    configurable: descriptor.configurable,
-    writable: descriptor.writable,
-    value: descriptor.initializer ? descriptor.initializer.call(context) : void 0
-  });
-}
-
-function _applyDecoratedDescriptor$5(target, property, decorators, descriptor, context) {
-  var desc = {};
-  Object['ke' + 'ys'](descriptor).forEach(function (key) {
-    desc[key] = descriptor[key];
-  });
-  desc.enumerable = !!desc.enumerable;
-  desc.configurable = !!desc.configurable;
-
-  if ('value' in desc || desc.initializer) {
-    desc.writable = true;
-  }
-
-  desc = decorators.slice().reverse().reduce(function (desc, decorator) {
-    return decorator(target, property, desc) || desc;
-  }, desc);
-
-  if (context && desc.initializer !== void 0) {
-    desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
-    desc.initializer = undefined;
-  }
-
-  if (desc.initializer === void 0) {
-    Object['define' + 'Property'](target, property, desc);
-    desc = null;
-  }
-
-  return desc;
-}
-
-var Hello = (_class$3 = function Hello() {
-  _initDefineProp$2(this, "name", _descriptor$2, this);
-}, (_descriptor$2 = _applyDecoratedDescriptor$5(_class$3.prototype, "name", [mem], {
-  enumerable: true,
-  initializer: function initializer() {
-    return 'test';
-  }
-})), _class$3);
-var HelloOptions = (_class3 = function () {
-  function HelloOptions() {
-    _initDefineProp$2(this, "_props", _descriptor2, this);
-  }
-
-  createClass$1(HelloOptions, [{
-    key: "actionName",
-    get: function get$$1() {
-      return this._props.name + '-hello';
-    },
-    set: function set$$1(name) {}
-  }]);
-  return HelloOptions;
-}(), (_descriptor2 = _applyDecoratedDescriptor$5(_class3.prototype, "_props", [mem, props], {
-  enumerable: true,
-  initializer: null
-}), _applyDecoratedDescriptor$5(_class3.prototype, "actionName", [mem], Object.getOwnPropertyDescriptor(_class3.prototype, "actionName"), _class3.prototype), _applyDecoratedDescriptor$5(_class3.prototype, "actionName", [mem], Object.getOwnPropertyDescriptor(_class3.prototype, "actionName"), _class3.prototype)), _class3);
-
-var SomeService = function () {
-  function SomeService(opts) {
-    this._opts = void 0;
-    this._opts = opts;
-  }
-
-  var _proto = SomeService.prototype;
-
-  _proto.value = function value() {
-    return this._opts.actionName + '-srv';
-  };
-
-  return SomeService;
-}();
-
-SomeService._r = [0, [HelloOptions]];
-function HelloView(_, _ref) {
-  var locale = _ref.locale,
-      options = _ref.options,
-      service = _ref.service,
-      hello = _ref.hello;
-  return lom_h("div", null, lom_h("h3", null, options.actionName, ", ", hello.name), lom_h(ItemView, null, lom_h(ItemView.Key, null, "Lang:"), lom_h(ItemView.Value, null, locale.lang)), lom_h(ItemView, null, lom_h(ItemView.Key, null, "Srv:"), lom_h(ItemView.Value, null, service.value())), lom_h(ItemView, null, lom_h(ItemView.Key, null, "Name:"), lom_h(ItemView.Value, null, lom_h("input", {
-    value: hello.name,
-    onInput: function onInput(_ref2) {
-      var target = _ref2.target;
-      hello.name = target.value;
-    }
-  }))), lom_h(ItemView, null, lom_h(ItemView.Key, null, "Action:"), lom_h(ItemView.Value, null, lom_h("input", {
-    value: options.actionName,
-    onInput: function onInput(_ref3) {
-      var target = _ref3.target;
-      options.actionName = target.value;
-    }
-  }))));
-}
-HelloView._r = [1, [{
-  locale: Locale,
-  options: HelloOptions,
-  service: SomeService,
-  hello: Hello
-}]];
-
 function getBody(body) {
   return typeof body === 'string' ? JSON.parse(body) : body || {};
 }
@@ -9120,7 +9132,7 @@ todoMocks._r = [2, [Storage]];
 
 var _class2$3;
 var _descriptor$3;
-var _descriptor2$1;
+var _descriptor2;
 
 function _initDefineProp$3(target, property, descriptor, context) {
   if (!descriptor) return;
@@ -9226,7 +9238,7 @@ var TodoService = (_class2$3 = function () {
 
     this._fetcher = void 0;
 
-    _initDefineProp$3(this, "$", _descriptor2$1, this);
+    _initDefineProp$3(this, "$", _descriptor2, this);
 
     this._fetcher = fetcher;
   }
@@ -9384,7 +9396,7 @@ var TodoService = (_class2$3 = function () {
   initializer: function initializer() {
     return 0;
   }
-}), _descriptor2$1 = _applyDecoratedDescriptor$8(_class2$3.prototype, "$", [force], {
+}), _descriptor2 = _applyDecoratedDescriptor$8(_class2$3.prototype, "$", [force], {
   enumerable: true,
   initializer: null
 }), _applyDecoratedDescriptor$8(_class2$3.prototype, "todoExtInfo", [memkey], Object.getOwnPropertyDescriptor(_class2$3.prototype, "todoExtInfo"), _class2$3.prototype), _applyDecoratedDescriptor$8(_class2$3.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class2$3.prototype, "todos"), _class2$3.prototype), _applyDecoratedDescriptor$8(_class2$3.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class2$3.prototype, "todos"), _class2$3.prototype), _applyDecoratedDescriptor$8(_class2$3.prototype, "activeTodoCount", [mem], Object.getOwnPropertyDescriptor(_class2$3.prototype, "activeTodoCount"), _class2$3.prototype), _applyDecoratedDescriptor$8(_class2$3.prototype, "toggleAll", [action], Object.getOwnPropertyDescriptor(_class2$3.prototype, "toggleAll"), _class2$3.prototype)), _class2$3);
@@ -9472,7 +9484,7 @@ TodoFilterService._r = [0, [TodoService, AbstractLocationStore]];
 
 var _class$7;
 var _descriptor$4;
-var _class3$1;
+var _class3;
 
 function _initDefineProp$4(target, property, descriptor, context) {
   if (!descriptor) return;
@@ -9551,7 +9563,7 @@ var TodoToAdd = (_class$7 = function () {
     return '';
   }
 }), _applyDecoratedDescriptor$10(_class$7.prototype, "props", [props], Object.getOwnPropertyDescriptor(_class$7.prototype, "props"), _class$7.prototype), _applyDecoratedDescriptor$10(_class$7.prototype, "onInput", [action], Object.getOwnPropertyDescriptor(_class$7.prototype, "onInput"), _class$7.prototype)), _class$7);
-var TodoHeaderTheme = (_class3$1 = function () {
+var TodoHeaderTheme = (_class3 = function () {
   function TodoHeaderTheme() {}
 
   createClass$1(TodoHeaderTheme, [{
@@ -9576,7 +9588,7 @@ var TodoHeaderTheme = (_class3$1 = function () {
     }
   }]);
   return TodoHeaderTheme;
-}(), (_applyDecoratedDescriptor$10(_class3$1.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class3$1.prototype, "css"), _class3$1.prototype)), _class3$1);
+}(), (_applyDecoratedDescriptor$10(_class3.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class3.prototype, "css"), _class3.prototype)), _class3);
 function TodoHeaderView(_, _ref3) {
   var todoToAdd = _ref3.todoToAdd,
       css = _ref3.theme.css;
@@ -9596,9 +9608,9 @@ TodoHeaderView._r = [1, [{
 
 var _class$9;
 var _descriptor$5;
-var _descriptor2$2;
+var _descriptor2$1;
 var _descriptor3;
-var _class3$2;
+var _class3$1;
 
 function _initDefineProp$5(target, property, descriptor, context) {
   if (!descriptor) return;
@@ -9647,7 +9659,7 @@ var TodoItemStore = (_class$9 = function () {
 
     _initDefineProp$5(this, "todoBeingEditedId", _descriptor$5, this);
 
-    _initDefineProp$5(this, "editText", _descriptor2$2, this);
+    _initDefineProp$5(this, "editText", _descriptor2$1, this);
 
     _initDefineProp$5(this, "props", _descriptor3, this);
 
@@ -9718,7 +9730,7 @@ var TodoItemStore = (_class$9 = function () {
   initializer: function initializer() {
     return null;
   }
-}), _descriptor2$2 = _applyDecoratedDescriptor$12(_class$9.prototype, "editText", [mem], {
+}), _descriptor2$1 = _applyDecoratedDescriptor$12(_class$9.prototype, "editText", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return '';
@@ -9727,7 +9739,7 @@ var TodoItemStore = (_class$9 = function () {
   enumerable: true,
   initializer: null
 }), _applyDecoratedDescriptor$12(_class$9.prototype, "setText", [action], Object.getOwnPropertyDescriptor(_class$9.prototype, "setText"), _class$9.prototype)), _class$9);
-var TodoItemTheme = (_class3$2 = function () {
+var TodoItemTheme = (_class3$1 = function () {
   function TodoItemTheme() {}
 
   var _proto2 = TodoItemTheme.prototype;
@@ -9843,7 +9855,7 @@ var TodoItemTheme = (_class3$2 = function () {
     }
   }]);
   return TodoItemTheme;
-}(), (_applyDecoratedDescriptor$12(_class3$2.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class3$2.prototype, "css"), _class3$2.prototype)), _class3$2);
+}(), (_applyDecoratedDescriptor$12(_class3$1.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class3$1.prototype, "css"), _class3$1.prototype)), _class3$1);
 function TodoItemView(_ref2, _ref3) {
   var todo = _ref2.todo;
   var itemStore = _ref3.itemStore,
@@ -10273,7 +10285,7 @@ TodoApp._r = [1, [{
 
 var _class2$4;
 var _descriptor$6;
-var _descriptor2$3;
+var _descriptor2$2;
 var _descriptor3$1;
 
 function _initDefineProp$6(target, property, descriptor, context) {
@@ -10337,7 +10349,7 @@ var AutocompleteService = (_class2$4 = function () {
 
     _initDefineProp$6(this, "$", _descriptor$6, this);
 
-    _initDefineProp$6(this, "nameToSearch", _descriptor2$3, this);
+    _initDefineProp$6(this, "nameToSearch", _descriptor2$2, this);
 
     _initDefineProp$6(this, "_handler", _descriptor3$1, this);
 
@@ -10375,7 +10387,7 @@ var AutocompleteService = (_class2$4 = function () {
 }(), (_descriptor$6 = _applyDecoratedDescriptor$14(_class2$4.prototype, "$", [force], {
   enumerable: true,
   initializer: null
-}), _descriptor2$3 = _applyDecoratedDescriptor$14(_class2$4.prototype, "nameToSearch", [mem], {
+}), _descriptor2$2 = _applyDecoratedDescriptor$14(_class2$4.prototype, "nameToSearch", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return '';
@@ -10428,7 +10440,7 @@ autocompleteMocks._r = [2, [Storage]];
 var _class$11;
 var _descriptor$7;
 var _dec$1;
-var _class3$3;
+var _class3$2;
 
 function _initDefineProp$7(target, property, descriptor, context) {
   if (!descriptor) return;
@@ -10477,7 +10489,7 @@ var Store$1 = (_class$11 = function Store() {
     return 140;
   }
 })), _class$11);
-var CssChangeTheme = (_dec$1 = theme.self, (_class3$3 = function () {
+var CssChangeTheme = (_dec$1 = theme.self, (_class3$2 = function () {
   function CssChangeTheme(store) {
     this._store = void 0;
     this._store = store;
@@ -10495,7 +10507,7 @@ var CssChangeTheme = (_dec$1 = theme.self, (_class3$3 = function () {
     }
   }]);
   return CssChangeTheme;
-}(), (_applyDecoratedDescriptor$15(_class3$3.prototype, "css", [mem, _dec$1], Object.getOwnPropertyDescriptor(_class3$3.prototype, "css"), _class3$3.prototype)), _class3$3));
+}(), (_applyDecoratedDescriptor$15(_class3$2.prototype, "css", [mem, _dec$1], Object.getOwnPropertyDescriptor(_class3$2.prototype, "css"), _class3$2.prototype)), _class3$2));
 CssChangeTheme._r = [0, [Store$1]];
 function CssChangeView(_, _ref) {
   var store = _ref.store,
@@ -10663,9 +10675,11 @@ function AppView(_ref, _ref2) {
 AppView._r = [1, [{
   store: Store
 }]];
+var el = document.getElementById('app');
+if (!el) throw new Error('Document has no #app container');
 render(lom_h(AppView, {
   lang: "ru"
-}), document.getElementById('app'));
+}), el);
 
 }());
 //# sourceMappingURL=app.js.map

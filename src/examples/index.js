@@ -100,5 +100,7 @@ function AppView(
 
     </div>
 }
+const el = document.getElementById('app')
+if (!el) throw new Error('Document has no #app container')
 
-render(<AppView lang="ru" />, document.getElementById('app'))
+render(<AppView lang="ru" />, el)

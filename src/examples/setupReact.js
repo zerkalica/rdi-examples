@@ -1,5 +1,5 @@
 // @flow
-import {mem, ConsoleLogger, defaultContext} from 'lom_atom'
+import {mem, detached, ConsoleLogger, defaultContext} from 'lom_atom'
 import {createReactWrapper, createCreateElement, Injector} from 'reactive-di'
 
 import {h, Component} from 'preact'
@@ -12,8 +12,7 @@ import jssNested from 'jss-nested'
 import {BrowserLocationStore, AbstractLocationStore} from './common-todomvc'
 import Fetcher from '../Fetcher'
 
-const logger = new ConsoleLogger()
-defaultContext.setLogger(logger)
+defaultContext.setLogger(new ConsoleLogger())
 
 function ErrorableView({
     error
@@ -57,8 +56,9 @@ const lomCreateElement = createCreateElement(
     createReactWrapper(
         Component,
         ErrorableView,
+        detached,
         injector
     ),
-    h
+    (h: React$CreateElement)
 )
 global['lom_h'] = lomCreateElement
