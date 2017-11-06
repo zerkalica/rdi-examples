@@ -1,6 +1,6 @@
 {
   "name": "rdi-examples",
-  "version": "1.0.22",
+  "version": "1.0.23",
   "description": "Reactive di examples",
   "publishConfig": {
     "registry": "https://registry.npmjs.org"
