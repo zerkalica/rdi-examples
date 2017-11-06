@@ -1,85 +1,81 @@
+(function(l, i, v, e) { v = l.createElement(i); v.async = 1; v.src = '//' + (location.host || 'localhost').split(':')[0] + ':35729/livereload.js?snipver=1'; e = l.getElementsByTagName(i)[0]; e.parentNode.insertBefore(v, e)})(document, 'script');
 (function () {
 'use strict';
 
-var global$1 = typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {};
-
-var _typeof$1 = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
-  return typeof obj;
-} : function (obj) {
-  return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
-};
-
-
-
-
-
-
-
-
-
-
-
-
-
-var createClass$1 = function () {
-  function defineProperties(target, props) {
-    for (var i = 0; i < props.length; i++) {
-      var descriptor = props[i];
-      descriptor.enumerable = descriptor.enumerable || false;
-      descriptor.configurable = true;
-      if ("value" in descriptor) descriptor.writable = true;
-      Object.defineProperty(target, descriptor.key, descriptor);
-    }
+function _defineProperties(target, props) {
+  for (var i = 0; i < props.length; i++) {
+    var descriptor = props[i];
+    descriptor.enumerable = descriptor.enumerable || false;
+    descriptor.configurable = true;
+    if ("value" in descriptor) descriptor.writable = true;
+    Object.defineProperty(target, descriptor.key, descriptor);
   }
+}
 
-  return function (Constructor, protoProps, staticProps) {
-    if (protoProps) defineProperties(Constructor.prototype, protoProps);
-    if (staticProps) defineProperties(Constructor, staticProps);
-    return Constructor;
-  };
-}();
+function _createClass(Constructor, protoProps, staticProps) {
+  if (protoProps) _defineProperties(Constructor.prototype, protoProps);
+  if (staticProps) _defineProperties(Constructor, staticProps);
+  return Constructor;
+}
 
+function _extends() {
+  _extends = Object.assign || function (target) {
+    for (var i = 1; i < arguments.length; i++) {
+      var source = arguments[i];
 
-
-
-
-
-
-var _extends = Object.assign || function (target) {
-  for (var i = 1; i < arguments.length; i++) {
-    var source = arguments[i];
-
-    for (var key in source) {
-      if (Object.prototype.hasOwnProperty.call(source, key)) {
-        target[key] = source[key];
+      for (var key in source) {
+        if (Object.prototype.hasOwnProperty.call(source, key)) {
+          target[key] = source[key];
+        }
       }
     }
-  }
 
-  return target;
-};
+    return target;
+  };
 
+  return _extends.apply(this, arguments);
+}
 
-
-
-
-var inheritsLoose$1 = function (subClass, superClass) {
+function _inheritsLoose(subClass, superClass) {
   subClass.prototype = Object.create(superClass.prototype);
   subClass.prototype.constructor = subClass;
   subClass.__proto__ = superClass;
-};
+}
 
-
-
-
-
-
-
-var objectDestructuringEmpty = function (obj) {
+function _objectDestructuringEmpty(obj) {
   if (obj == null) throw new TypeError("Cannot destructure undefined");
-};
+}
 
-// eslint-disable-line
+var global$1 = typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {};
+
+function _defineProperties$1(target, props) {
+  for (var i = 0; i < props.length; i++) {
+    var descriptor = props[i];
+    descriptor.enumerable = descriptor.enumerable || false;
+    descriptor.configurable = true;
+    if ("value" in descriptor) descriptor.writable = true;
+    Object.defineProperty(target, descriptor.key, descriptor);
+  }
+}
+
+_defineProperties$1._r = [2];
+
+function _createClass$1(Constructor, protoProps, staticProps) {
+  if (protoProps) _defineProperties$1(Constructor.prototype, protoProps);
+  if (staticProps) _defineProperties$1(Constructor, staticProps);
+  return Constructor;
+}
+
+_createClass$1._r = [2];
+
+function _inheritsLoose$1(subClass, superClass) {
+  subClass.prototype = Object.create(superClass.prototype);
+  subClass.prototype.constructor = subClass;
+  subClass.__proto__ = superClass;
+} // eslint-disable-line
+
+
+_inheritsLoose$1._r = [2];
 var ATOM_FORCE_NONE = 0;
 var ATOM_FORCE_CACHE = 1;
 var ATOM_FORCE_UPDATE = 2;
@@ -89,40 +85,8 @@ var ATOM_STATUS_CHECKING = 2;
 var ATOM_STATUS_PULLING = 3;
 var ATOM_STATUS_ACTUAL = 4;
 var catchedId = Symbol('lom_atom_catched');
-
-var _typeof = typeof Symbol === "function" && _typeof$1(Symbol.iterator) === "symbol" ? function (obj) {
-  return _typeof$1(obj);
-} : function (obj) {
-  return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : _typeof$1(obj);
-};
-
-var createClass = function () {
-  function defineProperties(target, props) {
-    for (var i = 0; i < props.length; i++) {
-      var descriptor = props[i];
-      descriptor.enumerable = descriptor.enumerable || false;
-      descriptor.configurable = true;
-      if ("value" in descriptor) descriptor.writable = true;
-      Object.defineProperty(target, descriptor.key, descriptor);
-    }
-  }
-
-  return function (Constructor, protoProps, staticProps) {
-    if (protoProps) defineProperties(Constructor.prototype, protoProps);
-    if (staticProps) defineProperties(Constructor, staticProps);
-    return Constructor;
-  };
-}();
-
-var inheritsLoose = function inheritsLoose(subClass, superClass) {
-  subClass.prototype = Object.create(superClass.prototype);
-  subClass.prototype.constructor = subClass;
-  subClass.__proto__ = superClass;
-};
-
-inheritsLoose._r = [2];
 var throwOnAccess = {
-  get: function get$$1(target) {
+  get: function get(target) {
     throw target.valueOf();
   },
   ownKeys: function ownKeys(target) {
@@ -136,13 +100,18 @@ function createMock(error) {
 
 createMock._r = [2];
 
-var AtomWait = function (_Error) {
-  inheritsLoose(AtomWait, _Error);
+var AtomWait =
+/*#__PURE__*/
+function (_Error) {
+  _inheritsLoose$1(AtomWait, _Error);
 
-  function AtomWait() {
+  function AtomWait(message) {
     var _this;
 
-    var message = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 'Wait...';
+    if (message === void 0) {
+      message = 'Wait...';
+    }
+
     _this = _Error.call(this, message) || this // $FlowFixMe new.target
     ;
     _this['__proto__'] = new.target.prototype;
@@ -184,10 +153,13 @@ var handlers = new Map([[Array, function arrayHandler(target, source, stack) {
 }]]);
 var done = Symbol('lom_conform_done');
 
-function conform(target, source, isComponent) {
-  var stack = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : [];
+function conform(target, source, isComponent, stack) {
+  if (stack === void 0) {
+    stack = [];
+  }
+
   if (target === source) return source;
-  if (isComponent || !target || _typeof(target) !== 'object' || !source || _typeof(source) !== 'object' || target instanceof Error || source instanceof Error || target.constructor !== source.constructor || target[done] !== undefined) return target;
+  if (isComponent || !target || typeof target !== 'object' || !source || typeof source !== 'object' || target instanceof Error || source instanceof Error || target.constructor !== source.constructor || target[done] !== undefined) return target;
   target[done] = true;
   var conformHandler = handlers.get(target.constructor);
   if (!conformHandler) return target;
@@ -229,10 +201,23 @@ function actualizeMaster(master) {
 
 actualizeMaster._r = [2];
 
-var Atom = function () {
+var Atom =
+/*#__PURE__*/
+function () {
   function Atom(field, owner, context, hostAtoms, key, keyHash, isComponent) {
+    this.status = void 0;
+    this.field = void 0;
+    this.owner = void 0;
+    this.current = void 0;
+    this._next = void 0;
+    this._suggested = void 0;
+    this.key = void 0;
+    this.isComponent = void 0;
     this._masters = null;
     this._slaves = null;
+    this._context = void 0;
+    this._hostAtoms = void 0;
+    this._keyHash = void 0;
     this._keyHash = keyHash;
     this.key = key;
     this.field = field;
@@ -246,17 +231,19 @@ var Atom = function () {
     this.status = this.current === undefined ? ATOM_STATUS_OBSOLETE : ATOM_STATUS_ACTUAL;
   }
 
-  Atom.prototype.toString = function toString() {
+  var _proto = Atom.prototype;
+
+  _proto.toString = function toString() {
     var hc = this.owner.constructor;
     var k = this.key;
     return this.field + (k ? '(' + (typeof k === 'function' ? k.displayName || k.name : String(k)) + ')' : '');
   };
 
-  Atom.prototype.toJSON = function toJSON() {
+  _proto.toJSON = function toJSON() {
     return this.current;
   };
 
-  Atom.prototype.destructor = function destructor() {
+  _proto.destructor = function destructor() {
     if (this.status === ATOM_STATUS_DESTROYED) return;
 
     if (this._masters) {
@@ -280,7 +267,7 @@ var Atom = function () {
     this._keyHash = undefined;
   };
 
-  Atom.prototype._get = function _get(force) {
+  _proto._get = function _get$$1(force) {
     var slave = this._context.last;
 
     if (slave && (!slave.isComponent || !this.isComponent)) {
@@ -305,7 +292,7 @@ var Atom = function () {
     return this.current;
   };
 
-  Atom.prototype.value = function value(next, force) {
+  _proto.value = function value(next, force) {
     if (next === undefined) return this._get(force);
     if (force === ATOM_FORCE_CACHE) return this._push(next);
     var normalized = conform(next, this._suggested, this.isComponent);
@@ -320,7 +307,7 @@ var Atom = function () {
     return this._push(this._pull(ATOM_FORCE_UPDATE));
   };
 
-  Atom.prototype.actualize = function actualize() {
+  _proto.actualize = function actualize() {
     if (this.status === ATOM_STATUS_PULLING) {
       throw new Error("Cyclic atom dependency of " + String(this));
     }
@@ -342,7 +329,7 @@ var Atom = function () {
     }
   };
 
-  Atom.prototype._push = function _push(nextRaw) {
+  _proto._push = function _push(nextRaw) {
     this.status = ATOM_STATUS_ACTUAL;
 
     if (!(nextRaw instanceof AtomWait)) {
@@ -367,12 +354,12 @@ var Atom = function () {
     return next;
   };
 
-  Atom.prototype._pull = function _pull(force) {
+  _proto._pull = function _pull(force) {
     if (this._masters) {
       this._masters.forEach(disleadThis, this);
     }
 
-    var newValue = void 0;
+    var newValue;
     this.status = ATOM_STATUS_PULLING;
     var context = this._context;
     var slave = context.last;
@@ -393,7 +380,7 @@ var Atom = function () {
     return newValue;
   };
 
-  Atom.prototype.dislead = function dislead(slave) {
+  _proto.dislead = function dislead(slave) {
     var slaves = this._slaves;
 
     if (slaves) {
@@ -407,7 +394,7 @@ var Atom = function () {
     }
   };
 
-  Atom.prototype._checkSlaves = function _checkSlaves() {
+  _proto._checkSlaves = function _checkSlaves() {
     if (this._slaves) {
       this._slaves.forEach(checkSlave);
     } else {
@@ -415,7 +402,7 @@ var Atom = function () {
     }
   };
 
-  Atom.prototype.check = function check() {
+  _proto.check = function check() {
     if (this.status === ATOM_STATUS_ACTUAL) {
       this.status = ATOM_STATUS_CHECKING;
 
@@ -423,7 +410,7 @@ var Atom = function () {
     }
   };
 
-  Atom.prototype.obsolete = function obsolete() {
+  _proto.obsolete = function obsolete() {
     if (this.status !== ATOM_STATUS_OBSOLETE) {
       this.status = ATOM_STATUS_OBSOLETE;
 
@@ -431,7 +418,7 @@ var Atom = function () {
     }
   };
 
-  Atom.prototype.addMaster = function addMaster(master) {
+  _proto.addMaster = function addMaster(master) {
     if (!this._masters) {
       this._masters = new Set();
     }
@@ -439,12 +426,13 @@ var Atom = function () {
     this._masters.add(master);
   };
 
-  createClass(Atom, [{
+  _createClass$1(Atom, [{
     key: "displayName",
-    get: function get$$1() {
+    get: function get() {
       return this.toString();
     }
   }]);
+
   return Atom;
 }();
 
@@ -464,53 +452,63 @@ function reap(atom, key, reaping) {
 
 reap._r = [2];
 
-var BaseLogger = function () {
+var BaseLogger =
+/*#__PURE__*/
+function () {
   function BaseLogger() {}
 
-  BaseLogger.prototype.create = function create(owner, field, key, namespace) {};
+  var _proto = BaseLogger.prototype;
 
-  BaseLogger.prototype.onDestruct = function onDestruct(atom, namespace) {};
+  _proto.create = function create(owner, field, key, namespace) {};
 
-  BaseLogger.prototype.sync = function sync() {};
+  _proto.onDestruct = function onDestruct(atom, namespace) {};
 
-  BaseLogger.prototype.status = function status(_status, atom, namespace) {};
+  _proto.sync = function sync() {};
 
-  BaseLogger.prototype.error = function error(atom, err, namespace) {};
+  _proto.status = function status(_status, atom, namespace) {};
 
-  BaseLogger.prototype.newValue = function newValue(atom, from, to, isActualize, namespace) {};
+  _proto.error = function error(atom, err, namespace) {};
+
+  _proto.newValue = function newValue(atom, from, to, isActualize, namespace) {};
 
   return BaseLogger;
 }();
 
-var ConsoleLogger = function (_BaseLogger) {
-  inheritsLoose(ConsoleLogger, _BaseLogger);
+var ConsoleLogger =
+/*#__PURE__*/
+function (_BaseLogger) {
+  _inheritsLoose$1(ConsoleLogger, _BaseLogger);
 
   function ConsoleLogger() {
     return _BaseLogger.apply(this, arguments) || this;
   }
 
-  ConsoleLogger.prototype.sync = function sync() {
+  var _proto2 = ConsoleLogger.prototype;
+
+  _proto2.sync = function sync() {
     console.log('sync');
   };
 
-  ConsoleLogger.prototype.status = function status(_status2, atom, namespace) {
+  _proto2.status = function status(_status2, atom, namespace) {
     console.log(namespace, _status2, atom.displayName);
   };
 
-  ConsoleLogger.prototype.error = function error(atom, err, namespace) {
+  _proto2.error = function error(atom, err, namespace) {
     console.log(namespace, 'error', atom.displayName, err);
   };
 
-  ConsoleLogger.prototype.newValue = function newValue(atom, from, to, isActualize, namespace) {
+  _proto2.newValue = function newValue(atom, from, to, isActualize, namespace) {
     console.log(namespace, isActualize ? 'actualize' : 'cacheSet', atom.displayName, 'from', from, 'to', to);
   };
 
   return ConsoleLogger;
 }(BaseLogger);
 
-var Context = function () {
+var Context =
+/*#__PURE__*/
+function () {
   function Context() {
-    var _this2 = this;
+    var _this = this;
 
     this.last = null;
     this._logger = undefined;
@@ -521,10 +519,10 @@ var Context = function () {
     this._owners = new WeakMap();
 
     this.__run = function () {
-      if (_this2._scheduled) {
-        _this2._scheduled = false;
+      if (_this._scheduled) {
+        _this._scheduled = false;
 
-        _this2._run();
+        _this._run();
       }
     };
 
@@ -532,7 +530,9 @@ var Context = function () {
     this._pendCount = 0;
   }
 
-  Context.prototype.create = function create(atom) {
+  var _proto3 = Context.prototype;
+
+  _proto3.create = function create(atom) {
     this._owners.set(atom, atom.owner);
 
     if (this._logger !== undefined) {
@@ -540,8 +540,8 @@ var Context = function () {
     }
   };
 
-  Context.prototype._destroyValue = function _destroyValue(atom, from) {
-    if (from && !(from instanceof Error) && _typeof(from) === 'object' && typeof from.destructor === 'function' && this._owners.get(from) === atom) {
+  _proto3._destroyValue = function _destroyValue(atom, from) {
+    if (typeof from === 'object' && this._owners.get(from) === atom) {
       try {
         from.destructor();
       } catch (e) {
@@ -553,7 +553,7 @@ var Context = function () {
     }
   };
 
-  Context.prototype.destroyHost = function destroyHost(atom) {
+  _proto3.destroyHost = function destroyHost(atom) {
     this._destroyValue(atom, atom.current);
 
     if (this._logger !== undefined) {
@@ -561,14 +561,14 @@ var Context = function () {
     }
   };
 
-  Context.prototype.setLogger = function setLogger(logger) {
+  _proto3.setLogger = function setLogger(logger) {
     this._logger = logger;
   };
 
-  Context.prototype.newValue = function newValue(atom, from, to, isActualize) {
+  _proto3.newValue = function newValue(atom, from, to, isActualize) {
     this._destroyValue(atom, from);
 
-    if (to && !(to instanceof Error) && _typeof(to) === 'object' && typeof to.destructor === 'function') {
+    if (to && typeof to === 'object' && !(to instanceof Error) && typeof to.destructor === 'function') {
       this._owners.set(to, atom);
     }
 
@@ -583,7 +583,7 @@ var Context = function () {
     }
   };
 
-  Context.prototype.proposeToPull = function proposeToPull(atom) {
+  _proto3.proposeToPull = function proposeToPull(atom) {
     if (this._logger !== undefined) {
       this._logger.status('proposeToPull', atom, this._namespace);
     }
@@ -593,7 +593,7 @@ var Context = function () {
     this._schedule();
   };
 
-  Context.prototype.proposeToReap = function proposeToReap(atom) {
+  _proto3.proposeToReap = function proposeToReap(atom) {
     if (this._logger !== undefined) {
       this._logger.status('proposeToReap', atom, this._namespace);
     }
@@ -603,18 +603,18 @@ var Context = function () {
     this._schedule();
   };
 
-  Context.prototype.unreap = function unreap(atom) {
+  _proto3.unreap = function unreap(atom) {
     this._reaping.delete(atom);
   };
 
-  Context.prototype._schedule = function _schedule() {
+  _proto3._schedule = function _schedule() {
     if (!this._scheduled) {
       scheduleNative(this.__run);
       this._scheduled = true;
     }
   };
 
-  Context.prototype._run = function _run() {
+  _proto3._run = function _run() {
     this._schedule();
 
     var reaping = this._reaping;
@@ -652,14 +652,14 @@ var Context = function () {
     this._pendCount = 0;
   };
 
-  Context.prototype.beginTransaction = function beginTransaction(namespace) {
+  _proto3.beginTransaction = function beginTransaction(namespace) {
     var result = this._namespace;
     this._namespace = namespace;
     this._pendCount++;
     return result;
   };
 
-  Context.prototype.endTransaction = function endTransaction(prev) {
+  _proto3.endTransaction = function endTransaction(prev) {
     this._namespace = prev;
 
     if (this._pendCount === 1) {
@@ -690,7 +690,7 @@ function memMethod(proto, rname, descr, isComponent) {
   proto[name + "$"] = descr.value;
   var hostAtoms = new WeakMap();
   Object.defineProperty(proto, rname + "()", {
-    get: function get$$1() {
+    get: function get() {
       return hostAtoms.get(this);
     }
   });
@@ -720,13 +720,13 @@ function memMethod(proto, rname, descr, isComponent) {
 
 memMethod._r = [2];
 
-function createGetSetHandler(get$$1, set$$1) {
+function createGetSetHandler(get, set) {
   return function getSetHandler(next) {
     if (next === undefined) {
-      return get$$1.call(this);
+      return get.call(this);
     }
 
-    set$$1.call(this, next);
+    set.call(this, next);
     return next;
   };
 }
@@ -767,14 +767,14 @@ function memProp(proto, rname, descr) {
   setFunctionName(handler, name + "()");
   var hostAtoms = new WeakMap();
   Object.defineProperty(proto, name + "()", {
-    get: function get$$1() {
+    get: function get() {
       return hostAtoms.get(this);
     }
   });
   return {
     enumerable: descr.enumerable,
     configurable: descr.configurable,
-    get: function get$$1() {
+    get: function get() {
       var atom = hostAtoms.get(this);
 
       if (atom === undefined) {
@@ -786,7 +786,7 @@ function memProp(proto, rname, descr) {
       propForced = ATOM_FORCE_NONE;
       return atom.value(undefined, forced);
     },
-    set: function set$$1(val) {
+    set: function set(val) {
       var atom = hostAtoms.get(this);
 
       if (atom === undefined) {
@@ -810,7 +810,7 @@ function getKeyFromObj(params) {
   for (var i = 0; i < keys.length; i++) {
     var key = keys[i];
     var value = params[key];
-    result += "." + key + ":" + (_typeof(value) === 'object' ? JSON.stringify(value) : value);
+    result += "." + key + ":" + (typeof value === 'object' ? JSON.stringify(value) : value);
   }
 
   return result;
@@ -821,7 +821,7 @@ getKeyFromObj._r = [2];
 function getKey(params) {
   if (!params) return '';
   if (params instanceof Array) return JSON.stringify(params);
-  if (_typeof(params) === 'object') return getKeyFromObj(params);
+  if (typeof params === 'object') return getKeyFromObj(params);
   return '' + params;
 }
 
@@ -838,7 +838,7 @@ function memKeyMethod(proto, rname, descr) {
   proto[name + "$"] = handler;
   var hostAtoms = new WeakMap();
   Object.defineProperty(proto, rname + "()", {
-    get: function get$$1() {
+    get: function get() {
       return hostAtoms.get(this);
     }
   });
@@ -877,8 +877,10 @@ function memKeyMethod(proto, rname, descr) {
 memKeyMethod._r = [2];
 
 function memkey() {
-  if (arguments.length === 3) {
-    return memKeyMethod(arguments[0], arguments[1], arguments[2]);
+  var args = arguments;
+
+  if (args.length === 3) {
+    return memKeyMethod(args[0], args[1], args[2]);
   }
 
   return function (proto, name, descr) {
@@ -888,7 +890,7 @@ function memkey() {
 
 memkey._r = [2];
 var forceProxyOpts = {
-  get: function get$$1(t, name) {
+  get: function get(t, name) {
     var forceFn = t[name + "*"];
 
     if (forceFn === undefined) {
@@ -899,7 +901,7 @@ var forceProxyOpts = {
 
     return forceFn.bind(t);
   },
-  set: function set$$1(t, name, val) {
+  set: function set(t, name, val) {
     if (t[name + "*"] === undefined) {
       // get/set handler
       propForced = ATOM_FORCE_CACHE;
@@ -916,7 +918,7 @@ function force(proto, name, descr) {
   return {
     enumerable: descr.enumerable,
     configurable: descr.configurable,
-    get: function get$$1() {
+    get: function get() {
       var proxy = proxyMap.get(this);
 
       if (proxy === undefined) {
@@ -941,37 +943,38 @@ function createActionMethod(t, hk, context) {
   var name = getId(t, hk);
 
   function action() {
-    var result = void 0;
+    var result;
     var oldNamespace = context.beginTransaction(name);
+    var args = arguments;
 
     try {
-      switch (arguments.length) {
+      switch (args.length) {
         case 0:
           result = t[hk]();
           break;
 
         case 1:
-          result = t[hk](arguments[0]);
+          result = t[hk](args[0]);
           break;
 
         case 2:
-          result = t[hk](arguments[0], arguments[1]);
+          result = t[hk](args[0], args[1]);
           break;
 
         case 3:
-          result = t[hk](arguments[0], arguments[1], arguments[2]);
+          result = t[hk](args[0], args[1], args[2]);
           break;
 
         case 4:
-          result = t[hk](arguments[0], arguments[1], arguments[2], arguments[3]);
+          result = t[hk](args[0], args[1], args[2], args[3]);
           break;
 
         case 5:
-          result = t[hk](arguments[0], arguments[1], arguments[2], arguments[3], arguments[4]);
+          result = t[hk](args[0], args[1], args[2], args[3], args[4]);
           break;
 
         default:
-          result = t[hk].apply(t, arguments);
+          result = t[hk].apply(t, args);
       }
     } finally {
       context.endTransaction(oldNamespace);
@@ -990,37 +993,38 @@ function createActionFn(fn, rawName, context) {
   var name = rawName || fn.displayName || fn.name;
 
   function action() {
-    var result = void 0;
+    var result;
     var oldNamespace = context.beginTransaction(name);
+    var args = arguments;
 
     try {
-      switch (arguments.length) {
+      switch (args.length) {
         case 0:
           result = fn();
           break;
 
         case 1:
-          result = fn(arguments[0]);
+          result = fn(args[0]);
           break;
 
         case 2:
-          result = fn(arguments[0], arguments[1]);
+          result = fn(args[0], args[1]);
           break;
 
         case 3:
-          result = fn(arguments[0], arguments[1], arguments[2]);
+          result = fn(args[0], args[1], args[2]);
           break;
 
         case 4:
-          result = fn(arguments[0], arguments[1], arguments[2], arguments[3]);
+          result = fn(args[0], args[1], args[2], args[3]);
           break;
 
         case 5:
-          result = fn(arguments[0], arguments[1], arguments[2], arguments[3], arguments[4]);
+          result = fn(args[0], args[1], args[2], args[3], args[4]);
           break;
 
         default:
-          result = fn.apply(null, arguments);
+          result = fn.apply(null, args);
       }
     } finally {
       context.endTransaction(oldNamespace);
@@ -1047,7 +1051,7 @@ function actionMethod(proto, field, descr, context) {
   return {
     enumerable: descr.enumerable,
     configurable: descr.configurable,
-    get: function get$$1() {
+    get: function get() {
       if (definingProperty) {
         return this[hk];
       }
@@ -1067,18 +1071,22 @@ function actionMethod(proto, field, descr, context) {
 actionMethod._r = [2];
 
 function action() {
-  if (arguments.length === 3) {
-    return actionMethod(arguments[0], arguments[1], arguments[2], defaultContext);
+  var args = arguments;
+
+  if (args.length === 3) {
+    return actionMethod(args[0], args[1], args[2], defaultContext);
   }
 
-  return createActionFn(arguments[0], arguments[1], defaultContext);
+  return createActionFn(args[0], args[1], defaultContext);
 }
 
 action._r = [2];
 
 function mem() {
-  if (arguments.length === 3) {
-    return arguments[2].value === undefined ? memProp(arguments[0], arguments[1], arguments[2]) : memMethod(arguments[0], arguments[1], arguments[2]);
+  var args = arguments;
+
+  if (args.length === 3) {
+    return args[2].value === undefined ? memProp(args[0], args[1], args[2]) : memMethod(args[0], args[1], args[2]);
   }
 
   return function (proto, name, descr) {
@@ -1091,13 +1099,45 @@ mem.Wait = AtomWait;
 mem.key = memkey;
 mem.detached = detached;
 
+function _defineProperties$2(target, props) {
+  for (var i = 0; i < props.length; i++) {
+    var descriptor = props[i];
+    descriptor.enumerable = descriptor.enumerable || false;
+    descriptor.configurable = true;
+    if ("value" in descriptor) descriptor.writable = true;
+    Object.defineProperty(target, descriptor.key, descriptor);
+  }
+}
+
+_defineProperties$2._r = [2];
+
+function _createClass$2(Constructor, protoProps, staticProps) {
+  if (protoProps) _defineProperties$2(Constructor.prototype, protoProps);
+  if (staticProps) _defineProperties$2(Constructor, staticProps);
+  return Constructor;
+}
+
+_createClass$2._r = [2];
+
+function _inheritsLoose$2(subClass, superClass) {
+  subClass.prototype = Object.create(superClass.prototype);
+  subClass.prototype.constructor = subClass;
+  subClass.__proto__ = superClass;
+}
+
+_inheritsLoose$2._r = [2];
 var ATOM_FORCE_NONE$1 = 0;
 var ATOM_FORCE_CACHE$1 = 1;
 var renderedKey = Symbol('lom_rendered');
 var diKey = Symbol('rdi_di');
 
-var DisposableSheet = function () {
+var DisposableSheet =
+/*#__PURE__*/
+function () {
   function DisposableSheet(key, sheet, remover) {
+    this.__lom_remover = void 0;
+    this.__lom_sheet = void 0;
+    this.__lom_key = void 0;
     this.__lom_key = key;
     this.__lom_sheet = sheet;
     this.__lom_remover = remover;
@@ -1109,20 +1149,27 @@ var DisposableSheet = function () {
     Object.assign(this, sheet.classes);
   }
 
-  DisposableSheet.prototype.destructor = function destructor() {
+  var _proto = DisposableSheet.prototype;
+
+  _proto.destructor = function destructor() {
     this.__lom_remover.remove(this);
   };
 
   return DisposableSheet;
 }();
 
-var SheetManager = function () {
+var SheetManager =
+/*#__PURE__*/
+function () {
   function SheetManager(sheetProcessor) {
+    this._sheetProcessor = void 0;
     this._cache = new Map();
     this._sheetProcessor = sheetProcessor;
   }
 
-  SheetManager.prototype.sheet = function sheet(key, css, memoized) {
+  var _proto2 = SheetManager.prototype;
+
+  _proto2.sheet = function sheet(key, css, memoized) {
     var result = memoized ? null : this._cache.get(key);
 
     if (!result) {
@@ -1140,7 +1187,7 @@ var SheetManager = function () {
     return result;
   };
 
-  SheetManager.prototype.remove = function remove(sheet) {
+  _proto2.remove = function remove(sheet) {
     this._cache.delete(sheet.__lom_key);
 
     this._sheetProcessor.removeStyleSheet(sheet.__lom_sheet);
@@ -1171,7 +1218,7 @@ function themeProp(proto, name, descr, isInstance) {
   return {
     enumerable: descr.enumerable,
     configurable: descr.configurable,
-    get: function get$$1() {
+    get: function get() {
       this;
       var sm = theme.sheetManager;
       return sm === undefined ? fakeSheet : sm.sheet(isInstance ? themeId + "[" + this[diKey].instance + "]" : themeId, value || this[themeId](), !!this[atomId]);
@@ -1195,49 +1242,28 @@ theme._r = [2];
 theme.self = themeSelf;
 theme.sheetManager = undefined;
 
-var _typeof$2 = typeof Symbol === "function" && _typeof$1(Symbol.iterator) === "symbol" ? function (obj) {
-  return _typeof$1(obj);
-} : function (obj) {
-  return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : _typeof$1(obj);
-};
+var _class2$1;
 
-var createClass$2 = function () {
-  function defineProperties(target, props) {
-    for (var i = 0; i < props.length; i++) {
-      var descriptor = props[i];
-      descriptor.enumerable = descriptor.enumerable || false;
-      descriptor.configurable = true;
-      if ("value" in descriptor) descriptor.writable = true;
-      Object.defineProperty(target, descriptor.key, descriptor);
-    }
-  }
+var _temp$1;
 
-  return function (Constructor, protoProps, staticProps) {
-    if (protoProps) defineProperties(Constructor.prototype, protoProps);
-    if (staticProps) defineProperties(Constructor, staticProps);
-    return Constructor;
-  };
-}();
-
-var inheritsLoose$2 = function inheritsLoose(subClass, superClass) {
-  subClass.prototype = Object.create(superClass.prototype);
-  subClass.prototype.constructor = subClass;
-  subClass.__proto__ = superClass;
-};
-
-inheritsLoose$2._r = [2];
 var depId = 0;
 var rdiId = Symbol('rdi_id');
 
 var Alias = function Alias(dest) {
+  this.dest = void 0;
   dest[rdiId] = '' + ++depId;
   this.dest = dest;
 };
 
 Alias._r = [2];
-
-var Injector = function () {
+var Injector = (_temp$1 = _class2$1 =
+/*#__PURE__*/
+function () {
   function Injector(items, sheetProcessor, state, displayName, instance, cache) {
+    this.displayName = void 0;
+    this.instance = void 0;
+    this._cache = void 0;
+    this._state = void 0;
     this._resolved = false;
     this._listeners = undefined;
     this._state = state;
@@ -1280,15 +1306,17 @@ var Injector = function () {
     }
   }
 
-  Injector.prototype.toString = function toString() {
+  var _proto = Injector.prototype;
+
+  _proto.toString = function toString() {
     return this.displayName;
   };
 
-  Injector.prototype.toJSON = function toJSON() {
+  _proto.toJSON = function toJSON() {
     return this._cache;
   };
 
-  Injector.prototype.value = function value(key) {
+  _proto.value = function value(key) {
     var id = key[rdiId];
 
     if (key[rdiId] === undefined) {
@@ -1304,7 +1332,7 @@ var Injector = function () {
       value[diKey] = this;
       var state = this._state === undefined ? undefined : this._state[depName];
 
-      if (state && _typeof$2(state) === 'object') {
+      if (state && typeof state === 'object') {
         for (var prop in state) {
           value[prop] = state[prop];
         }
@@ -1316,12 +1344,12 @@ var Injector = function () {
     return value;
   };
 
-  Injector.prototype.destructor = function destructor() {
+  _proto.destructor = function destructor() {
     this._cache = undefined;
     this._listeners = undefined;
   };
 
-  Injector.prototype.invoke = function invoke(key) {
+  _proto.invoke = function invoke(key) {
     var isFn = key.theme;
     var deps = key.deps;
 
@@ -1356,7 +1384,7 @@ var Injector = function () {
           return key(a[0], a[1], a[2], a[3], a[4], a[5]);
 
         default:
-          return key.apply(undefined, a);
+          return key.apply(void 0, a);
       }
     }
 
@@ -1387,7 +1415,7 @@ var Injector = function () {
     }
   };
 
-  Injector.prototype.alias = function alias(key, rawId) {
+  _proto.alias = function alias(key, rawId) {
     var id = rawId;
 
     if (id === undefined) {
@@ -1404,7 +1432,7 @@ var Injector = function () {
     return newKey;
   };
 
-  Injector.prototype.invokeWithProps = function invokeWithProps(key, props, propsChanged) {
+  _proto.invokeWithProps = function invokeWithProps(key, props, propsChanged) {
     var deps = key.deps || (key._r === undefined ? undefined : key._r[1]);
 
     if (deps === undefined) {
@@ -1449,15 +1477,15 @@ var Injector = function () {
         return key(props, a[0], a[1], a[2], a[3], a[4], a[5], a[6]);
 
       default:
-        return key.apply(undefined, [props].concat(a));
+        return key.apply(void 0, [props].concat(a));
     }
   };
 
-  Injector.prototype.copy = function copy(displayName, instance, items) {
+  _proto.copy = function copy(displayName, instance, items) {
     return new Injector(items, null, this._state, this.displayName + '.' + displayName, instance, Object.create(this._cache));
   };
 
-  Injector.prototype.resolve = function resolve(argDeps) {
+  _proto.resolve = function resolve(argDeps) {
     var result = [];
     if (argDeps === undefined) return result;
     var resolved = this._resolved;
@@ -1465,7 +1493,7 @@ var Injector = function () {
     for (var i = 0, l = argDeps.length; i < l; i++) {
       var argDep = argDeps[i];
 
-      if (_typeof$2(argDep) === 'object') {
+      if (typeof argDep === 'object') {
         var obj = {};
 
         for (var prop in argDep) {
@@ -1504,7 +1532,7 @@ var Injector = function () {
   };
 
   return Injector;
-}();
+}(), _class2$1.parentContext = undefined, _temp$1);
 
 function _applyDecoratedDescriptor$1(target, property, decorators, descriptor, context) {
   var desc = {};
@@ -1536,103 +1564,28 @@ function _applyDecoratedDescriptor$1(target, property, decorators, descriptor, c
 }
 
 _applyDecoratedDescriptor$1._r = [2];
-var parentContext = undefined;
 
-function createCreateElement(atomize, createElement) {
-  function lomCreateElement() {
-    var el = arguments[0];
-    var attrs = arguments[1];
-    var newEl = void 0;
-    var isAtomic = typeof el === 'function' && el.constructor.render === undefined;
-    var id = attrs ? attrs.id : undefined;
+function createReactWrapper(BaseComponent, defaultFromError, detached, rootInjector) {
+  var _class, _class2, _temp;
 
-    if (isAtomic) {
-      if (!attrs) {
-        attrs = {
-          __lom_ctx: parentContext
-        };
-      } else {
-        attrs.__lom_ctx = parentContext;
-      }
-
-      if (parentContext !== undefined) {
-        newEl = parentContext.alias(el, id);
-        if (newEl === null) return null;
-        if (newEl !== undefined) el = newEl;
-      }
-
-      if (el.__lom === undefined) {
-        el.__lom = atomize(el);
-      }
-
-      newEl = el.__lom;
-    } else {
-      if (parentContext !== undefined && id) {
-        newEl = parentContext.alias(el, id);
-        if (newEl === null) return null;
-        if (newEl !== undefined) el = newEl;
-      }
-
-      newEl = el;
-    }
-
-    switch (arguments.length) {
-      case 2:
-        return createElement(newEl, attrs);
-
-      case 3:
-        return createElement(newEl, attrs, arguments[2]);
-
-      case 4:
-        return createElement(newEl, attrs, arguments[2], arguments[3]);
-
-      case 5:
-        return createElement(newEl, attrs, arguments[2], arguments[3], arguments[4]);
-
-      case 6:
-        return createElement(newEl, attrs, arguments[2], arguments[3], arguments[4], arguments[5]);
-
-      case 7:
-        return createElement(newEl, attrs, arguments[2], arguments[3], arguments[4], arguments[5], arguments[6]);
-
-      case 8:
-        return createElement(newEl, attrs, arguments[2], arguments[3], arguments[4], arguments[5], arguments[6], arguments[7]);
-
-      case 9:
-        return createElement(newEl, attrs, arguments[2], arguments[3], arguments[4], arguments[5], arguments[6], arguments[7], arguments[8]);
-
-      default:
-        if (isAtomic === false) {
-          return createElement.apply(null, arguments);
-        }
-
-        var args = [newEl, attrs];
-
-        for (var i = 2, l = arguments.length; i < l; i++) {
-          args.push(arguments[i]);
-        }
-
-        return createElement.apply(null, args);
-    }
+  if (rootInjector === void 0) {
+    rootInjector = new Injector();
   }
 
-  return lomCreateElement;
-}
-
-createCreateElement._r = [2];
-
-function createReactWrapper(BaseComponent, defaultFromError, detached) {
-  var _class;
-
-  var rootInjector = arguments.length > 3 && arguments[3] !== undefined ? arguments[3] : new Injector();
-  var AtomizedComponent = (_class = function (_BaseComponent) {
-    inheritsLoose$2(AtomizedComponent, _BaseComponent);
+  var AtomizedComponent = (_class = (_temp = _class2 =
+  /*#__PURE__*/
+  function (_BaseComponent) {
+    _inheritsLoose$2(AtomizedComponent, _BaseComponent);
 
     function AtomizedComponent(props, reactContext) {
       var _this;
 
       _this = _BaseComponent.call(this, props, reactContext) || this;
+      _this.props = void 0;
       _this._propsChanged = true;
+      _this._injector = void 0;
+      _this._keys = void 0;
+      _this._render = void 0;
       _this._el = undefined;
       _this._keys = props ? Object.keys(props) : undefined;
       var cns = _this.constructor;
@@ -1642,11 +1595,13 @@ function createReactWrapper(BaseComponent, defaultFromError, detached) {
       return _this;
     }
 
-    AtomizedComponent.prototype.toString = function toString() {
+    var _proto = AtomizedComponent.prototype;
+
+    _proto.toString = function toString() {
       return this._injector.displayName;
     };
 
-    AtomizedComponent.prototype.shouldComponentUpdate = function shouldComponentUpdate(props) {
+    _proto.shouldComponentUpdate = function shouldComponentUpdate(props) {
       var keys = this._keys;
       if (!keys) return false;
       var oldProps = this.props;
@@ -1664,7 +1619,7 @@ function createReactWrapper(BaseComponent, defaultFromError, detached) {
       return false;
     };
 
-    AtomizedComponent.prototype.componentWillUnmount = function componentWillUnmount() {
+    _proto.componentWillUnmount = function componentWillUnmount() {
       this._el = undefined;
       this._keys = undefined;
       this.props = undefined;
@@ -1680,22 +1635,22 @@ function createReactWrapper(BaseComponent, defaultFromError, detached) {
       this['r()'].destructor();
     };
 
-    AtomizedComponent.prototype.r = function r(element, force) {
-      var data = void 0;
+    _proto.r = function r(element, force) {
+      var data;
       var render = this._render;
-      var prevContext = parentContext;
-      parentContext = this._injector;
+      var prevContext = Injector.parentContext;
+      Injector.parentContext = this._injector;
 
       try {
-        data = parentContext.invokeWithProps(render, this.props, this._propsChanged);
+        data = this._injector.invokeWithProps(render, this.props, this._propsChanged);
       } catch (error) {
-        data = parentContext.invokeWithProps(render.onError || defaultFromError, {
+        data = this._injector.invokeWithProps(render.onError || defaultFromError, {
           error: error
         });
         error[renderedKey] = true;
       }
 
-      parentContext = prevContext;
+      Injector.parentContext = prevContext;
 
       if (!this._propsChanged) {
         this._el = data;
@@ -1707,18 +1662,19 @@ function createReactWrapper(BaseComponent, defaultFromError, detached) {
       return data;
     };
 
-    AtomizedComponent.prototype.render = function render() {
+    _proto.render = function render() {
       return this._el === undefined ? this.r(undefined, this._propsChanged ? ATOM_FORCE_CACHE$1 : ATOM_FORCE_NONE$1) : this._el;
     };
 
-    createClass$2(AtomizedComponent, [{
+    _createClass$2(AtomizedComponent, [{
       key: "displayName",
-      get: function get$$1() {
+      get: function get() {
         return this.toString();
       }
     }]);
+
     return AtomizedComponent;
-  }(BaseComponent), _applyDecoratedDescriptor$1(_class.prototype, "r", [detached], Object.getOwnPropertyDescriptor(_class.prototype, "r"), _class.prototype), _class);
+  }(BaseComponent), _class2.displayName = void 0, _class2.render = void 0, _class2.instance = void 0, _temp), _applyDecoratedDescriptor$1(_class.prototype, "r", [detached], Object.getOwnPropertyDescriptor(_class.prototype, "r"), _class.prototype), _class);
   return function reactWrapper(render) {
     var displayName = render.displayName || render.name;
 
@@ -1738,10 +1694,95 @@ function createReactWrapper(BaseComponent, defaultFromError, detached) {
 
 createReactWrapper._r = [2];
 
+function createCreateElement(atomize, createElement) {
+  function lomCreateElement() {
+    var args = arguments;
+    var attrs = args[1];
+    var el = args[0];
+    var newEl;
+    var isAtomic = typeof el === 'function' && el.constructor.render === undefined;
+    var id = attrs ? attrs._id || attrs.id : undefined;
+    var parentContext = Injector.parentContext;
+
+    if (isAtomic) {
+      if (parentContext !== undefined) {
+        newEl = parentContext.alias(el, id);
+        if (newEl === null) return null;
+        if (newEl !== undefined) el = newEl;
+
+        if (!attrs) {
+          attrs = {
+            __lom_ctx: parentContext
+          };
+        } else {
+          attrs.__lom_ctx = parentContext;
+        }
+      }
+
+      if (el.__lom === undefined) {
+        el.__lom = atomize(el);
+      }
+
+      newEl = el.__lom;
+    } else {
+      if (parentContext !== undefined && id) {
+        newEl = parentContext.alias(el, id);
+        if (newEl === null) return null;
+        if (newEl !== undefined) el = newEl;
+      }
+
+      newEl = el;
+    }
+
+    switch (args.length) {
+      case 2:
+        return createElement(newEl, attrs);
+
+      case 3:
+        return createElement(newEl, attrs, args[2]);
+
+      case 4:
+        return createElement(newEl, attrs, args[2], args[3]);
+
+      case 5:
+        return createElement(newEl, attrs, args[2], args[3], args[4]);
+
+      case 6:
+        return createElement(newEl, attrs, args[2], args[3], args[4], args[5]);
+
+      case 7:
+        return createElement(newEl, attrs, args[2], args[3], args[4], args[5], args[6]);
+
+      case 8:
+        return createElement(newEl, attrs, args[2], args[3], args[4], args[5], args[6], args[7]);
+
+      case 9:
+        return createElement(newEl, attrs, args[2], args[3], args[4], args[5], args[6], args[7], args[8]);
+
+      default:
+        if (isAtomic === false) {
+          return createElement.apply(null, args);
+        }
+
+        var newArgs = [newEl, attrs];
+
+        for (var i = 2, l = args.length; i < l; i++) {
+          newArgs.push(args[i]);
+        }
+
+        return createElement.apply(null, newArgs);
+    }
+  }
+
+  return lomCreateElement;
+}
+
+createCreateElement._r = [2];
+
 function dn(fn) {
   if (!fn) return 'null';
 
-  if (_typeof$2(fn) === 'object') {
+  if (typeof fn === 'object') {
     var cons = fn.constructor;
     return cons.displayName || cons.name;
   }
@@ -2052,7 +2093,7 @@ function setAccessor(node, name, old, value, isSvg) {
       node.style.cssText = value || '';
     }
 
-    if (value && _typeof$1(value) === 'object') {
+    if (value && typeof value === 'object') {
       if (typeof old !== 'string') {
         for (var i in old) {
           if (!(i in value)) node.style[i] = '';
@@ -3297,10 +3338,10 @@ var getDynamicStyles = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _typeof = typeof Symbol === "function" && _typeof$1(Symbol.iterator) === "symbol" ? function (obj) {
-    return _typeof$1(obj);
+  var _typeof$$1 = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
+    return typeof obj;
   } : function (obj) {
-    return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : _typeof$1(obj);
+    return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
   };
   /**
    * Extracts a styles object with only props that contain function values.
@@ -3314,7 +3355,7 @@ var getDynamicStyles = createCommonjsModule(function (module, exports) {
 
       for (var key in styles) {
         var value = styles[key];
-        var type = typeof value === 'undefined' ? 'undefined' : _typeof(value);
+        var type = typeof value === 'undefined' ? 'undefined' : _typeof$$1(value);
 
         if (type === 'function') {
           if (!to) to = {};
@@ -3344,7 +3385,7 @@ var SheetsRegistry_1 = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _createClass = function () {
+  var _createClass$$1 = function () {
     function defineProperties(target, props) {
       for (var i = 0; i < props.length; i++) {
         var descriptor = props[i];
@@ -3362,7 +3403,7 @@ var SheetsRegistry_1 = createCommonjsModule(function (module, exports) {
     };
   }();
 
-  function _classCallCheck(instance, Constructor) {
+  function _classCallCheck$$1(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
       throw new TypeError("Cannot call a class as a function");
     }
@@ -3374,12 +3415,12 @@ var SheetsRegistry_1 = createCommonjsModule(function (module, exports) {
 
   var SheetsRegistry = function () {
     function SheetsRegistry() {
-      _classCallCheck(this, SheetsRegistry);
+      _classCallCheck$$1(this, SheetsRegistry);
 
       this.registry = [];
     }
 
-    _createClass(SheetsRegistry, [{
+    _createClass$$1(SheetsRegistry, [{
       key: 'add',
 
       /**
@@ -3676,7 +3717,7 @@ var SheetsManager_1 = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _createClass = function () {
+  var _createClass$$1 = function () {
     function defineProperties(target, props) {
       for (var i = 0; i < props.length; i++) {
         var descriptor = props[i];
@@ -3694,15 +3735,15 @@ var SheetsManager_1 = createCommonjsModule(function (module, exports) {
     };
   }();
 
-  var _warning2 = _interopRequireDefault(browser);
+  var _warning2 = _interopRequireDefault$$1(browser);
 
-  function _interopRequireDefault(obj) {
+  function _interopRequireDefault$$1(obj) {
     return obj && obj.__esModule ? obj : {
       'default': obj
     };
   }
 
-  function _classCallCheck(instance, Constructor) {
+  function _classCallCheck$$1(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
       throw new TypeError("Cannot call a class as a function");
     }
@@ -3715,14 +3756,14 @@ var SheetsManager_1 = createCommonjsModule(function (module, exports) {
 
   var SheetsManager = function () {
     function SheetsManager() {
-      _classCallCheck(this, SheetsManager);
+      _classCallCheck$$1(this, SheetsManager);
 
       this.sheets = [];
       this.refs = [];
       this.keys = [];
     }
 
-    _createClass(SheetsManager, [{
+    _createClass$$1(SheetsManager, [{
       key: 'get',
       value: function get(key) {
         var index = this.keys.indexOf(key);
@@ -3816,14 +3857,14 @@ unwrapExports(toCssValue_1);
 
 var ponyfill = function symbolObservablePonyfill(root) {
   var result;
-  var _Symbol = root.Symbol;
+  var Symbol = root.Symbol;
 
-  if (typeof _Symbol === 'function') {
-    if (_Symbol.observable) {
-      result = _Symbol.observable;
+  if (typeof Symbol === 'function') {
+    if (Symbol.observable) {
+      result = Symbol.observable;
     } else {
-      result = _Symbol('observable');
-      _Symbol.observable = result;
+      result = Symbol('observable');
+      Symbol.observable = result;
     }
   } else {
     result = '@@observable';
@@ -3849,9 +3890,9 @@ var isDynamic = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _isObservable2 = _interopRequireDefault(isObservable);
+  var _isObservable2 = _interopRequireDefault$$1(isObservable);
 
-  function _interopRequireDefault(obj) {
+  function _interopRequireDefault$$1(obj) {
     return obj && obj.__esModule ? obj : {
       'default': obj
     };
@@ -3871,11 +3912,11 @@ var toCss_1 = createCommonjsModule(function (module, exports) {
   });
   exports['default'] = toCss;
 
-  var _toCssValue2 = _interopRequireDefault(toCssValue_1);
+  var _toCssValue2 = _interopRequireDefault$$1(toCssValue_1);
 
-  var _isDynamic2 = _interopRequireDefault(isDynamic);
+  var _isDynamic2 = _interopRequireDefault$$1(isDynamic);
 
-  function _interopRequireDefault(obj) {
+  function _interopRequireDefault$$1(obj) {
     return obj && obj.__esModule ? obj : {
       'default': obj
     };
@@ -3968,13 +4009,13 @@ var StyleRule_1 = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _typeof = typeof Symbol === "function" && _typeof$1(Symbol.iterator) === "symbol" ? function (obj) {
-    return _typeof$1(obj);
+  var _typeof$$1 = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
+    return typeof obj;
   } : function (obj) {
-    return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : _typeof$1(obj);
+    return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
   };
 
-  var _createClass = function () {
+  var _createClass$$1 = function () {
     function defineProperties(target, props) {
       for (var i = 0; i < props.length; i++) {
         var descriptor = props[i];
@@ -3992,21 +4033,21 @@ var StyleRule_1 = createCommonjsModule(function (module, exports) {
     };
   }();
 
-  var _warning2 = _interopRequireDefault(browser);
+  var _warning2 = _interopRequireDefault$$1(browser);
 
-  var _toCss2 = _interopRequireDefault(toCss_1);
+  var _toCss2 = _interopRequireDefault$$1(toCss_1);
 
-  var _toCssValue2 = _interopRequireDefault(toCssValue_1);
+  var _toCssValue2 = _interopRequireDefault$$1(toCssValue_1);
 
-  var _isDynamic2 = _interopRequireDefault(isDynamic);
+  var _isDynamic2 = _interopRequireDefault$$1(isDynamic);
 
-  function _interopRequireDefault(obj) {
+  function _interopRequireDefault$$1(obj) {
     return obj && obj.__esModule ? obj : {
       'default': obj
     };
   }
 
-  function _classCallCheck(instance, Constructor) {
+  function _classCallCheck$$1(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
       throw new TypeError("Cannot call a class as a function");
     }
@@ -4014,7 +4055,7 @@ var StyleRule_1 = createCommonjsModule(function (module, exports) {
 
   var StyleRule = function () {
     function StyleRule(key, style, options) {
-      _classCallCheck(this, StyleRule);
+      _classCallCheck$$1(this, StyleRule);
 
       this.type = 'style';
       this.isProcessed = false;
@@ -4034,7 +4075,7 @@ var StyleRule_1 = createCommonjsModule(function (module, exports) {
      */
 
 
-    _createClass(StyleRule, [{
+    _createClass$$1(StyleRule, [{
       key: 'prop',
 
       /**
@@ -4096,7 +4137,7 @@ var StyleRule_1 = createCommonjsModule(function (module, exports) {
 
         for (var prop in this.style) {
           var value = this.style[prop];
-          if ((0, _isDynamic2['default'])(value)) json[prop] = this.style['$' + prop];else if ((typeof value === 'undefined' ? 'undefined' : _typeof(value)) !== 'object') json[prop] = value;else if (Array.isArray(value)) json[prop] = (0, _toCssValue2['default'])(value);
+          if ((0, _isDynamic2['default'])(value)) json[prop] = this.style['$' + prop];else if ((typeof value === 'undefined' ? 'undefined' : _typeof$$1(value)) !== 'object') json[prop] = value;else if (Array.isArray(value)) json[prop] = (0, _toCssValue2['default'])(value);
         }
 
         return json;
@@ -4112,7 +4153,7 @@ var StyleRule_1 = createCommonjsModule(function (module, exports) {
       }
     }, {
       key: 'selector',
-      set: function set$$1(selector) {
+      set: function set(selector) {
         if (selector === this.selectorText) return;
         this.selectorText = selector;
 
@@ -4129,7 +4170,7 @@ var StyleRule_1 = createCommonjsModule(function (module, exports) {
        * Get selector string.
        */
       ,
-      get: function get$$1() {
+      get: function get() {
         return this.selectorText;
       }
     }]);
@@ -4148,17 +4189,17 @@ var cloneStyle_1 = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _typeof = typeof Symbol === "function" && _typeof$1(Symbol.iterator) === "symbol" ? function (obj) {
-    return _typeof$1(obj);
+  var _typeof$$1 = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
+    return typeof obj;
   } : function (obj) {
-    return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : _typeof$1(obj);
+    return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
   };
 
   exports['default'] = cloneStyle;
 
-  var _isObservable2 = _interopRequireDefault(isObservable);
+  var _isObservable2 = _interopRequireDefault$$1(isObservable);
 
-  function _interopRequireDefault(obj) {
+  function _interopRequireDefault$$1(obj) {
     return obj && obj.__esModule ? obj : {
       'default': obj
     };
@@ -4170,7 +4211,7 @@ var cloneStyle_1 = createCommonjsModule(function (module, exports) {
     // Support empty values in case user ends up with them by accident.
     if (style == null) return style; // Support string value for SimpleRule.
 
-    var typeOfStyle = typeof style === 'undefined' ? 'undefined' : _typeof(style);
+    var typeOfStyle = typeof style === 'undefined' ? 'undefined' : _typeof$$1(style);
     if (typeOfStyle === 'string' || typeOfStyle === 'number') return style; // Support array for FontFaceRule.
 
     if (isArray(style)) return style.map(cloneStyle); // Support Observable styles.  Observables are immutable, so we don't need to
@@ -4182,7 +4223,7 @@ var cloneStyle_1 = createCommonjsModule(function (module, exports) {
     for (var name in style) {
       var value = style[name];
 
-      if ((typeof value === 'undefined' ? 'undefined' : _typeof(value)) === 'object' && !(0, _isObservable2['default'])(value)) {
+      if ((typeof value === 'undefined' ? 'undefined' : _typeof$$1(value)) === 'object' && !(0, _isObservable2['default'])(value)) {
         newStyle[name] = cloneStyle(value);
         continue;
       }
@@ -4203,13 +4244,13 @@ var createRule_1 = createCommonjsModule(function (module, exports) {
   });
   exports['default'] = createRule;
 
-  var _warning2 = _interopRequireDefault(browser);
+  var _warning2 = _interopRequireDefault$$1(browser);
 
-  var _StyleRule2 = _interopRequireDefault(StyleRule_1);
+  var _StyleRule2 = _interopRequireDefault$$1(StyleRule_1);
 
-  var _cloneStyle2 = _interopRequireDefault(cloneStyle_1);
+  var _cloneStyle2 = _interopRequireDefault$$1(cloneStyle_1);
 
-  function _interopRequireDefault(obj) {
+  function _interopRequireDefault$$1(obj) {
     return obj && obj.__esModule ? obj : {
       'default': obj
     };
@@ -4287,7 +4328,7 @@ var RuleList_1 = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _extends = Object.assign || function (target) {
+  var _extends$$1 = Object.assign || function (target) {
     for (var i = 1; i < arguments.length; i++) {
       var source = arguments[i];
 
@@ -4301,7 +4342,7 @@ var RuleList_1 = createCommonjsModule(function (module, exports) {
     return target;
   };
 
-  var _createClass = function () {
+  var _createClass$$1 = function () {
     function defineProperties(target, props) {
       for (var i = 0; i < props.length; i++) {
         var descriptor = props[i];
@@ -4319,21 +4360,21 @@ var RuleList_1 = createCommonjsModule(function (module, exports) {
     };
   }();
 
-  var _createRule2 = _interopRequireDefault(createRule_1);
+  var _createRule2 = _interopRequireDefault$$1(createRule_1);
 
-  var _updateStyle2 = _interopRequireDefault(updateStyle);
+  var _updateStyle2 = _interopRequireDefault$$1(updateStyle);
 
-  var _linkRule2 = _interopRequireDefault(linkRule_1);
+  var _linkRule2 = _interopRequireDefault$$1(linkRule_1);
 
-  var _StyleRule2 = _interopRequireDefault(StyleRule_1);
+  var _StyleRule2 = _interopRequireDefault$$1(StyleRule_1);
 
-  function _interopRequireDefault(obj) {
+  function _interopRequireDefault$$1(obj) {
     return obj && obj.__esModule ? obj : {
       'default': obj
     };
   }
 
-  function _classCallCheck(instance, Constructor) {
+  function _classCallCheck$$1(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
       throw new TypeError("Cannot call a class as a function");
     }
@@ -4347,7 +4388,7 @@ var RuleList_1 = createCommonjsModule(function (module, exports) {
   var RuleList = function () {
     // Original styles object.
     function RuleList(options) {
-      _classCallCheck(this, RuleList);
+      _classCallCheck$$1(this, RuleList);
 
       this.map = {};
       this.raw = {};
@@ -4365,7 +4406,7 @@ var RuleList_1 = createCommonjsModule(function (module, exports) {
     // It contains the same rule registered by name and by selector.
 
 
-    _createClass(RuleList, [{
+    _createClass$$1(RuleList, [{
       key: 'add',
       value: function add(name, decl, options) {
         var _options = this.options,
@@ -4374,7 +4415,7 @@ var RuleList_1 = createCommonjsModule(function (module, exports) {
             jss = _options.jss,
             Renderer = _options.Renderer,
             generateClassName = _options.generateClassName;
-        options = _extends({
+        options = _extends$$1({
           classes: this.classes,
           parent: parent,
           sheet: sheet,
@@ -4540,9 +4581,9 @@ var sheets = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _SheetsRegistry2 = _interopRequireDefault(SheetsRegistry_1);
+  var _SheetsRegistry2 = _interopRequireDefault$$1(SheetsRegistry_1);
 
-  function _interopRequireDefault(obj) {
+  function _interopRequireDefault$$1(obj) {
     return obj && obj.__esModule ? obj : {
       'default': obj
     };
@@ -4566,7 +4607,7 @@ var StyleSheet_1 = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _extends = Object.assign || function (target) {
+  var _extends$$1 = Object.assign || function (target) {
     for (var i = 1; i < arguments.length; i++) {
       var source = arguments[i];
 
@@ -4580,7 +4621,7 @@ var StyleSheet_1 = createCommonjsModule(function (module, exports) {
     return target;
   };
 
-  var _createClass = function () {
+  var _createClass$$1 = function () {
     function defineProperties(target, props) {
       for (var i = 0; i < props.length; i++) {
         var descriptor = props[i];
@@ -4598,17 +4639,17 @@ var StyleSheet_1 = createCommonjsModule(function (module, exports) {
     };
   }();
 
-  var _linkRule2 = _interopRequireDefault(linkRule_1);
+  var _linkRule2 = _interopRequireDefault$$1(linkRule_1);
 
-  var _RuleList2 = _interopRequireDefault(RuleList_1);
+  var _RuleList2 = _interopRequireDefault$$1(RuleList_1);
 
-  function _interopRequireDefault(obj) {
+  function _interopRequireDefault$$1(obj) {
     return obj && obj.__esModule ? obj : {
       'default': obj
     };
   }
 
-  function _classCallCheck(instance, Constructor) {
+  function _classCallCheck$$1(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
       throw new TypeError("Cannot call a class as a function");
     }
@@ -4616,13 +4657,13 @@ var StyleSheet_1 = createCommonjsModule(function (module, exports) {
 
   var StyleSheet = function () {
     function StyleSheet(styles, options) {
-      _classCallCheck(this, StyleSheet);
+      _classCallCheck$$1(this, StyleSheet);
 
       this.attached = false;
       this.deployed = false;
       this.linked = false;
       this.classes = {};
-      this.options = _extends({}, options, {
+      this.options = _extends$$1({}, options, {
         sheet: this,
         parent: this,
         classes: this.classes
@@ -4641,7 +4682,7 @@ var StyleSheet_1 = createCommonjsModule(function (module, exports) {
      */
 
 
-    _createClass(StyleSheet, [{
+    _createClass$$1(StyleSheet, [{
       key: 'attach',
       value: function attach() {
         if (this.attached) return this;
@@ -4820,11 +4861,11 @@ var createGenerateClassName = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _warning2 = _interopRequireDefault(browser);
+  var _warning2 = _interopRequireDefault$$1(browser);
 
-  var _StyleSheet2 = _interopRequireDefault(StyleSheet_1);
+  var _StyleSheet2 = _interopRequireDefault$$1(StyleSheet_1);
 
-  function _interopRequireDefault(obj) {
+  function _interopRequireDefault$$1(obj) {
     return obj && obj.__esModule ? obj : {
       'default': obj
     };
@@ -4863,13 +4904,13 @@ var createGenerateClassName = createCommonjsModule(function (module, exports) {
 });
 unwrapExports(createGenerateClassName);
 
-var _typeof$3 = typeof Symbol === "function" && _typeof$1(Symbol.iterator) === "symbol" ? function (obj) {
-  return _typeof$1(obj);
+var _typeof$1 = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
+  return typeof obj;
 } : function (obj) {
-  return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : _typeof$1(obj);
+  return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
 };
 
-var isBrowser = (typeof window === "undefined" ? "undefined" : _typeof$3(window)) === "object" && (typeof document === "undefined" ? "undefined" : _typeof$3(document)) === 'object' && document.nodeType === 9;
+var isBrowser = (typeof window === "undefined" ? "undefined" : _typeof$1(window)) === "object" && (typeof document === "undefined" ? "undefined" : _typeof$1(document)) === 'object' && document.nodeType === 9;
 
 
 var module$1 = Object.freeze({
@@ -4884,7 +4925,7 @@ var PluginsRegistry_1 = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _createClass = function () {
+  var _createClass$$1 = function () {
     function defineProperties(target, props) {
       for (var i = 0; i < props.length; i++) {
         var descriptor = props[i];
@@ -4902,15 +4943,15 @@ var PluginsRegistry_1 = createCommonjsModule(function (module, exports) {
     };
   }();
 
-  var _warning2 = _interopRequireDefault(browser);
+  var _warning2 = _interopRequireDefault$$1(browser);
 
-  function _interopRequireDefault(obj) {
+  function _interopRequireDefault$$1(obj) {
     return obj && obj.__esModule ? obj : {
       'default': obj
     };
   }
 
-  function _classCallCheck(instance, Constructor) {
+  function _classCallCheck$$1(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
       throw new TypeError("Cannot call a class as a function");
     }
@@ -4918,7 +4959,7 @@ var PluginsRegistry_1 = createCommonjsModule(function (module, exports) {
 
   var PluginsRegistry = function () {
     function PluginsRegistry() {
-      _classCallCheck(this, PluginsRegistry);
+      _classCallCheck$$1(this, PluginsRegistry);
 
       this.hooks = {
         onCreateRule: [],
@@ -4933,7 +4974,7 @@ var PluginsRegistry_1 = createCommonjsModule(function (module, exports) {
       };
     }
 
-    _createClass(PluginsRegistry, [{
+    _createClass$$1(PluginsRegistry, [{
       key: 'onCreateRule',
       value: function onCreateRule(name, decl, options) {
         for (var i = 0; i < this.hooks.onCreateRule.length; i++) {
@@ -5030,7 +5071,7 @@ var SimpleRule_1 = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _createClass = function () {
+  var _createClass$$1 = function () {
     function defineProperties(target, props) {
       for (var i = 0; i < props.length; i++) {
         var descriptor = props[i];
@@ -5048,7 +5089,7 @@ var SimpleRule_1 = createCommonjsModule(function (module, exports) {
     };
   }();
 
-  function _classCallCheck(instance, Constructor) {
+  function _classCallCheck$$1(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
       throw new TypeError("Cannot call a class as a function");
     }
@@ -5056,7 +5097,7 @@ var SimpleRule_1 = createCommonjsModule(function (module, exports) {
 
   var SimpleRule = function () {
     function SimpleRule(key, value, options) {
-      _classCallCheck(this, SimpleRule);
+      _classCallCheck$$1(this, SimpleRule);
 
       this.type = 'simple';
       this.isProcessed = false;
@@ -5070,7 +5111,7 @@ var SimpleRule_1 = createCommonjsModule(function (module, exports) {
     // eslint-disable-next-line no-unused-vars
 
 
-    _createClass(SimpleRule, [{
+    _createClass$$1(SimpleRule, [{
       key: 'toString',
       value: function toString(options) {
         if (Array.isArray(this.value)) {
@@ -5102,7 +5143,7 @@ var KeyframesRule_1 = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _extends = Object.assign || function (target) {
+  var _extends$$1 = Object.assign || function (target) {
     for (var i = 1; i < arguments.length; i++) {
       var source = arguments[i];
 
@@ -5116,7 +5157,7 @@ var KeyframesRule_1 = createCommonjsModule(function (module, exports) {
     return target;
   };
 
-  var _createClass = function () {
+  var _createClass$$1 = function () {
     function defineProperties(target, props) {
       for (var i = 0; i < props.length; i++) {
         var descriptor = props[i];
@@ -5134,15 +5175,15 @@ var KeyframesRule_1 = createCommonjsModule(function (module, exports) {
     };
   }();
 
-  var _RuleList2 = _interopRequireDefault(RuleList_1);
+  var _RuleList2 = _interopRequireDefault$$1(RuleList_1);
 
-  function _interopRequireDefault(obj) {
+  function _interopRequireDefault$$1(obj) {
     return obj && obj.__esModule ? obj : {
       'default': obj
     };
   }
 
-  function _classCallCheck(instance, Constructor) {
+  function _classCallCheck$$1(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
       throw new TypeError("Cannot call a class as a function");
     }
@@ -5154,18 +5195,18 @@ var KeyframesRule_1 = createCommonjsModule(function (module, exports) {
 
   var KeyframesRule = function () {
     function KeyframesRule(key, frames, options) {
-      _classCallCheck(this, KeyframesRule);
+      _classCallCheck$$1(this, KeyframesRule);
 
       this.type = 'keyframes';
       this.isProcessed = false;
       this.key = key;
       this.options = options;
-      this.rules = new _RuleList2['default'](_extends({}, options, {
+      this.rules = new _RuleList2['default'](_extends$$1({}, options, {
         parent: this
       }));
 
       for (var name in frames) {
-        this.rules.add(name, frames[name], _extends({}, this.options, {
+        this.rules.add(name, frames[name], _extends$$1({}, this.options, {
           parent: this,
           selector: name
         }));
@@ -5178,7 +5219,7 @@ var KeyframesRule_1 = createCommonjsModule(function (module, exports) {
      */
 
 
-    _createClass(KeyframesRule, [{
+    _createClass$$1(KeyframesRule, [{
       key: 'toString',
       value: function toString() {
         var options = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {
@@ -5204,7 +5245,7 @@ var ConditionalRule_1 = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _extends = Object.assign || function (target) {
+  var _extends$$1 = Object.assign || function (target) {
     for (var i = 1; i < arguments.length; i++) {
       var source = arguments[i];
 
@@ -5218,7 +5259,7 @@ var ConditionalRule_1 = createCommonjsModule(function (module, exports) {
     return target;
   };
 
-  var _createClass = function () {
+  var _createClass$$1 = function () {
     function defineProperties(target, props) {
       for (var i = 0; i < props.length; i++) {
         var descriptor = props[i];
@@ -5236,15 +5277,15 @@ var ConditionalRule_1 = createCommonjsModule(function (module, exports) {
     };
   }();
 
-  var _RuleList2 = _interopRequireDefault(RuleList_1);
+  var _RuleList2 = _interopRequireDefault$$1(RuleList_1);
 
-  function _interopRequireDefault(obj) {
+  function _interopRequireDefault$$1(obj) {
     return obj && obj.__esModule ? obj : {
       'default': obj
     };
   }
 
-  function _classCallCheck(instance, Constructor) {
+  function _classCallCheck$$1(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
       throw new TypeError("Cannot call a class as a function");
     }
@@ -5256,13 +5297,13 @@ var ConditionalRule_1 = createCommonjsModule(function (module, exports) {
 
   var ConditionalRule = function () {
     function ConditionalRule(key, styles, options) {
-      _classCallCheck(this, ConditionalRule);
+      _classCallCheck$$1(this, ConditionalRule);
 
       this.type = 'conditional';
       this.isProcessed = false;
       this.key = key;
       this.options = options;
-      this.rules = new _RuleList2['default'](_extends({}, options, {
+      this.rules = new _RuleList2['default'](_extends$$1({}, options, {
         parent: this
       }));
 
@@ -5277,7 +5318,7 @@ var ConditionalRule_1 = createCommonjsModule(function (module, exports) {
      */
 
 
-    _createClass(ConditionalRule, [{
+    _createClass$$1(ConditionalRule, [{
       key: 'getRule',
       value: function getRule(name) {
         return this.rules.get(name);
@@ -5331,7 +5372,7 @@ var FontFaceRule_1 = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _createClass = function () {
+  var _createClass$$1 = function () {
     function defineProperties(target, props) {
       for (var i = 0; i < props.length; i++) {
         var descriptor = props[i];
@@ -5349,15 +5390,15 @@ var FontFaceRule_1 = createCommonjsModule(function (module, exports) {
     };
   }();
 
-  var _toCss2 = _interopRequireDefault(toCss_1);
+  var _toCss2 = _interopRequireDefault$$1(toCss_1);
 
-  function _interopRequireDefault(obj) {
+  function _interopRequireDefault$$1(obj) {
     return obj && obj.__esModule ? obj : {
       'default': obj
     };
   }
 
-  function _classCallCheck(instance, Constructor) {
+  function _classCallCheck$$1(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
       throw new TypeError("Cannot call a class as a function");
     }
@@ -5365,7 +5406,7 @@ var FontFaceRule_1 = createCommonjsModule(function (module, exports) {
 
   var FontFaceRule = function () {
     function FontFaceRule(key, style, options) {
-      _classCallCheck(this, FontFaceRule);
+      _classCallCheck$$1(this, FontFaceRule);
 
       this.type = 'font-face';
       this.isProcessed = false;
@@ -5378,7 +5419,7 @@ var FontFaceRule_1 = createCommonjsModule(function (module, exports) {
      */
 
 
-    _createClass(FontFaceRule, [{
+    _createClass$$1(FontFaceRule, [{
       key: 'toString',
       value: function toString(options) {
         if (Array.isArray(this.style)) {
@@ -5410,7 +5451,7 @@ var ViewportRule_1 = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _createClass = function () {
+  var _createClass$$1 = function () {
     function defineProperties(target, props) {
       for (var i = 0; i < props.length; i++) {
         var descriptor = props[i];
@@ -5428,15 +5469,15 @@ var ViewportRule_1 = createCommonjsModule(function (module, exports) {
     };
   }();
 
-  var _toCss2 = _interopRequireDefault(toCss_1);
+  var _toCss2 = _interopRequireDefault$$1(toCss_1);
 
-  function _interopRequireDefault(obj) {
+  function _interopRequireDefault$$1(obj) {
     return obj && obj.__esModule ? obj : {
       'default': obj
     };
   }
 
-  function _classCallCheck(instance, Constructor) {
+  function _classCallCheck$$1(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
       throw new TypeError("Cannot call a class as a function");
     }
@@ -5444,7 +5485,7 @@ var ViewportRule_1 = createCommonjsModule(function (module, exports) {
 
   var ViewportRule = function () {
     function ViewportRule(key, style, options) {
-      _classCallCheck(this, ViewportRule);
+      _classCallCheck$$1(this, ViewportRule);
 
       this.type = 'viewport';
       this.isProcessed = false;
@@ -5457,7 +5498,7 @@ var ViewportRule_1 = createCommonjsModule(function (module, exports) {
      */
 
 
-    _createClass(ViewportRule, [{
+    _createClass$$1(ViewportRule, [{
       key: 'toString',
       value: function toString(options) {
         return (0, _toCss2['default'])(this.key, this.style, options);
@@ -5478,17 +5519,17 @@ var rules = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _SimpleRule2 = _interopRequireDefault(SimpleRule_1);
+  var _SimpleRule2 = _interopRequireDefault$$1(SimpleRule_1);
 
-  var _KeyframesRule2 = _interopRequireDefault(KeyframesRule_1);
+  var _KeyframesRule2 = _interopRequireDefault$$1(KeyframesRule_1);
 
-  var _ConditionalRule2 = _interopRequireDefault(ConditionalRule_1);
+  var _ConditionalRule2 = _interopRequireDefault$$1(ConditionalRule_1);
 
-  var _FontFaceRule2 = _interopRequireDefault(FontFaceRule_1);
+  var _FontFaceRule2 = _interopRequireDefault$$1(FontFaceRule_1);
 
-  var _ViewportRule2 = _interopRequireDefault(ViewportRule_1);
+  var _ViewportRule2 = _interopRequireDefault$$1(ViewportRule_1);
 
-  function _interopRequireDefault(obj) {
+  function _interopRequireDefault$$1(obj) {
     return obj && obj.__esModule ? obj : {
       'default': obj
     };
@@ -5532,13 +5573,13 @@ var observables = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _isObservable2 = _interopRequireDefault(isObservable);
+  var _isObservable2 = _interopRequireDefault$$1(isObservable);
 
-  var _StyleRule2 = _interopRequireDefault(StyleRule_1);
+  var _StyleRule2 = _interopRequireDefault$$1(StyleRule_1);
 
-  var _createRule2 = _interopRequireDefault(createRule_1);
+  var _createRule2 = _interopRequireDefault$$1(createRule_1);
 
-  function _interopRequireDefault(obj) {
+  function _interopRequireDefault$$1(obj) {
     return obj && obj.__esModule ? obj : {
       'default': obj
     };
@@ -5602,7 +5643,7 @@ var DomRenderer_1 = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _createClass = function () {
+  var _createClass$$1 = function () {
     function defineProperties(target, props) {
       for (var i = 0; i < props.length; i++) {
         var descriptor = props[i];
@@ -5620,19 +5661,19 @@ var DomRenderer_1 = createCommonjsModule(function (module, exports) {
     };
   }();
 
-  var _warning2 = _interopRequireDefault(browser);
+  var _warning2 = _interopRequireDefault$$1(browser);
 
-  var _sheets2 = _interopRequireDefault(sheets);
+  var _sheets2 = _interopRequireDefault$$1(sheets);
 
-  var _StyleRule2 = _interopRequireDefault(StyleRule_1);
+  var _StyleRule2 = _interopRequireDefault$$1(StyleRule_1);
 
-  function _interopRequireDefault(obj) {
+  function _interopRequireDefault$$1(obj) {
     return obj && obj.__esModule ? obj : {
       'default': obj
     };
   }
 
-  function _classCallCheck(instance, Constructor) {
+  function _classCallCheck$$1(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
       throw new TypeError("Cannot call a class as a function");
     }
@@ -5883,7 +5924,7 @@ var DomRenderer_1 = createCommonjsModule(function (module, exports) {
 
   var DomRenderer = function () {
     function DomRenderer(sheet) {
-      _classCallCheck(this, DomRenderer);
+      _classCallCheck$$1(this, DomRenderer);
 
       this.getStyle = getStyle;
       this.setStyle = setStyle;
@@ -5912,7 +5953,7 @@ var DomRenderer_1 = createCommonjsModule(function (module, exports) {
     // HTMLStyleElement needs fixing https://github.com/facebook/flow/issues/2696
 
 
-    _createClass(DomRenderer, [{
+    _createClass$$1(DomRenderer, [{
       key: 'attach',
       value: function attach() {
         // In the case the element node is external and it is already in the DOM.
@@ -6035,7 +6076,7 @@ var VirtualRenderer_1 = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _createClass = function () {
+  var _createClass$$1 = function () {
     function defineProperties(target, props) {
       for (var i = 0; i < props.length; i++) {
         var descriptor = props[i];
@@ -6053,7 +6094,7 @@ var VirtualRenderer_1 = createCommonjsModule(function (module, exports) {
     };
   }();
 
-  function _classCallCheck(instance, Constructor) {
+  function _classCallCheck$$1(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
       throw new TypeError("Cannot call a class as a function");
     }
@@ -6067,10 +6108,10 @@ var VirtualRenderer_1 = createCommonjsModule(function (module, exports) {
 
   var VirtualRenderer = function () {
     function VirtualRenderer() {
-      _classCallCheck(this, VirtualRenderer);
+      _classCallCheck$$1(this, VirtualRenderer);
     }
 
-    _createClass(VirtualRenderer, [{
+    _createClass$$1(VirtualRenderer, [{
       key: 'setStyle',
       value: function setStyle() {
         return true;
@@ -6140,10 +6181,10 @@ var Jss_1 = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _typeof = typeof Symbol === "function" && _typeof$1(Symbol.iterator) === "symbol" ? function (obj) {
-    return _typeof$1(obj);
+  var _typeof$$1 = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
+    return typeof obj;
   } : function (obj) {
-    return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : _typeof$1(obj);
+    return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
   };
 
   var _extends$$1 = Object.assign || function (target) {
@@ -6160,7 +6201,7 @@ var Jss_1 = createCommonjsModule(function (module, exports) {
     return target;
   };
 
-  var _createClass = function () {
+  var _createClass$$1 = function () {
     function defineProperties(target, props) {
       for (var i = 0; i < props.length; i++) {
         var descriptor = props[i];
@@ -6178,35 +6219,35 @@ var Jss_1 = createCommonjsModule(function (module, exports) {
     };
   }();
 
-  var _isInBrowser2 = _interopRequireDefault(_isInBrowser);
+  var _isInBrowser2 = _interopRequireDefault$$1(_isInBrowser);
 
-  var _StyleSheet2 = _interopRequireDefault(StyleSheet_1);
+  var _StyleSheet2 = _interopRequireDefault$$1(StyleSheet_1);
 
-  var _PluginsRegistry2 = _interopRequireDefault(PluginsRegistry_1);
+  var _PluginsRegistry2 = _interopRequireDefault$$1(PluginsRegistry_1);
 
-  var _rules2 = _interopRequireDefault(rules);
+  var _rules2 = _interopRequireDefault$$1(rules);
 
-  var _observables2 = _interopRequireDefault(observables);
+  var _observables2 = _interopRequireDefault$$1(observables);
 
-  var _sheets2 = _interopRequireDefault(sheets);
+  var _sheets2 = _interopRequireDefault$$1(sheets);
 
-  var _StyleRule2 = _interopRequireDefault(StyleRule_1);
+  var _StyleRule2 = _interopRequireDefault$$1(StyleRule_1);
 
-  var _createGenerateClassName2 = _interopRequireDefault(createGenerateClassName);
+  var _createGenerateClassName2 = _interopRequireDefault$$1(createGenerateClassName);
 
-  var _createRule3 = _interopRequireDefault(createRule_1);
+  var _createRule3 = _interopRequireDefault$$1(createRule_1);
 
-  var _DomRenderer2 = _interopRequireDefault(DomRenderer_1);
+  var _DomRenderer2 = _interopRequireDefault$$1(DomRenderer_1);
 
-  var _VirtualRenderer2 = _interopRequireDefault(VirtualRenderer_1);
+  var _VirtualRenderer2 = _interopRequireDefault$$1(VirtualRenderer_1);
 
-  function _interopRequireDefault(obj) {
+  function _interopRequireDefault$$1(obj) {
     return obj && obj.__esModule ? obj : {
       'default': obj
     };
   }
 
-  function _classCallCheck(instance, Constructor) {
+  function _classCallCheck$$1(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
       throw new TypeError("Cannot call a class as a function");
     }
@@ -6216,7 +6257,7 @@ var Jss_1 = createCommonjsModule(function (module, exports) {
 
   var Jss = function () {
     function Jss(options) {
-      _classCallCheck(this, Jss);
+      _classCallCheck$$1(this, Jss);
 
       this.version = "9.1.0";
       this.plugins = new _PluginsRegistry2['default']();
@@ -6231,7 +6272,7 @@ var Jss_1 = createCommonjsModule(function (module, exports) {
       this.setup(options);
     }
 
-    _createClass(Jss, [{
+    _createClass$$1(Jss, [{
       key: 'setup',
       value: function setup() {
         var options = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
@@ -6299,7 +6340,7 @@ var Jss_1 = createCommonjsModule(function (module, exports) {
         var style = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
         var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {}; // Enable rule without name for inline styles.
 
-        if ((typeof name === 'undefined' ? 'undefined' : _typeof(name)) === 'object') {
+        if ((typeof name === 'undefined' ? 'undefined' : _typeof$$1(name)) === 'object') {
           options = style;
           style = name;
           name = undefined;
@@ -6363,43 +6404,43 @@ var lib$1 = createCommonjsModule(function (module, exports) {
   Object.defineProperty(exports, 'getDynamicStyles', {
     enumerable: true,
     get: function get() {
-      return _interopRequireDefault(getDynamicStyles)['default'];
+      return _interopRequireDefault$$1(getDynamicStyles)['default'];
     }
   });
   Object.defineProperty(exports, 'SheetsRegistry', {
     enumerable: true,
     get: function get() {
-      return _interopRequireDefault(SheetsRegistry_1)['default'];
+      return _interopRequireDefault$$1(SheetsRegistry_1)['default'];
     }
   });
   Object.defineProperty(exports, 'SheetsManager', {
     enumerable: true,
     get: function get() {
-      return _interopRequireDefault(SheetsManager_1)['default'];
+      return _interopRequireDefault$$1(SheetsManager_1)['default'];
     }
   });
   Object.defineProperty(exports, 'RuleList', {
     enumerable: true,
     get: function get() {
-      return _interopRequireDefault(RuleList_1)['default'];
+      return _interopRequireDefault$$1(RuleList_1)['default'];
     }
   });
   Object.defineProperty(exports, 'sheets', {
     enumerable: true,
     get: function get() {
-      return _interopRequireDefault(sheets)['default'];
+      return _interopRequireDefault$$1(sheets)['default'];
     }
   });
   Object.defineProperty(exports, 'createGenerateClassName', {
     enumerable: true,
     get: function get() {
-      return _interopRequireDefault(createGenerateClassName)['default'];
+      return _interopRequireDefault$$1(createGenerateClassName)['default'];
     }
   });
 
-  var _Jss2 = _interopRequireDefault(Jss_1);
+  var _Jss2 = _interopRequireDefault$$1(Jss_1);
 
-  function _interopRequireDefault(obj) {
+  function _interopRequireDefault$$1(obj) {
     return obj && obj.__esModule ? obj : {
       'default': obj
     };
@@ -6495,7 +6536,7 @@ var lib$3 = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _extends = Object.assign || function (target) {
+  var _extends$$1 = Object.assign || function (target) {
     for (var i = 1; i < arguments.length; i++) {
       var source = arguments[i];
 
@@ -6509,7 +6550,7 @@ var lib$3 = createCommonjsModule(function (module, exports) {
     return target;
   };
 
-  var _createClass = function () {
+  var _createClass$$1 = function () {
     function defineProperties(target, props) {
       for (var i = 0; i < props.length; i++) {
         var descriptor = props[i];
@@ -6529,7 +6570,7 @@ var lib$3 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = jssGlobal;
 
-  function _classCallCheck(instance, Constructor) {
+  function _classCallCheck$$1(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
       throw new TypeError("Cannot call a class as a function");
     }
@@ -6540,12 +6581,12 @@ var lib$3 = createCommonjsModule(function (module, exports) {
 
   var GlobalContainerRule = function () {
     function GlobalContainerRule(key, styles, options) {
-      _classCallCheck(this, GlobalContainerRule);
+      _classCallCheck$$1(this, GlobalContainerRule);
 
       this.type = 'global';
       this.key = key;
       this.options = options;
-      this.rules = new lib$1.RuleList(_extends({}, options, {
+      this.rules = new lib$1.RuleList(_extends$$1({}, options, {
         parent: this
       }));
 
@@ -6562,7 +6603,7 @@ var lib$3 = createCommonjsModule(function (module, exports) {
      */
 
 
-    _createClass(GlobalContainerRule, [{
+    _createClass$$1(GlobalContainerRule, [{
       key: 'getRule',
       value: function getRule(name) {
         return this.rules.get(name);
@@ -6603,18 +6644,18 @@ var lib$3 = createCommonjsModule(function (module, exports) {
 
   var GlobalPrefixedRule = function () {
     function GlobalPrefixedRule(name, style, options) {
-      _classCallCheck(this, GlobalPrefixedRule);
+      _classCallCheck$$1(this, GlobalPrefixedRule);
 
       this.name = name;
       this.options = options;
       var selector = name.substr(prefixKey.length);
-      this.rule = options.jss.createRule(selector, style, _extends({}, options, {
+      this.rule = options.jss.createRule(selector, style, _extends$$1({}, options, {
         parent: this,
         selector: selector
       }));
     }
 
-    _createClass(GlobalPrefixedRule, [{
+    _createClass$$1(GlobalPrefixedRule, [{
       key: 'toString',
       value: function toString(options) {
         return this.rule.toString(options);
@@ -6645,7 +6686,7 @@ var lib$3 = createCommonjsModule(function (module, exports) {
     if (!rules) return;
 
     for (var name in rules) {
-      options.sheet.addRule(name, rules[name], _extends({}, options, {
+      options.sheet.addRule(name, rules[name], _extends$$1({}, options, {
         selector: addScope(name, rule.selector)
       }));
     }
@@ -6660,7 +6701,7 @@ var lib$3 = createCommonjsModule(function (module, exports) {
     for (var prop in style) {
       if (prop.substr(0, propKey.length) !== propKey) continue;
       var selector = addScope(prop.substr(propKey.length), rule.selector);
-      options.sheet.addRule(selector, style[prop], _extends({}, options, {
+      options.sheet.addRule(selector, style[prop], _extends$$1({}, options, {
         selector: selector
       }));
       delete style[prop];
@@ -6717,7 +6758,7 @@ var lib$4 = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _extends = Object.assign || function (target) {
+  var _extends$$1 = Object.assign || function (target) {
     for (var i = 1; i < arguments.length; i++) {
       var source = arguments[i];
 
@@ -6733,9 +6774,9 @@ var lib$4 = createCommonjsModule(function (module, exports) {
 
   exports.default = jssNested;
 
-  var _warning2 = _interopRequireDefault(browser);
+  var _warning2 = _interopRequireDefault$$1(browser);
 
-  function _interopRequireDefault(obj) {
+  function _interopRequireDefault$$1(obj) {
     return obj && obj.__esModule ? obj : {
       default: obj
     };
@@ -6789,12 +6830,12 @@ var lib$4 = createCommonjsModule(function (module, exports) {
 
     function getOptions(rule, container, options) {
       // Options has been already created, now we only increase index.
-      if (options) return _extends({}, options, {
+      if (options) return _extends$$1({}, options, {
         index: options.index + 1
       });
       var nestingLevel = rule.options.nestingLevel;
       nestingLevel = nestingLevel === undefined ? 1 : nestingLevel + 1;
-      return _extends({}, rule.options, {
+      return _extends$$1({}, rule.options, {
         nestingLevel: nestingLevel,
         index: container.indexOf(rule) + 1
       });
@@ -6819,7 +6860,7 @@ var lib$4 = createCommonjsModule(function (module, exports) {
           if (!replaceRef) replaceRef = getReplaceRef(container // Replace all $refs.
           );
           selector = selector.replace(refRegExp, replaceRef);
-          container.addRule(selector, style[prop], _extends({}, options, {
+          container.addRule(selector, style[prop], _extends$$1({}, options, {
             selector: selector
           }));
         } else if (isNestedConditional) {
@@ -6890,7 +6931,9 @@ function uuid() {
 }
 uuid._r = [2];
 
-var AbstractLocationStore = function () {
+var AbstractLocationStore =
+/*#__PURE__*/
+function () {
   function AbstractLocationStore() {}
 
   var _proto = AbstractLocationStore.prototype;
@@ -6901,8 +6944,10 @@ var AbstractLocationStore = function () {
 
   return AbstractLocationStore;
 }();
-var BrowserLocationStore = (_class$1 = function (_AbstractLocationStor) {
-  inheritsLoose$1(BrowserLocationStore, _AbstractLocationStor);
+var BrowserLocationStore = (_class$1 =
+/*#__PURE__*/
+function (_AbstractLocationStor) {
+  _inheritsLoose(BrowserLocationStore, _AbstractLocationStor);
 
   function BrowserLocationStore(location, history) {
     var _this;
@@ -6937,11 +6982,11 @@ var BrowserLocationStore = (_class$1 = function (_AbstractLocationStor) {
 }(AbstractLocationStore), (_applyDecoratedDescriptor$2(_class$1.prototype, "location", [memkey], Object.getOwnPropertyDescriptor(_class$1.prototype, "location"), _class$1.prototype)), _class$1);
 BrowserLocationStore._r = [0, [Location, History]];
 
-var _class2$1;
+var _class2$2;
 var _dec;
 var _class4;
 var _class5;
-var _temp$1;
+var _temp$2;
 
 function _applyDecoratedDescriptor$3(target, property, decorators, descriptor, context) {
   var desc = {};
@@ -6972,8 +7017,10 @@ function _applyDecoratedDescriptor$3(target, property, decorators, descriptor, c
   return desc;
 }
 
-var HttpError = function (_Error) {
-  inheritsLoose$1(HttpError, _Error);
+var HttpError =
+/*#__PURE__*/
+function (_Error) {
+  _inheritsLoose(HttpError, _Error);
 
   function HttpError(statusCode, message, errorCode, localizedMessage, params) {
     var _this;
@@ -7009,7 +7056,9 @@ function timeoutPromise(promise, timeout, params) {
 }
 
 timeoutPromise._r = [2, [null, "IErrorParams"]];
-var FetcherResponse = (_class2$1 = function () {
+var FetcherResponse = (_class2$2 =
+/*#__PURE__*/
+function () {
   function FetcherResponse(url, init, state, ptr, fetcher) {
     var _this2 = this;
 
@@ -7087,7 +7136,7 @@ var FetcherResponse = (_class2$1 = function () {
     var state = this._getState();
 
     if (state !== undefined) {
-      if (_typeof$1(state) !== 'object') throw new Error(this._url + " state need an object");
+      if (typeof state !== 'object') throw new Error(this._url + " state need an object");
       return state;
     }
 
@@ -7096,13 +7145,15 @@ var FetcherResponse = (_class2$1 = function () {
   };
 
   return FetcherResponse;
-}(), (_applyDecoratedDescriptor$3(_class2$1.prototype, "text", [mem], Object.getOwnPropertyDescriptor(_class2$1.prototype, "text"), _class2$1.prototype)), _class2$1);
+}(), (_applyDecoratedDescriptor$3(_class2$2.prototype, "text", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "text"), _class2$2.prototype)), _class2$2);
 FetcherResponse._r = [0, [String, {
   timeout: Number
 }, "V", null, {
   request: Function
 }]];
-var Fetcher = (_dec = mem.key, (_class4 = (_temp$1 = _class5 = function () {
+var Fetcher = (_dec = mem.key, (_class4 = (_temp$2 = _class5 =
+/*#__PURE__*/
+function () {
   function Fetcher(baseUrl, init, state, renderer) {
     this._state = void 0;
     this._baseUrl = void 0;
@@ -7129,14 +7180,16 @@ var Fetcher = (_dec = mem.key, (_class4 = (_temp$1 = _class5 = function () {
   };
 
   return Fetcher;
-}(), _class5.Response = FetcherResponse, _temp$1), (_applyDecoratedDescriptor$3(_class4.prototype, "fetch", [_dec], Object.getOwnPropertyDescriptor(_class4.prototype, "fetch"), _class4.prototype)), _class4));
+}(), _class5.Response = FetcherResponse, _temp$2), (_applyDecoratedDescriptor$3(_class4.prototype, "fetch", [_dec], Object.getOwnPropertyDescriptor(_class4.prototype, "fetch"), _class4.prototype)), _class4));
 Fetcher._r = [0, [String, {
   timeout: Number
 }, Object, {
   beginFetch: Function,
   endFetch: Function
 }]];
-var ServerRenderer = function () {
+var ServerRenderer =
+/*#__PURE__*/
+function () {
   function ServerRenderer(render) {
     this._size = 0;
     this._callbacks = [];
@@ -7157,7 +7210,7 @@ var ServerRenderer = function () {
     var _ref;
 
     this._size--;
-    var data = void 0;
+    var data;
 
     if (e) {
       data = e;
@@ -7269,7 +7322,9 @@ function _applyDecoratedDescriptor$4(target, property, decorators, descriptor, c
   return desc;
 }
 
-var FirstCounterService = (_class$2 = function () {
+var FirstCounterService = (_class$2 =
+/*#__PURE__*/
+function () {
   function FirstCounterService() {
     _initDefineProp$1(this, "$", _descriptor$1, this);
 
@@ -7279,9 +7334,9 @@ var FirstCounterService = (_class$2 = function () {
     };
   }
 
-  createClass$1(FirstCounterService, [{
+  _createClass(FirstCounterService, [{
     key: "value",
-    get: function get$$1() {
+    get: function get() {
       var _this = this;
 
       setTimeout(function () {
@@ -7289,7 +7344,7 @@ var FirstCounterService = (_class$2 = function () {
       }, 500);
       throw new mem.Wait();
     },
-    set: function set$$1(v) {
+    set: function set(v) {
       if (typeof v === 'string') {
         throw new TypeError('Test error');
       }
@@ -7326,13 +7381,15 @@ function FirstCounterView(_, counter) {
 
 FirstCounterView._r = [1, [FirstCounterService]];
 
-var SecondCounterService = function (_FirstCounterService) {
-  inheritsLoose$1(SecondCounterService, _FirstCounterService);
+var SecondCounterService =
+/*#__PURE__*/
+function (_FirstCounterService) {
+  _inheritsLoose(SecondCounterService, _FirstCounterService);
 
   function SecondCounterService() {
     var _temp, _this2;
 
-    for (var _len = arguments.length, args = Array(_len), _key = 0; _key < _len; _key++) {
+    for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
       args[_key] = arguments[_key];
     }
 
@@ -7422,20 +7479,22 @@ function _applyDecoratedDescriptor$5(target, property, decorators, descriptor, c
   return desc;
 }
 
-var HelloContext = (_class$3 = function () {
+var HelloContext = (_class$3 =
+/*#__PURE__*/
+function () {
   function HelloContext() {
     _initDefineProp$2(this, "name", _descriptor$2, this);
   }
 
-  createClass$1(HelloContext, [{
+  _createClass(HelloContext, [{
     key: "props",
-    set: function set$$1(_ref) {
+    set: function set(_ref) {
       var name = _ref.name;
       this.name = name;
     }
   }, {
     key: "greet",
-    get: function get$$1() {
+    get: function get() {
       return 'Hello, ' + this.name;
     }
   }]);
@@ -7745,7 +7804,7 @@ function tokensToFunction(tokens) {
   var matches = new Array(tokens.length); // Compile all the patterns before compilation.
 
   for (var i = 0; i < tokens.length; i++) {
-    if (_typeof$1(tokens[i]) === 'object') {
+    if (typeof tokens[i] === 'object') {
       matches[i] = new RegExp('^(?:' + tokens[i].pattern + ')$');
     }
   }
@@ -8287,10 +8346,10 @@ var compileRoute = function compileRoute(route, Request, HeadersConstructor) {
 
 compileRoute._r = [2];
 
-var _typeof$4 = typeof Symbol === "function" && _typeof$1(Symbol.iterator) === "symbol" ? function (obj) {
-  return _typeof$1(obj);
+var _typeof$2 = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
+  return typeof obj;
 } : function (obj) {
-  return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : _typeof$1(obj);
+  return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
 };
 
 var _extends$1 = Object.assign || function (target) {
@@ -8503,7 +8562,7 @@ FetchMock.prototype.mockResponse = function (url, responseConfig, fetchOpts, res
 
   opts.sendAsJson = responseConfig.sendAsJson === undefined ? FetchMock.config.sendAsJson : responseConfig.sendAsJson;
 
-  if (opts.sendAsJson && responseConfig.body != null && (typeof body === 'undefined' ? 'undefined' : _typeof$4(body)) === 'object') {
+  if (opts.sendAsJson && responseConfig.body != null && (typeof body === 'undefined' ? 'undefined' : _typeof$2(body)) === 'object') {
     //eslint-disable-line
     body = JSON.stringify(body);
   } // add a Content-Length header if we need to
@@ -8808,7 +8867,7 @@ fetchMock$1.setImplementations({
 var client = new fetchMock$1();
 
 var _class$4;
-var _class2$2;
+var _class2$3;
 
 function _applyDecoratedDescriptor$6(target, property, decorators, descriptor, context) {
   var desc = {};
@@ -8839,12 +8898,14 @@ function _applyDecoratedDescriptor$6(target, property, decorators, descriptor, c
   return desc;
 }
 
-var KeyValueTheme = (_class$4 = function () {
+var KeyValueTheme = (_class$4 =
+/*#__PURE__*/
+function () {
   function KeyValueTheme() {}
 
-  createClass$1(KeyValueTheme, [{
+  _createClass(KeyValueTheme, [{
     key: "css",
-    get: function get$$1() {
+    get: function get() {
       return {
         item: {
           display: 'flex'
@@ -8896,10 +8957,12 @@ ItemView._r = [1, [{
 }]];
 ItemView.Key = KeyView;
 ItemView.Value = ValueView;
-var Locale = (_class2$2 = function () {
-  createClass$1(Locale, [{
+var Locale = (_class2$3 =
+/*#__PURE__*/
+function () {
+  _createClass(Locale, [{
     key: "lang",
-    get: function get$$1() {
+    get: function get() {
       var _this = this;
 
       setTimeout(function () {
@@ -8907,7 +8970,7 @@ var Locale = (_class2$2 = function () {
       }, 400);
       return this._defaultLang;
     },
-    set: function set$$1(lang) {}
+    set: function set(lang) {}
   }]);
 
   function Locale(lang) {
@@ -8916,9 +8979,11 @@ var Locale = (_class2$2 = function () {
   }
 
   return Locale;
-}(), (_applyDecoratedDescriptor$6(_class2$2.prototype, "lang", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "lang"), _class2$2.prototype), _applyDecoratedDescriptor$6(_class2$2.prototype, "lang", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "lang"), _class2$2.prototype)), _class2$2);
+}(), (_applyDecoratedDescriptor$6(_class2$3.prototype, "lang", [mem], Object.getOwnPropertyDescriptor(_class2$3.prototype, "lang"), _class2$3.prototype), _applyDecoratedDescriptor$6(_class2$3.prototype, "lang", [mem], Object.getOwnPropertyDescriptor(_class2$3.prototype, "lang"), _class2$3.prototype)), _class2$3);
 Locale._r = [0, [String]];
-var BrowserLocalStorage = function () {
+var BrowserLocalStorage =
+/*#__PURE__*/
+function () {
   function BrowserLocalStorage(storage, key) {
     this._storage = void 0;
     this._key = void 0;
@@ -8928,13 +8993,13 @@ var BrowserLocalStorage = function () {
 
   var _proto = BrowserLocalStorage.prototype;
 
-  _proto.get = function get$$1() {
+  _proto.get = function get() {
     var value = this._storage.getItem(this._key);
 
     return !value ? null : JSON.parse(value || '');
   };
 
-  _proto.set = function set$$1(value) {
+  _proto.set = function set(value) {
     this._storage.setItem(this._key, JSON.stringify(value));
   };
 
@@ -8961,9 +9026,11 @@ function delayed(v, delay) {
 }
 
 delayed._r = [2, ["V", Number]];
-function mockFetch(storage) {
-  var delay = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : 500;
-  var mocks = arguments[2];
+function mockFetch(storage, delay, mocks) {
+  if (delay === void 0) {
+    delay = 500;
+  }
+
   mocks.forEach(function (createMock) {
     createMock(storage).forEach(function (data) {
       client.mock(_extends({}, data, {
@@ -9130,7 +9197,7 @@ function todoMocks(rawStorage) {
 }
 todoMocks._r = [2, [Storage]];
 
-var _class2$3;
+var _class2$4;
 var _descriptor$3;
 var _descriptor2;
 
@@ -9179,10 +9246,14 @@ function toJson(r) {
 
 toJson._r = [2, [Response]];
 
-var TodoModel = function () {
-  function TodoModel() {
-    var todo = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
-    var store = arguments[1];
+var TodoModel =
+/*#__PURE__*/
+function () {
+  function TodoModel(todo, store) {
+    if (todo === void 0) {
+      todo = {};
+    }
+
     this.completed = void 0;
     this._title = void 0;
     this.id = void 0;
@@ -9217,12 +9288,12 @@ var TodoModel = function () {
     };
   };
 
-  createClass$1(TodoModel, [{
+  _createClass(TodoModel, [{
     key: "title",
-    get: function get$$1() {
+    get: function get() {
       return this._title;
     },
-    set: function set$$1(t) {
+    set: function set(t) {
       this._title = t;
 
       this._store.saveTodo(this.toJSON());
@@ -9232,7 +9303,9 @@ var TodoModel = function () {
 }();
 
 TodoModel._r = [0, [TodoService]];
-var TodoService = (_class2$3 = function () {
+var TodoService = (_class2$4 =
+/*#__PURE__*/
+function () {
   function TodoService(fetcher) {
     _initDefineProp$3(this, "opCount", _descriptor$3, this);
 
@@ -9357,14 +9430,14 @@ var TodoService = (_class2$3 = function () {
     }));
   };
 
-  createClass$1(TodoService, [{
+  _createClass(TodoService, [{
     key: "isOperationRunning",
-    get: function get$$1() {
+    get: function get() {
       return this.opCount !== 0;
     }
   }, {
     key: "todos",
-    get: function get$$1() {
+    get: function get() {
       var _this6 = this;
 
       fetch('/api/todos').then(toJson).then(function (data) {
@@ -9376,30 +9449,30 @@ var TodoService = (_class2$3 = function () {
       });
       throw new mem.Wait();
     },
-    set: function set$$1(todos) {}
+    set: function set(todos) {}
   }, {
     key: "activeTodoCount",
-    get: function get$$1() {
+    get: function get() {
       return this.todos.reduce(function (sum, todo) {
         return sum + (todo.completed ? 0 : 1);
       }, 0);
     }
   }, {
     key: "completedCount",
-    get: function get$$1() {
+    get: function get() {
       return this.todos.length - this.activeTodoCount;
     }
   }]);
   return TodoService;
-}(), (_descriptor$3 = _applyDecoratedDescriptor$8(_class2$3.prototype, "opCount", [mem], {
+}(), (_descriptor$3 = _applyDecoratedDescriptor$8(_class2$4.prototype, "opCount", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return 0;
   }
-}), _descriptor2 = _applyDecoratedDescriptor$8(_class2$3.prototype, "$", [force], {
+}), _descriptor2 = _applyDecoratedDescriptor$8(_class2$4.prototype, "$", [force], {
   enumerable: true,
   initializer: null
-}), _applyDecoratedDescriptor$8(_class2$3.prototype, "todoExtInfo", [memkey], Object.getOwnPropertyDescriptor(_class2$3.prototype, "todoExtInfo"), _class2$3.prototype), _applyDecoratedDescriptor$8(_class2$3.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class2$3.prototype, "todos"), _class2$3.prototype), _applyDecoratedDescriptor$8(_class2$3.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class2$3.prototype, "todos"), _class2$3.prototype), _applyDecoratedDescriptor$8(_class2$3.prototype, "activeTodoCount", [mem], Object.getOwnPropertyDescriptor(_class2$3.prototype, "activeTodoCount"), _class2$3.prototype), _applyDecoratedDescriptor$8(_class2$3.prototype, "toggleAll", [action], Object.getOwnPropertyDescriptor(_class2$3.prototype, "toggleAll"), _class2$3.prototype)), _class2$3);
+}), _applyDecoratedDescriptor$8(_class2$4.prototype, "todoExtInfo", [memkey], Object.getOwnPropertyDescriptor(_class2$4.prototype, "todoExtInfo"), _class2$4.prototype), _applyDecoratedDescriptor$8(_class2$4.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class2$4.prototype, "todos"), _class2$4.prototype), _applyDecoratedDescriptor$8(_class2$4.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class2$4.prototype, "todos"), _class2$4.prototype), _applyDecoratedDescriptor$8(_class2$4.prototype, "activeTodoCount", [mem], Object.getOwnPropertyDescriptor(_class2$4.prototype, "activeTodoCount"), _class2$4.prototype), _applyDecoratedDescriptor$8(_class2$4.prototype, "toggleAll", [action], Object.getOwnPropertyDescriptor(_class2$4.prototype, "toggleAll"), _class2$4.prototype)), _class2$4);
 TodoService._r = [0, [Fetcher]];
 
 var _class$6;
@@ -9438,7 +9511,9 @@ var TODO_FILTER = {
   COMPLETE: 'complete',
   ACTIVE: 'active'
 };
-var TodoFilterService = (_class$6 = function () {
+var TodoFilterService = (_class$6 =
+/*#__PURE__*/
+function () {
   function TodoFilterService(todoService, locationStore) {
     this._todoService = void 0;
     this._locationStore = void 0;
@@ -9446,17 +9521,17 @@ var TodoFilterService = (_class$6 = function () {
     this._locationStore = locationStore;
   }
 
-  createClass$1(TodoFilterService, [{
+  _createClass(TodoFilterService, [{
     key: "filter",
-    get: function get$$1() {
+    get: function get() {
       return this._locationStore.location('todo_filter') || TODO_FILTER.ALL;
     },
-    set: function set$$1(filter) {
+    set: function set(filter) {
       return this._locationStore.location('todo_filter', filter, true);
     }
   }, {
     key: "filteredTodos",
-    get: function get$$1() {
+    get: function get() {
       var todos = this._todoService.todos;
 
       switch (this.filter) {
@@ -9525,7 +9600,9 @@ function _applyDecoratedDescriptor$10(target, property, decorators, descriptor, 
   return desc;
 }
 
-var TodoToAdd = (_class$7 = function () {
+var TodoToAdd = (_class$7 =
+/*#__PURE__*/
+function () {
   function TodoToAdd() {
     var _this = this;
 
@@ -9549,9 +9626,9 @@ var TodoToAdd = (_class$7 = function () {
     this.title = target.value;
   };
 
-  createClass$1(TodoToAdd, [{
+  _createClass(TodoToAdd, [{
     key: "props",
-    set: function set$$1(_ref2) {
+    set: function set(_ref2) {
       var todoService = _ref2.todoService;
       this._todoService = todoService;
     }
@@ -9563,12 +9640,14 @@ var TodoToAdd = (_class$7 = function () {
     return '';
   }
 }), _applyDecoratedDescriptor$10(_class$7.prototype, "props", [props], Object.getOwnPropertyDescriptor(_class$7.prototype, "props"), _class$7.prototype), _applyDecoratedDescriptor$10(_class$7.prototype, "onInput", [action], Object.getOwnPropertyDescriptor(_class$7.prototype, "onInput"), _class$7.prototype)), _class$7);
-var TodoHeaderTheme = (_class3 = function () {
+var TodoHeaderTheme = (_class3 =
+/*#__PURE__*/
+function () {
   function TodoHeaderTheme() {}
 
-  createClass$1(TodoHeaderTheme, [{
+  _createClass(TodoHeaderTheme, [{
     key: "css",
-    get: function get$$1() {
+    get: function get() {
       var _newTodo;
 
       return {
@@ -9653,7 +9732,9 @@ function _applyDecoratedDescriptor$12(target, property, decorators, descriptor, 
 
 var ESCAPE_KEY = 27;
 var ENTER_KEY = 13;
-var TodoItemStore = (_class$9 = function () {
+var TodoItemStore = (_class$9 =
+/*#__PURE__*/
+function () {
   function TodoItemStore() {
     var _this = this;
 
@@ -9739,7 +9820,9 @@ var TodoItemStore = (_class$9 = function () {
   enumerable: true,
   initializer: null
 }), _applyDecoratedDescriptor$12(_class$9.prototype, "setText", [action], Object.getOwnPropertyDescriptor(_class$9.prototype, "setText"), _class$9.prototype)), _class$9);
-var TodoItemTheme = (_class3$1 = function () {
+var TodoItemTheme = (_class3$1 =
+/*#__PURE__*/
+function () {
   function TodoItemTheme() {}
 
   var _proto2 = TodoItemTheme.prototype;
@@ -9749,9 +9832,9 @@ var TodoItemTheme = (_class3$1 = function () {
     return isCompleted ? css.viewLabelCompleted : css.viewLabelRegular;
   };
 
-  createClass$1(TodoItemTheme, [{
+  _createClass(TodoItemTheme, [{
     key: "css",
-    get: function get$$1() {
+    get: function get() {
       var itemBase = {
         position: 'relative',
         fontSize: '24px',
@@ -9929,12 +10012,14 @@ function _applyDecoratedDescriptor$11(target, property, decorators, descriptor, 
   return desc;
 }
 
-var TodoMainTheme = (_class$8 = function () {
+var TodoMainTheme = (_class$8 =
+/*#__PURE__*/
+function () {
   function TodoMainTheme() {}
 
-  createClass$1(TodoMainTheme, [{
+  _createClass(TodoMainTheme, [{
     key: "css",
-    get: function get$$1() {
+    get: function get() {
       var toggleAll = {
         outline: 'none',
         position: 'absolute',
@@ -10064,7 +10149,9 @@ function createHandler(todoFilterService, id) {
 }
 
 createHandler._r = [2, [TodoFilterService, "V"]];
-var TodoFooterTheme = (_class$10 = function () {
+var TodoFooterTheme = (_class$10 =
+/*#__PURE__*/
+function () {
   function TodoFooterTheme() {}
 
   var _proto = TodoFooterTheme.prototype;
@@ -10073,9 +10160,9 @@ var TodoFooterTheme = (_class$10 = function () {
     return isSelected ? this.css.linkSelected : this.css.linkRegular;
   };
 
-  createClass$1(TodoFooterTheme, [{
+  _createClass(TodoFooterTheme, [{
     key: "css",
-    get: function get$$1() {
+    get: function get() {
       var linkBase = {
         color: 'inherit',
         margin: '3px',
@@ -10215,12 +10302,14 @@ function _applyDecoratedDescriptor$7(target, property, decorators, descriptor, c
   return desc;
 }
 
-var TodoAppTheme = (_class$5 = function () {
+var TodoAppTheme = (_class$5 =
+/*#__PURE__*/
+function () {
   function TodoAppTheme() {}
 
-  createClass$1(TodoAppTheme, [{
+  _createClass(TodoAppTheme, [{
     key: "css",
-    get: function get$$1() {
+    get: function get() {
       return {
         todoapp: {
           background: '#fff',
@@ -10256,7 +10345,7 @@ var TodoAppTheme = (_class$5 = function () {
   return TodoAppTheme;
 }(), (_applyDecoratedDescriptor$7(_class$5.prototype, "css", [mem, theme], Object.getOwnPropertyDescriptor(_class$5.prototype, "css"), _class$5.prototype)), _class$5);
 function TodoApp(_ref, _ref2) {
-  objectDestructuringEmpty(_ref);
+  _objectDestructuringEmpty(_ref);
   var todoService = _ref2.todoService,
       todoFilterService = _ref2.todoFilterService,
       theme$$1 = _ref2.theme;
@@ -10283,7 +10372,7 @@ TodoApp._r = [1, [{
   theme: TodoAppTheme
 }]];
 
-var _class2$4;
+var _class2$5;
 var _descriptor$6;
 var _descriptor2$2;
 var _descriptor3$1;
@@ -10327,7 +10416,9 @@ function _applyDecoratedDescriptor$14(target, property, decorators, descriptor, 
   return desc;
 }
 
-var TimeoutHandler = function () {
+var TimeoutHandler =
+/*#__PURE__*/
+function () {
   function TimeoutHandler(fn, timeout) {
     this._handler = null;
     this._handler = setTimeout(fn, timeout);
@@ -10343,7 +10434,9 @@ var TimeoutHandler = function () {
 }();
 
 TimeoutHandler._r = [0, [Function, Number]];
-var AutocompleteService = (_class2$4 = function () {
+var AutocompleteService = (_class2$5 =
+/*#__PURE__*/
+function () {
   function AutocompleteService() {
     var _this = this;
 
@@ -10358,15 +10451,15 @@ var AutocompleteService = (_class2$4 = function () {
     };
   }
 
-  createClass$1(AutocompleteService, [{
+  _createClass(AutocompleteService, [{
     key: "props",
-    set: function set$$1(_ref) {
+    set: function set(_ref) {
       var initialValue = _ref.initialValue;
       this.nameToSearch = initialValue;
     }
   }, {
     key: "searchResults",
-    get: function get$$1() {
+    get: function get() {
       var _this2 = this;
 
       var name = this.nameToSearch;
@@ -10381,23 +10474,23 @@ var AutocompleteService = (_class2$4 = function () {
       }, 500);
       throw new mem.Wait();
     },
-    set: function set$$1(searchResults) {}
+    set: function set(searchResults) {}
   }]);
   return AutocompleteService;
-}(), (_descriptor$6 = _applyDecoratedDescriptor$14(_class2$4.prototype, "$", [force], {
+}(), (_descriptor$6 = _applyDecoratedDescriptor$14(_class2$5.prototype, "$", [force], {
   enumerable: true,
   initializer: null
-}), _descriptor2$2 = _applyDecoratedDescriptor$14(_class2$4.prototype, "nameToSearch", [mem], {
+}), _descriptor2$2 = _applyDecoratedDescriptor$14(_class2$5.prototype, "nameToSearch", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return '';
   }
-}), _applyDecoratedDescriptor$14(_class2$4.prototype, "props", [props], Object.getOwnPropertyDescriptor(_class2$4.prototype, "props"), _class2$4.prototype), _descriptor3$1 = _applyDecoratedDescriptor$14(_class2$4.prototype, "_handler", [mem], {
+}), _applyDecoratedDescriptor$14(_class2$5.prototype, "props", [props], Object.getOwnPropertyDescriptor(_class2$5.prototype, "props"), _class2$5.prototype), _descriptor3$1 = _applyDecoratedDescriptor$14(_class2$5.prototype, "_handler", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return null;
   }
-}), _applyDecoratedDescriptor$14(_class2$4.prototype, "searchResults", [mem], Object.getOwnPropertyDescriptor(_class2$4.prototype, "searchResults"), _class2$4.prototype), _applyDecoratedDescriptor$14(_class2$4.prototype, "searchResults", [mem], Object.getOwnPropertyDescriptor(_class2$4.prototype, "searchResults"), _class2$4.prototype)), _class2$4);
+}), _applyDecoratedDescriptor$14(_class2$5.prototype, "searchResults", [mem], Object.getOwnPropertyDescriptor(_class2$5.prototype, "searchResults"), _class2$5.prototype), _applyDecoratedDescriptor$14(_class2$5.prototype, "searchResults", [mem], Object.getOwnPropertyDescriptor(_class2$5.prototype, "searchResults"), _class2$5.prototype)), _class2$5);
 
 function AutocompleteResultsView(_ref2) {
   var searchResults = _ref2.searchResults;
@@ -10489,15 +10582,17 @@ var Store$1 = (_class$11 = function Store() {
     return 140;
   }
 })), _class$11);
-var CssChangeTheme = (_dec$1 = theme.self, (_class3$2 = function () {
+var CssChangeTheme = (_dec$1 = theme.self, (_class3$2 =
+/*#__PURE__*/
+function () {
   function CssChangeTheme(store) {
     this._store = void 0;
     this._store = store;
   }
 
-  createClass$1(CssChangeTheme, [{
+  _createClass(CssChangeTheme, [{
     key: "css",
-    get: function get$$1() {
+    get: function get() {
       var store = this._store;
       return {
         wrapper: {
@@ -10575,7 +10670,9 @@ function _applyDecoratedDescriptor(target, property, decorators, descriptor, con
 }
 
 mockFetch(localStorage, 500, [todoMocks, autocompleteMocks]);
-var Store = (_class = (_temp = _class2 = function () {
+var Store = (_class = (_temp = _class2 =
+/*#__PURE__*/
+function () {
   function Store(locationStore) {
     this._locationStore = void 0;
     this.pages = ['hello', 'counter', 'error', 'todomvc', 'autocomplete', 'css-change'];
@@ -10585,12 +10682,12 @@ var Store = (_class = (_temp = _class2 = function () {
     this._locationStore = locationStore;
   }
 
-  createClass$1(Store, [{
+  _createClass(Store, [{
     key: "page",
-    get: function get$$1() {
+    get: function get() {
       return this._locationStore.location('page') || this.pages[0];
     },
-    set: function set$$1(page) {
+    set: function set(page) {
       return this._locationStore.location('page', page);
     }
   }]);
@@ -10606,7 +10703,7 @@ Store._r = [0, [AbstractLocationStore]];
 function AppView(_ref, _ref2) {
   var lang = _ref.lang;
   var store = _ref2.store;
-  var page = void 0;
+  var page;
 
   switch (store.page) {
     case 'hello':
