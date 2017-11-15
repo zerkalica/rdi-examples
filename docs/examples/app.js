@@ -1,3 +1,4 @@
+(function(l, i, v, e) { v = l.createElement(i); v.async = 1; v.src = '//' + (location.host || 'localhost').split(':')[0] + ':35729/livereload.js?snipver=1'; e = l.getElementsByTagName(i)[0]; e.parentNode.insertBefore(v, e)})(document, 'script');
 (function () {
 'use strict';
 
@@ -3394,7 +3395,7 @@ var devtools = createCommonjsModule(function (module, exports) {
     }
 
     initDevTools();
-  }); 
+  }); //# sourceMappingURL=devtools.js.map
 
 });
 
@@ -3565,13 +3566,6 @@ unwrapExports(SheetsRegistry_1);
  * LICENSE file in the root directory of this source tree. An additional grant
  * of patent rights can be found in the PATENTS file in the same directory.
  */
-/**
- * Similar to invariant but only logs a warning if the condition is not met.
- * This can be used to log issues in development environments in critical
- * paths. Removing the logging code for production environments will keep the
- * same logic and follow the same code paths.
- */
-
 var warning = function warning() {};
 
 warning._r = [2];
@@ -6969,7 +6963,7 @@ function () {
 
   var _proto = AbstractLocationStore.prototype;
 
-  _proto.location = function location(key, value, force$$1) {
+  _proto.location = function location(key, value) {
     throw new Error('implement');
   };
 
@@ -6996,7 +6990,7 @@ function (_AbstractLocationStor) {
     return new URLSearchParams(this._location.search);
   };
 
-  _proto2.location = function location(key, value, force$$1) {
+  _proto2.location = function location(key, value) {
     var params = this._params();
 
     if (value === undefined) return params.get(key);
@@ -7603,10 +7597,6 @@ globToRegexp.displayName = "globToRegexp";
 var isarray = Array.isArray || function (arr) {
   return Object.prototype.toString.call(arr) == '[object Array]';
 };
-
-/**
- * Expose `pathToRegexp`.
- */
 
 var pathToRegexp_1 = pathToRegexp;
 var parse_1 = parse;
@@ -9500,7 +9490,7 @@ function () {
       return this._locationStore.location('todo_filter') || TODO_FILTER.ALL;
     },
     set: function set(filter) {
-      return this._locationStore.location('todo_filter', filter, true);
+      return this._locationStore.location('todo_filter', filter);
     }
   }, {
     key: "filteredTodos",
@@ -9717,23 +9707,22 @@ function () {
 
     _initDefineProp$5(this, "props", _descriptor3, this);
 
+    this._focused = null;
+
     this.beginEdit = function () {
       var todo = _this.props.todo;
       _this.todoBeingEditedId = todo.id;
       _this.editText = todo.title;
+
+      if (_this._focused) {
+        _this._focused.focus();
+      }
     };
 
-    this._focused = false;
-
     this.setEditInputRef = function (el) {
-      if (el && !_this._focused) {
-        _this._focused = true;
-        setTimeout(function () {
-          if (el) {
-            el.focus();
-          }
-        }, 0);
-      }
+      if (!el) return;
+      _this._focused = el;
+      el.focus();
     };
 
     this.handleSubmit = function (event) {
@@ -9750,11 +9739,19 @@ function () {
     };
 
     this.handleKeyDown = function (event) {
-      if (event.which === ESCAPE_KEY) {
-        _this.editText = _this.props.todo.title;
-        _this.todoBeingEditedId = null;
-      } else if (event.which === ENTER_KEY) {
-        _this.handleSubmit(event);
+      switch (event.which) {
+        case ESCAPE_KEY:
+          _this.editText = _this.props.todo.title;
+          _this.todoBeingEditedId = null;
+          break;
+
+        case ENTER_KEY:
+          _this.handleSubmit(event);
+
+          break;
+
+        default:
+          break;
       }
     };
 
@@ -9803,6 +9800,10 @@ function () {
   _proto2.label = function label(isCompleted) {
     var css = this.css;
     return isCompleted ? css.viewLabelCompleted : css.viewLabelRegular;
+  };
+
+  _proto2.editable = function editable(isCompleted) {
+    return isCompleted ? this.css.completed : this.css.regular;
   };
 
   _createClass(TodoItemTheme, [{
@@ -9922,7 +9923,6 @@ function TodoItemView(_ref2, _ref3) {
   return itemStore.todoBeingEditedId === todo.id ? lom_h("li", {
     "class": css.editing
   }, lom_h("input", {
-    id: "edit",
     ref: itemStore.setEditInputRef,
     "class": css.edit,
     value: itemStore.editText,
@@ -9930,7 +9930,7 @@ function TodoItemView(_ref2, _ref3) {
     onInput: itemStore.setText,
     onKeyDown: itemStore.handleKeyDown
   })) : lom_h("li", {
-    "class": todo.completed ? css.completed : css.regular
+    "class": theme$$1.editable(todo.completed)
   }, lom_h("input", {
     id: "toggle",
     "class": css.toggle,
@@ -10325,9 +10325,8 @@ function TodoApp(_ref, _ref2) {
   _objectDestructuringEmpty(_ref);
   var todoService = _ref2.todoService,
       todoFilterService = _ref2.todoFilterService,
-      theme$$1 = _ref2.theme;
-  var css = theme$$1.css;
-  return lom_h("div", null, lom_h(ItemView, null, lom_h(ItemView.Key, null, "Key"), lom_h(ItemView.Value, null, "Value>")), todoService.activeTodoCount > 0 ? null : null, lom_h("div", {
+      css = _ref2.theme.css;
+  return lom_h("div", null, todoService.activeTodoCount > 0 ? null : null, lom_h("div", {
     style: {
       padding: '0.3em 0.5em'
     }

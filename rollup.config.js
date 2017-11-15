@@ -7,7 +7,7 @@ import globals from 'rollup-plugin-node-globals'
 import replace from 'rollup-plugin-replace'
 import commonjs from 'rollup-plugin-commonjs'
 import sourcemaps from 'rollup-plugin-sourcemaps'
-import visualizer from 'rollup-plugin-visualizer'
+// import visualizer from 'rollup-plugin-visualizer'
 import alias from 'rollup-plugin-alias'
 
 import fs from 'fs'

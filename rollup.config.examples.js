@@ -13,11 +13,10 @@ export default Object.assign(
                 open: true,
                 historyApiFallback: true,
                 contentBase: 'docs'
-            })/*,
+            }),
             livereload({
                 watch: ['docs', 'src']
             })
-*/
         ])
 
     }

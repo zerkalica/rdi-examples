@@ -53,18 +53,13 @@ class TodoAppTheme {
 
 export default function TodoApp(
     {}: TodoAppProps,
-    {todoService, todoFilterService, theme }: {
+    {todoService, todoFilterService, theme: {css} }: {
         todoService: TodoService;
         todoFilterService: TodoFilterService;
         theme: TodoAppTheme;
     }
 ) {
-    const css = theme.css
     return <div>
-        <ItemView>
-            <ItemView.Key>Key</ItemView.Key>
-            <ItemView.Value>Value></ItemView.Value>
-        </ItemView>
         {/* Loading fix: access data in TodoApp first to throw exception, if no todos loaded */}
         {todoService.activeTodoCount > 0 ? null : null}
         <div style={{padding: '0.3em 0.5em'}}>{todoService.isOperationRunning ? 'Saving...' : 'Idle'}</div>

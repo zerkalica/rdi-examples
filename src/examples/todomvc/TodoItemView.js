@@ -17,27 +17,25 @@ class TodoItemStore {
     @mem editText = ''
 
     @props props: ITodoProps
+    _focused: ?HTMLInputElement = null
 
     beginEdit = () => {
         const {todo} = this.props
         this.todoBeingEditedId = todo.id
         this.editText = todo.title
+        if (this._focused) {
+            this._focused.focus()
+        }
     }
 
     @action setText({target}: Event) {
         this.editText = (target: any).value
     }
 
-    _focused = false
     setEditInputRef = (el: ?HTMLInputElement) => {
-        if (el && !this._focused) {
-            this._focused = true
-            setTimeout(() => {
-                if (el) {
-                    el.focus()
-                }
-            }, 0)
-        }
+        if (!el) return
+        this._focused = el
+        el.focus()
     }
 
     handleSubmit = (event: Event) => {
@@ -51,12 +49,18 @@ class TodoItemStore {
         this.todoBeingEditedId = null
     }
 
-    handleKeyDown = (event: Event) => {
-        if (event.which === ESCAPE_KEY) {
-            this.editText = this.props.todo.title
-            this.todoBeingEditedId = null
-        } else if (event.which === ENTER_KEY) {
-            this.handleSubmit(event)
+    handleKeyDown = (event: KeyboardEvent) => {
+        switch (event.which) {
+            case ESCAPE_KEY:
+                this.editText = this.props.todo.title
+                this.todoBeingEditedId = null
+                break
+
+            case ENTER_KEY:
+                this.handleSubmit(event)
+                break
+
+            default: break
         }
     }
 
@@ -193,6 +197,10 @@ class TodoItemTheme {
         const css = this.css
         return isCompleted ? css.viewLabelCompleted : css.viewLabelRegular
     }
+
+    editable(isCompleted: boolean) {
+        return isCompleted ? this.css.completed : this.css.regular
+    }
 }
 
 export default function TodoItemView(
@@ -209,7 +217,6 @@ export default function TodoItemView(
     return itemStore.todoBeingEditedId === todo.id
         ? <li class={css.editing}>
             <input
-                id="edit"
                 ref={itemStore.setEditInputRef}
                 class={css.edit}
                 value={itemStore.editText}
@@ -218,7 +225,7 @@ export default function TodoItemView(
                 onKeyDown={itemStore.handleKeyDown}
             />
         </li>
-        : <li class={todo.completed ? css.completed : css.regular}>
+        : <li class={theme.editable(todo.completed)}>
             <input
                 id="toggle"
                 class={css.toggle}

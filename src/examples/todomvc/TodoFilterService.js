@@ -28,7 +28,7 @@ export default class TodoFilterService {
     }
 
     set filter(filter: IFilter) {
-        return this._locationStore.location('todo_filter', filter, true)
+        return this._locationStore.location('todo_filter', filter)
     }
 
     @mem get filteredTodos(): ITodo[] {
