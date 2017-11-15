@@ -8,6 +8,7 @@ import replace from 'rollup-plugin-replace'
 import commonjs from 'rollup-plugin-commonjs'
 import sourcemaps from 'rollup-plugin-sourcemaps'
 import visualizer from 'rollup-plugin-visualizer'
+import alias from 'rollup-plugin-alias'
 
 import fs from 'fs'
 import path from 'path'
@@ -21,18 +22,37 @@ babelrc.plugins = babelrc.plugins.map(
     plugin => (Array.isArray(plugin) ? (plugin[0] || ''): plugin).indexOf(magic) >= 0 ? null : plugin
 ).filter(Boolean)
 
+const uglifyOpts = {
+    warnings: true,
+    compress: {
+        dead_code: true,
+        unused: true,
+        toplevel: true,
+        warnings: true
+    },
+    mangle: {
+        properties: false,
+        toplevel: false
+    }
+}
+
+const isUglify = process.env.UGLIFY !== undefined
+    ? process.env.UGLIFY === '1'
+    : process.env.NODE_ENV === 'production'
+
 const baseConfig = {
     sourcemap: true,
     plugins: [
-
         resolve({
             browser: true,
             module: true
         }),
+        replace({
+            'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development')
+        }),
         commonjs({
             include: 'node_modules/**',
             exclude: [
-                //  'node_modules/preact/**',
                  'node_modules/reactive-di/**',
                  'node_modules/lom_atom/**'
             ]
@@ -41,7 +61,7 @@ const baseConfig = {
         sourcemaps(),
         babel(babelrc),
         globals()
-    ].concat(process.env.UGLIFY === '1' ? [uglify({}, minify)] : [])
+    ].concat(isUglify ? [uglify(uglifyOpts, minify)] : [])
 }
 
 
@@ -50,13 +70,11 @@ const examplesConfig = Object.assign({}, baseConfig, {
     output: [
         {file: pkg['iife:main'], format: 'iife', name: pkg.name.replace('-', '_').replace('-', '_')}
     ],
-    plugins: baseConfig.plugins.concat([
-        replace({
-            'process.env.NODE_ENV': JSON.stringify('development')
-        }),
-        visualizer({filename: path.join(__dirname, 'docs', 'stat.html') })
-
-    ])
+    plugins: process.env.NODE_ENV === 'production'
+        ? baseConfig.plugins.concat([ alias({ 'preact/devtools': 'empty/object'  }) ])
+        : baseConfig.plugins
 })
+
+console.log(process.env.NODE_ENV)
 
 export default examplesConfig

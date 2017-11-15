@@ -3,6 +3,8 @@
 import {mem} from 'lom_atom'
 import {theme} from 'reactive-di'
 
+import {ItemView} from '../common'
+
 import TodoService from './TodoService'
 import TodoFilterService from './TodoFilterService'
 
@@ -59,6 +61,10 @@ export default function TodoApp(
 ) {
     const css = theme.css
     return <div>
+        <ItemView>
+            <ItemView.Key>Key</ItemView.Key>
+            <ItemView.Value>Value></ItemView.Value>
+        </ItemView>
         {/* Loading fix: access data in TodoApp first to throw exception, if no todos loaded */}
         {todoService.activeTodoCount > 0 ? null : null}
         <div style={{padding: '0.3em 0.5em'}}>{todoService.isOperationRunning ? 'Saving...' : 'Idle'}</div>

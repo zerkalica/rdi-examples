@@ -58,6 +58,7 @@ function _defineProperties$1(target, props) {
 }
 
 _defineProperties$1._r = [2];
+_defineProperties$1.displayName = "_defineProperties";
 
 function _createClass$1(Constructor, protoProps, staticProps) {
   if (protoProps) _defineProperties$1(Constructor.prototype, protoProps);
@@ -66,6 +67,7 @@ function _createClass$1(Constructor, protoProps, staticProps) {
 }
 
 _createClass$1._r = [2];
+_createClass$1.displayName = "_createClass";
 
 function _inheritsLoose$1(subClass, superClass) {
   subClass.prototype = Object.create(superClass.prototype);
@@ -75,6 +77,7 @@ function _inheritsLoose$1(subClass, superClass) {
 
 
 _inheritsLoose$1._r = [2];
+_inheritsLoose$1.displayName = "_inheritsLoose";
 var ATOM_FORCE_NONE = 0;
 var ATOM_FORCE_CACHE = 1;
 var ATOM_FORCE_UPDATE = 2;
@@ -84,8 +87,10 @@ var ATOM_STATUS_CHECKING = 2;
 var ATOM_STATUS_PULLING = 3;
 var ATOM_STATUS_ACTUAL = 4;
 var catchedId = Symbol('lom_atom_catched');
+var origId = Symbol('orig_error');
 var throwOnAccess = {
-  get: function get(target) {
+  get: function get(target, key) {
+    if (key === origId) return target.valueOf();
     throw target.valueOf();
   },
   ownKeys: function ownKeys(target) {
@@ -98,6 +103,7 @@ function createMock(error) {
 }
 
 createMock._r = [2];
+createMock.displayName = "createMock";
 
 var AtomWait =
 /*#__PURE__*/
@@ -150,7 +156,7 @@ var handlers = new Map([[Array, function arrayHandler(target, source, stack) {
 }], [RegExp, function dateHandler(target, source) {
   return target.toString() === source.toString() ? source : target;
 }]]);
-var done = Symbol('lom_conform_done');
+var processed = new WeakMap();
 
 function conform(target, source, isComponent, stack) {
   if (stack === void 0) {
@@ -158,8 +164,8 @@ function conform(target, source, isComponent, stack) {
   }
 
   if (target === source) return source;
-  if (isComponent || !target || typeof target !== 'object' || !source || typeof source !== 'object' || target instanceof Error || source instanceof Error || target.constructor !== source.constructor || target[done] !== undefined) return target;
-  target[done] = true;
+  if (isComponent || !target || typeof target !== 'object' || !source || typeof source !== 'object' || target instanceof Error || source instanceof Error || target.constructor !== source.constructor || processed.has(target)) return target;
+  processed.set(target, true);
   var conformHandler = handlers.get(target.constructor);
   if (!conformHandler) return target;
   if (stack.indexOf(target) !== -1) return target;
@@ -170,35 +176,37 @@ function conform(target, source, isComponent, stack) {
 }
 
 conform._r = [2];
+conform.displayName = "conform";
 
 function checkSlave(slave) {
   slave.check();
 }
 
 checkSlave._r = [2];
+checkSlave.displayName = "checkSlave";
 
 function obsoleteSlave(slave) {
   slave.obsolete();
 }
 
 obsoleteSlave._r = [2];
+obsoleteSlave.displayName = "obsoleteSlave";
 
 function disleadThis(master) {
-  this;
   master.dislead(this);
 }
 
 disleadThis._r = [2];
+disleadThis.displayName = "disleadThis";
 
 function actualizeMaster(master) {
-  this;
-
   if (this.status === ATOM_STATUS_CHECKING) {
     master.actualize();
   }
 }
 
 actualizeMaster._r = [2];
+actualizeMaster.displayName = "actualizeMaster";
 
 var Atom =
 /*#__PURE__*/
@@ -222,9 +230,10 @@ function () {
   var _proto = Atom.prototype;
 
   _proto.toString = function toString() {
-    var hc = this.owner.constructor;
     var k = this.key;
-    return this.field + (k ? '(' + (typeof k === 'function' ? k.displayName || k.name : String(k)) + ')' : '');
+    var owner = this.owner;
+    var parent = owner.displayName || owner.constructor.displayName || owner.constructor.name;
+    return String(parent) + "." + this.field + (k ? '(' + (typeof k === 'function' ? k.displayName || k.name : String(k)) + ')' : '');
   };
 
   _proto.toJSON = function toJSON() {
@@ -439,58 +448,7 @@ function reap(atom, key, reaping) {
 }
 
 reap._r = [2];
-
-var BaseLogger =
-/*#__PURE__*/
-function () {
-  function BaseLogger() {}
-
-  var _proto = BaseLogger.prototype;
-
-  _proto.create = function create(owner, field, key, namespace) {};
-
-  _proto.onDestruct = function onDestruct(atom, namespace) {};
-
-  _proto.sync = function sync() {};
-
-  _proto.status = function status(_status, atom, namespace) {};
-
-  _proto.error = function error(atom, err, namespace) {};
-
-  _proto.newValue = function newValue(atom, from, to, isActualize, namespace) {};
-
-  return BaseLogger;
-}();
-
-var ConsoleLogger =
-/*#__PURE__*/
-function (_BaseLogger) {
-  _inheritsLoose$1(ConsoleLogger, _BaseLogger);
-
-  function ConsoleLogger() {
-    return _BaseLogger.apply(this, arguments) || this;
-  }
-
-  var _proto2 = ConsoleLogger.prototype;
-
-  _proto2.sync = function sync() {
-    console.log('sync');
-  };
-
-  _proto2.status = function status(_status2, atom, namespace) {
-    console.log(namespace, _status2, atom.displayName);
-  };
-
-  _proto2.error = function error(atom, err, namespace) {
-    console.log(namespace, 'error', atom.displayName, err);
-  };
-
-  _proto2.newValue = function newValue(atom, from, to, isActualize, namespace) {
-    console.log(namespace, isActualize ? 'actualize' : 'cacheSet', atom.displayName, 'from', from, 'to', to);
-  };
-
-  return ConsoleLogger;
-}(BaseLogger);
+reap.displayName = "reap";
 
 var Context =
 /*#__PURE__*/
@@ -518,98 +476,91 @@ function () {
     this._pendCount = 0;
   }
 
-  var _proto3 = Context.prototype;
+  var _proto = Context.prototype;
 
-  _proto3.create = function create(atom) {
+  _proto.create = function create(atom) {
     if (this._logger !== undefined) {
-      return this._logger.create(atom.owner, atom.field, atom.key, this._namespace);
+      return this._logger.create(atom.owner, atom.field, atom.key);
     }
   };
 
-  _proto3._destroyValue = function _destroyValue(atom, from) {
+  _proto._destroyValue = function _destroyValue(atom, from) {
     if (this._owners.get(from) === atom) {
       try {
         from.destructor();
       } catch (e) {
         console.error(e);
-        if (this._logger) this._logger.error(atom, e, this._namespace);
+        if (this._logger) this._logger.error(atom, e);
       }
 
       this._owners.delete(from);
     }
   };
 
-  _proto3.destroyHost = function destroyHost(atom) {
+  _proto.destroyHost = function destroyHost(atom) {
     this._destroyValue(atom, atom.current);
 
     if (this._logger !== undefined) {
-      this._logger.onDestruct(atom, this._namespace);
+      this._logger.onDestruct(atom);
     }
   };
 
-  _proto3.setLogger = function setLogger(logger) {
+  _proto.setLogger = function setLogger(logger) {
     this._logger = logger;
   };
 
-  _proto3.newValue = function newValue(atom, from, to, isActualize) {
+  _proto.newValue = function newValue(atom, from, to, isActualize) {
     this._destroyValue(atom, from);
 
     if (to && typeof to === 'object' && !(to instanceof Error) && typeof to.destructor === 'function') {
       this._owners.set(to, atom);
     }
 
-    if (this._logger !== undefined) {
-      if (to instanceof AtomWait) {
-        this._logger.status('waiting', atom, this._namespace);
-      } else if (to instanceof Error) {
-        this._logger.error(atom, to, this._namespace);
-      } else {
-        this._logger.newValue(atom, from instanceof Error ? undefined : from, to, isActualize, this._namespace);
+    var logger = this._logger;
+
+    if (logger !== undefined) {
+      try {
+        if (!this._scheduled && this._logger !== undefined) {
+          this._logger.beginGroup(this._namespace);
+        }
+
+        logger.newValue(atom, from instanceof Error && from[origId] ? from[origId] : from, to instanceof Error && to[origId] ? to[origId] : to, isActualize);
+      } catch (error) {
+        console.error(error);
+        logger.error(atom, error);
       }
     }
   };
 
-  _proto3.proposeToPull = function proposeToPull(atom) {
-    if (this._logger !== undefined) {
-      this._logger.status('proposeToPull', atom, this._namespace);
-    }
-
+  _proto.proposeToPull = function proposeToPull(atom) {
     this._updating.push(atom);
 
     this._schedule();
   };
 
-  _proto3.proposeToReap = function proposeToReap(atom) {
-    if (this._logger !== undefined) {
-      this._logger.status('proposeToReap', atom, this._namespace);
-    }
-
+  _proto.proposeToReap = function proposeToReap(atom) {
     this._reaping.add(atom);
 
     this._schedule();
   };
 
-  _proto3.unreap = function unreap(atom) {
+  _proto.unreap = function unreap(atom) {
     this._reaping.delete(atom);
   };
 
-  _proto3._schedule = function _schedule() {
+  _proto._schedule = function _schedule() {
     if (!this._scheduled) {
       scheduleNative(this.__run);
       this._scheduled = true;
     }
   };
 
-  _proto3._run = function _run() {
+  _proto._run = function _run() {
     this._schedule();
 
     var reaping = this._reaping;
     var updating = this._updating;
     var start = this._start;
-
-    if (this._logger !== undefined) {
-      this._logger.sync();
-    }
 
     do {
       var end = updating.length;
@@ -634,18 +585,22 @@ function () {
       reaping.forEach(reap);
     }
 
+    if (this._logger !== undefined) {
+      this._logger.endGroup();
+    }
+
     this._scheduled = false;
     this._pendCount = 0;
   };
 
-  _proto3.beginTransaction = function beginTransaction(namespace) {
+  _proto.beginTransaction = function beginTransaction(namespace) {
     var result = this._namespace;
     this._namespace = namespace;
     this._pendCount++;
     return result;
   };
 
-  _proto3.endTransaction = function endTransaction(prev) {
+  _proto.endTransaction = function endTransaction(prev) {
     this._namespace = prev;
 
     if (this._pendCount === 1) {
@@ -665,29 +620,31 @@ function getId(t, hk) {
 }
 
 getId._r = [2];
+getId.displayName = "getId";
 
-function memMethod(proto, rname, descr, isComponent) {
-  var name = getId(proto, rname);
+function memMethod(proto, name, descr, isComponent) {
+  var longName = getId(proto, name);
 
   if (descr.value === undefined) {
-    throw new TypeError(name + " is not an function (next?: V)");
+    throw new TypeError(longName + " is not an function (next?: V)");
   }
 
   proto[name + "$"] = descr.value;
   var hostAtoms = new WeakMap();
-  Object.defineProperty(proto, rname + "()", {
+  Object.defineProperty(proto, name + "()", {
     get: function get() {
       return hostAtoms.get(this);
     }
   });
 
   var forcedFn = function forcedFn(next, force) {
-    return this[rname](next, force === undefined ? ATOM_FORCE_CACHE : force);
+    return this[name](next, force === undefined ? ATOM_FORCE_CACHE : force);
   };
 
   forcedFn._r = [2];
-  setFunctionName(forcedFn, name + "*");
-  proto[rname + "*"] = forcedFn;
+  forcedFn.displayName = "forcedFn";
+  setFunctionName(forcedFn, longName + "*");
+  proto[name + "*"] = forcedFn;
   return {
     enumerable: descr.enumerable,
     configurable: descr.configurable,
@@ -705,6 +662,7 @@ function memMethod(proto, rname, descr, isComponent) {
 }
 
 memMethod._r = [2];
+memMethod.displayName = "memMethod";
 
 function createGetSetHandler(get, set) {
   return function getSetHandler(next) {
@@ -718,6 +676,7 @@ function createGetSetHandler(get, set) {
 }
 
 createGetSetHandler._r = [2];
+createGetSetHandler.displayName = "createGetSetHandler";
 
 function createValueHandler(initializer) {
   return function valueHandler(next) {
@@ -726,6 +685,7 @@ function createValueHandler(initializer) {
 }
 
 createValueHandler._r = [2];
+createValueHandler.displayName = "createValueHandler";
 
 function setFunctionName(fn, name) {
   Object.defineProperty(fn, 'name', {
@@ -736,21 +696,22 @@ function setFunctionName(fn, name) {
 }
 
 setFunctionName._r = [2];
+setFunctionName.displayName = "setFunctionName";
 var propForced = ATOM_FORCE_NONE;
 
-function memProp(proto, rname, descr) {
-  var name = getId(proto, rname);
+function memProp(proto, name, descr) {
   var handlerKey = name + "$";
 
   if (proto[handlerKey] !== undefined) {
     return undefined;
   }
 
-  if (descr.initializer) setFunctionName(descr.initializer, name);
-  if (descr.get) setFunctionName(descr.get, "get#" + name);
-  if (descr.set) setFunctionName(descr.set, "set#" + name);
+  var longName = getId(proto, name);
+  if (descr.initializer) setFunctionName(descr.initializer, longName);
+  if (descr.get) setFunctionName(descr.get, "get#" + longName);
+  if (descr.set) setFunctionName(descr.set, "set#" + longName);
   var handler = proto[handlerKey] = descr.get === undefined && descr.set === undefined ? createValueHandler(descr.initializer) : createGetSetHandler(descr.get, descr.set);
-  setFunctionName(handler, name + "()");
+  setFunctionName(handler, longName + "()");
   var hostAtoms = new WeakMap();
   Object.defineProperty(proto, name + "()", {
     get: function get() {
@@ -788,6 +749,7 @@ function memProp(proto, rname, descr) {
 }
 
 memProp._r = [2];
+memProp.displayName = "memProp";
 
 function getKeyFromObj(params) {
   var keys = Object.keys(params).sort();
@@ -803,6 +765,7 @@ function getKeyFromObj(params) {
 }
 
 getKeyFromObj._r = [2];
+getKeyFromObj.displayName = "getKeyFromObj";
 
 function getKey(params) {
   if (!params) return '';
@@ -812,30 +775,32 @@ function getKey(params) {
 }
 
 getKey._r = [2];
+getKey.displayName = "getKey";
 
-function memKeyMethod(proto, rname, descr) {
-  var name = getId(proto, rname);
+function memKeyMethod(proto, name, descr) {
+  var longName = getId(proto, name);
   var handler = descr.value;
 
   if (handler === undefined) {
-    throw new TypeError(name + " is not an function (rawKey: K, next?: V)");
+    throw new TypeError(longName + " is not an function (rawKey: K, next?: V)");
   }
 
   proto[name + "$"] = handler;
   var hostAtoms = new WeakMap();
-  Object.defineProperty(proto, rname + "()", {
+  Object.defineProperty(proto, name + "()", {
     get: function get() {
       return hostAtoms.get(this);
     }
   });
 
   var forcedFn = function forcedFn(rawKey, next, force) {
-    return this[rname](rawKey, next, force === undefined ? ATOM_FORCE_CACHE : force);
+    return this[name](rawKey, next, force === undefined ? ATOM_FORCE_CACHE : force);
   };
 
   forcedFn._r = [2];
-  setFunctionName(forcedFn, name + "*");
-  proto[rname + "*"] = forcedFn;
+  forcedFn.displayName = "forcedFn";
+  setFunctionName(forcedFn, longName + "*");
+  proto[name + "*"] = forcedFn;
   return {
     enumerable: descr.enumerable,
     configurable: descr.configurable,
@@ -861,6 +826,7 @@ function memKeyMethod(proto, rname, descr) {
 }
 
 memKeyMethod._r = [2];
+memKeyMethod.displayName = "memKeyMethod";
 
 function memkey() {
   var args = arguments;
@@ -875,6 +841,7 @@ function memkey() {
 }
 
 memkey._r = [2];
+memkey.displayName = "memkey";
 var forceProxyOpts = {
   get: function get(t, name) {
     var forceFn = t[name + "*"];
@@ -918,49 +885,51 @@ function force(proto, name, descr) {
 }
 
 force._r = [2];
+force.displayName = "force";
 
 function detached(proto, name, descr) {
   return memMethod(proto, name, descr, true);
 }
 
 detached._r = [2];
+detached.displayName = "detached";
 
-function createActionMethod(t, hk, context) {
-  var name = getId(t, hk);
+function createActionMethod(t, name, context) {
+  var longName = getId(t, name);
 
   function action() {
     var result;
-    var oldNamespace = context.beginTransaction(name);
+    var oldNamespace = context.beginTransaction(longName);
     var args = arguments;
 
     try {
       switch (args.length) {
         case 0:
-          result = t[hk]();
+          result = t[name]();
           break;
 
         case 1:
-          result = t[hk](args[0]);
+          result = t[name](args[0]);
           break;
 
         case 2:
-          result = t[hk](args[0], args[1]);
+          result = t[name](args[0], args[1]);
           break;
 
         case 3:
-          result = t[hk](args[0], args[1], args[2]);
+          result = t[name](args[0], args[1], args[2]);
           break;
 
         case 4:
-          result = t[hk](args[0], args[1], args[2], args[3]);
+          result = t[name](args[0], args[1], args[2], args[3]);
           break;
 
         case 5:
-          result = t[hk](args[0], args[1], args[2], args[3], args[4]);
+          result = t[name](args[0], args[1], args[2], args[3], args[4]);
           break;
 
         default:
-          result = t[hk].apply(t, args);
+          result = t[name].apply(t, args);
       }
     } finally {
       context.endTransaction(oldNamespace);
@@ -969,11 +938,12 @@ function createActionMethod(t, hk, context) {
     return result;
   }
 
-  setFunctionName(action, name);
+  setFunctionName(action, longName);
   return action;
 }
 
 createActionMethod._r = [2];
+createActionMethod.displayName = "createActionMethod";
 
 function createActionFn(fn, rawName, context) {
   var name = rawName || fn.displayName || fn.name;
@@ -1024,12 +994,13 @@ function createActionFn(fn, rawName, context) {
 }
 
 createActionFn._r = [2];
+createActionFn.displayName = "createActionFn";
 
-function actionMethod(proto, field, descr, context) {
-  var hk = field + "$";
+function actionMethod(proto, name, descr, context) {
+  var hk = name + "$";
 
   if (descr.value === undefined) {
-    throw new TypeError(field + " is not an function (next?: V)");
+    throw new TypeError(getId(proto, name) + " is not an function (next?: V)");
   }
 
   proto[hk] = descr.value;
@@ -1044,7 +1015,7 @@ function actionMethod(proto, field, descr, context) {
 
       definingProperty = true;
       var actionFn = createActionMethod(this, hk, context);
-      Object.defineProperty(this, field, {
+      Object.defineProperty(this, name, {
         configurable: true,
         value: actionFn
       });
@@ -1055,6 +1026,7 @@ function actionMethod(proto, field, descr, context) {
 }
 
 actionMethod._r = [2];
+actionMethod.displayName = "actionMethod";
 
 function action() {
   var args = arguments;
@@ -1067,6 +1039,7 @@ function action() {
 }
 
 action._r = [2];
+action.displayName = "action";
 
 function mem() {
   var args = arguments;
@@ -1081,9 +1054,66 @@ function mem() {
 }
 
 mem._r = [2];
+mem.displayName = "mem";
 mem.Wait = AtomWait;
 mem.key = memkey;
 mem.detached = detached;
+
+function stringToColor(str) {
+  var hash = 0;
+
+  for (var i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 3) - hash);
+  }
+
+  var color = Math.abs(hash).toString(16).substring(0, 6);
+  return 'font-weight: bold; color: #' + '000000'.substring(0, 6 - color.length) + color + ';';
+}
+
+stringToColor._r = [2];
+stringToColor.displayName = "stringToColor";
+
+var ConsoleLogger =
+/*#__PURE__*/
+function () {
+  function ConsoleLogger(opts) {
+    this._useColors = opts && opts.useColors !== undefined ? opts.useColors : true;
+    this._filter = opts ? opts.filter : undefined;
+  }
+
+  var _proto = ConsoleLogger.prototype;
+
+  _proto.create = function create(owner, field, key) {};
+
+  _proto.beginGroup = function beginGroup(name) {
+    console.group(name, 'sync');
+  };
+
+  _proto.endGroup = function endGroup() {
+    console.groupEnd();
+  };
+
+  _proto.onDestruct = function onDestruct(atom) {
+    console.debug(atom.displayName, 'destruct');
+  };
+
+  _proto.error = function error(atom, err) {};
+
+  _proto.newValue = function newValue(atom, from, to, isActualize) {
+    var name = atom.displayName;
+    var filter = this._filter;
+    if (filter && !filter.test(name)) return;
+
+    if (atom.isComponent) {
+      console.debug(name, 'rendered');
+    } else {
+      var _useColors = this._useColors;
+      console[from instanceof Error && !(from instanceof AtomWait) ? 'warn' : to instanceof Error && !(to instanceof AtomWait) ? 'error' : 'log'](_useColors ? '%c' + name : name, _useColors ? stringToColor(name) : '', from instanceof Error ? from.message : from, isActualize ? '➔' : '‣', to instanceof Error ? to.message : to);
+    }
+  };
+
+  return ConsoleLogger;
+}();
 
 function _defineProperties$2(target, props) {
   for (var i = 0; i < props.length; i++) {
@@ -1096,6 +1126,7 @@ function _defineProperties$2(target, props) {
 }
 
 _defineProperties$2._r = [2];
+_defineProperties$2.displayName = "_defineProperties";
 
 function _createClass$2(Constructor, protoProps, staticProps) {
   if (protoProps) _defineProperties$2(Constructor.prototype, protoProps);
@@ -1104,6 +1135,7 @@ function _createClass$2(Constructor, protoProps, staticProps) {
 }
 
 _createClass$2._r = [2];
+_createClass$2.displayName = "_createClass";
 
 function _inheritsLoose$2(subClass, superClass) {
   subClass.prototype = Object.create(superClass.prototype);
@@ -1112,6 +1144,7 @@ function _inheritsLoose$2(subClass, superClass) {
 }
 
 _inheritsLoose$2._r = [2];
+_inheritsLoose$2.displayName = "_inheritsLoose";
 var ATOM_FORCE_NONE$1 = 0;
 var ATOM_FORCE_CACHE$1 = 1;
 var renderedKey = Symbol('lom_rendered');
@@ -1141,6 +1174,8 @@ function () {
   return DisposableSheet;
 }();
 
+var badClassSymbols = new RegExp('[^\\w\\d]', 'g');
+
 var SheetManager =
 /*#__PURE__*/
 function () {
@@ -1155,7 +1190,10 @@ function () {
     var result = memoized ? null : this._cache.get(key);
 
     if (!result) {
-      var _sheet = this._sheetProcessor.createStyleSheet(css);
+      var _sheet = this._sheetProcessor.createStyleSheet(css, {
+        meta: key,
+        classNamePrefix: key.replace(badClassSymbols, '_').slice(2) + '__'
+      });
 
       _sheet.attach();
 
@@ -1178,7 +1216,6 @@ function () {
   return SheetManager;
 }();
 
-var lastThemeId = 0;
 var fakeSheet = {};
 
 function themeProp(proto, name, descr, isInstance) {
@@ -1190,37 +1227,37 @@ function themeProp(proto, name, descr, isInstance) {
     throw new Error("Need " + className + " { @theme get " + name + "() }");
   }
 
-  var themeId = className + "." + name + "#" + ++lastThemeId;
-  var atomId = className + "." + name + "()";
-
   if (getSheet) {
-    proto[themeId] = getSheet;
+    proto[name + "#"] = getSheet;
   }
 
   return {
     enumerable: descr.enumerable,
     configurable: descr.configurable,
     get: function get() {
-      this;
       var sm = theme.sheetManager;
-      return sm === undefined ? fakeSheet : sm.sheet(isInstance ? themeId + "[" + this[diKey].instance + "]" : themeId, value || this[themeId](), !!this[atomId]);
+      var di = this[diKey];
+      return sm === undefined ? fakeSheet : sm.sheet(di.displayName + (isInstance ? "[" + di.instance + "]" : ''), value || this[name + "#"](), !!this[name + "()"]);
     }
   };
 }
 
 themeProp._r = [2];
+themeProp.displayName = "themeProp";
 
 function themeSelf(proto, name, descr) {
   return themeProp(proto, name, descr, true);
 }
 
 themeSelf._r = [2];
+themeSelf.displayName = "themeSelf";
 
 function theme(proto, name, descr) {
   return themeProp(proto, name, descr);
 }
 
 theme._r = [2];
+theme.displayName = "theme";
 theme.self = themeSelf;
 theme.sheetManager = undefined;
 
@@ -1237,6 +1274,7 @@ var Alias = function Alias(dest) {
 };
 
 Alias._r = [2];
+Alias.displayName = "Alias";
 var Injector = (_temp$1 = _class$1 =
 /*#__PURE__*/
 function () {
@@ -1286,7 +1324,7 @@ function () {
   var _proto = Injector.prototype;
 
   _proto.toString = function toString() {
-    return this.displayName;
+    return this.displayName + (this.instance ? '[' + this.instance + ']' : '');
   };
 
   _proto.toJSON = function toJSON() {
@@ -1541,6 +1579,7 @@ function _applyDecoratedDescriptor$1(target, property, decorators, descriptor, c
 }
 
 _applyDecoratedDescriptor$1._r = [2];
+_applyDecoratedDescriptor$1.displayName = "_applyDecoratedDescriptor";
 
 function createReactWrapper(BaseComponent, ErrorComponent, detached, rootInjector, isFullEqual) {
   var _class, _class2, _temp;
@@ -1575,7 +1614,7 @@ function createReactWrapper(BaseComponent, ErrorComponent, detached, rootInjecto
 
       var cns = _this.constructor;
       _this._render = cns.render;
-      _this._injector = injector.copy(cns.displayName + (cns.instance ? '[' + cns.instance + ']' : ''), cns.instance, _this._render.aliases);
+      _this._injector = injector.copy(cns.displayName, cns.instance, _this._render.aliases);
       cns.instance++;
       return _this;
     }
@@ -1583,7 +1622,7 @@ function createReactWrapper(BaseComponent, ErrorComponent, detached, rootInjecto
     var _proto = AtomizedComponent.prototype;
 
     _proto.toString = function toString() {
-      return this._injector.displayName;
+      return this._injector.toString();
     };
 
     _proto.shouldComponentUpdate = function shouldComponentUpdate(props) {
@@ -1611,6 +1650,7 @@ function createReactWrapper(BaseComponent, ErrorComponent, detached, rootInjecto
     };
 
     _proto.componentWillUnmount = function componentWillUnmount() {
+      this['r()'].destructor();
       this._el = undefined;
       this._keys = undefined;
       this.props = undefined;
@@ -1622,8 +1662,6 @@ function createReactWrapper(BaseComponent, ErrorComponent, detached, rootInjecto
 
         this._injector = undefined;
       }
-
-      this['r()'].destructor();
     };
 
     _proto.r = function r(element, force) {
@@ -1672,6 +1710,7 @@ function createReactWrapper(BaseComponent, ErrorComponent, detached, rootInjecto
     };
 
     WrappedComponent._r = [2];
+    WrappedComponent.displayName = "WrappedComponent";
     WrappedComponent.instance = 0;
     WrappedComponent.render = render;
     WrappedComponent.isFullEqual = render.isFullEqual || isFullEqual;
@@ -1683,6 +1722,7 @@ function createReactWrapper(BaseComponent, ErrorComponent, detached, rootInjecto
 }
 
 createReactWrapper._r = [2];
+createReactWrapper.displayName = "createReactWrapper";
 
 function createCreateElement(atomize, createElement) {
   function lomCreateElement() {
@@ -1768,6 +1808,7 @@ function createCreateElement(atomize, createElement) {
 }
 
 createCreateElement._r = [2];
+createCreateElement.displayName = "createCreateElement";
 
 function dn(fn) {
   if (!fn) return 'null';
@@ -1785,12 +1826,14 @@ function dn(fn) {
 }
 
 dn._r = [2];
+dn.displayName = "dn";
 
 function provideMap(item) {
   return item instanceof Array ? "[" + dn(item[0]) + ", " + dn(item[1]) + "]" : dn(item);
 }
 
 provideMap._r = [2];
+provideMap.displayName = "provideMap";
 
 function cloneComponent(fn, aliases, name) {
   var cloned = function cloned() {
@@ -1816,6 +1859,7 @@ function cloneComponent(fn, aliases, name) {
   };
 
   cloned._r = [2];
+  cloned.displayName = "cloned";
   cloned.deps = fn.deps;
   cloned._r = fn._r;
   cloned.aliases = fn.aliases ? fn.aliases.concat(aliases) : aliases;
@@ -1824,6 +1868,7 @@ function cloneComponent(fn, aliases, name) {
 }
 
 cloneComponent._r = [2];
+cloneComponent.displayName = "cloneComponent";
 
 function props(proto, name, descr) {
   proto.constructor.__lom_prop = name;
@@ -1834,6 +1879,7 @@ function props(proto, name, descr) {
 }
 
 props._r = [2];
+props.displayName = "props";
 
 /** Virtual DOM Node */
 function VNode() {}
@@ -1844,6 +1890,7 @@ function VNode() {}
 
 
 VNode._r = [2];
+VNode.displayName = "VNode";
 var options = {
   /** If `true`, `prop` changes trigger synchronous component updates.
    *	@name syncComponentUpdates
@@ -1930,6 +1977,7 @@ function h(nodeName, attributes) {
 
 
 h._r = [2];
+h.displayName = "h";
 
 function extend(obj, props) {
   for (var i in props) {
@@ -1944,6 +1992,7 @@ function extend(obj, props) {
 
 
 extend._r = [2];
+extend.displayName = "extend";
 var defer = typeof Promise == 'function' ? Promise.resolve().then.bind(Promise.resolve()) : setTimeout;
 
 function cloneElement(vnode, props) {
@@ -1952,6 +2001,7 @@ function cloneElement(vnode, props) {
 
 
 cloneElement._r = [2];
+cloneElement.displayName = "cloneElement";
 var IS_NON_DIMENSIONAL = /acit|ex(?:s|g|n|p|$)|rph|ows|mnc|ntw|ine[ch]|zoo|^ord/i;
 /** Managed queue of dirty components to be re-rendered */
 
@@ -1964,6 +2014,7 @@ function enqueueRender(component) {
 }
 
 enqueueRender._r = [2];
+enqueueRender.displayName = "enqueueRender";
 
 function rerender() {
   var p,
@@ -1982,6 +2033,7 @@ function rerender() {
 
 
 rerender._r = [2];
+rerender.displayName = "rerender";
 
 function isSameNodeType(node, vnode, hydrating) {
   if (typeof vnode === 'string' || typeof vnode === 'number') {
@@ -2001,6 +2053,7 @@ function isSameNodeType(node, vnode, hydrating) {
 
 
 isSameNodeType._r = [2];
+isSameNodeType.displayName = "isSameNodeType";
 
 function isNamedNode(node, nodeName) {
   return node.normalizedNodeName === nodeName || node.nodeName.toLowerCase() === nodeName.toLowerCase();
@@ -2015,6 +2068,7 @@ function isNamedNode(node, nodeName) {
 
 
 isNamedNode._r = [2];
+isNamedNode.displayName = "isNamedNode";
 
 function getNodeProps(vnode) {
   var props = extend({}, vnode.attributes);
@@ -2039,6 +2093,7 @@ function getNodeProps(vnode) {
 
 
 getNodeProps._r = [2];
+getNodeProps.displayName = "getNodeProps";
 
 function createNode(nodeName, isSvg) {
   var node = isSvg ? document.createElementNS('http://www.w3.org/2000/svg', nodeName) : document.createElement(nodeName);
@@ -2051,6 +2106,7 @@ function createNode(nodeName, isSvg) {
 
 
 createNode._r = [2];
+createNode.displayName = "createNode";
 
 function removeNode(node) {
   var parentNode = node.parentNode;
@@ -2068,6 +2124,7 @@ function removeNode(node) {
 
 
 removeNode._r = [2];
+removeNode.displayName = "removeNode";
 
 function setAccessor(node, name, old, value, isSvg) {
   if (name === 'className') name = 'class';
@@ -2126,6 +2183,7 @@ function setAccessor(node, name, old, value, isSvg) {
 
 
 setAccessor._r = [2];
+setAccessor.displayName = "setAccessor";
 
 function setProperty(node, name, value) {
   try {
@@ -2138,6 +2196,7 @@ function setProperty(node, name, value) {
 
 
 setProperty._r = [2];
+setProperty.displayName = "setProperty";
 
 function eventProxy(e) {
   return this._listeners[e.type](options.event && options.event(e) || e);
@@ -2146,6 +2205,7 @@ function eventProxy(e) {
 
 
 eventProxy._r = [2];
+eventProxy.displayName = "eventProxy";
 var mounts = [];
 /** Diff recursion count, used to track the end of the diff cycle. */
 
@@ -2175,6 +2235,7 @@ function flushMounts() {
 
 
 flushMounts._r = [2];
+flushMounts.displayName = "flushMounts";
 
 function diff(dom, vnode, context, mountAll, parent, componentRoot) {
   // diffLevel having been 0 here indicates initial entry into the diff (not a subdiff)
@@ -2201,6 +2262,7 @@ function diff(dom, vnode, context, mountAll, parent, componentRoot) {
 
 
 diff._r = [2];
+diff.displayName = "diff";
 
 function idiff(dom, vnode, context, mountAll, componentRoot) {
   var out = dom,
@@ -2297,6 +2359,7 @@ function idiff(dom, vnode, context, mountAll, componentRoot) {
 
 
 idiff._r = [2];
+idiff.displayName = "idiff";
 
 function innerDiffNode(dom, vchildren, context, mountAll, isHydrating) {
   var originalChildren = dom.childNodes,
@@ -2389,6 +2452,7 @@ function innerDiffNode(dom, vchildren, context, mountAll, isHydrating) {
 
 
 innerDiffNode._r = [2];
+innerDiffNode.displayName = "innerDiffNode";
 
 function recollectNodeTree(node, unmountOnly) {
   var component = node._component;
@@ -2415,6 +2479,7 @@ function recollectNodeTree(node, unmountOnly) {
 
 
 recollectNodeTree._r = [2];
+recollectNodeTree.displayName = "recollectNodeTree";
 
 function removeChildren(node) {
   node = node.lastChild;
@@ -2433,6 +2498,7 @@ function removeChildren(node) {
 
 
 removeChildren._r = [2];
+removeChildren.displayName = "removeChildren";
 
 function diffAttributes(dom, attrs, old) {
   var name; // remove attributes no longer present on the vnode by setting them to undefined
@@ -2457,6 +2523,7 @@ function diffAttributes(dom, attrs, old) {
 
 
 diffAttributes._r = [2];
+diffAttributes.displayName = "diffAttributes";
 var components = {};
 /** Reclaim a component for later re-use by the recycler. */
 
@@ -2468,6 +2535,7 @@ function collectComponent(component) {
 
 
 collectComponent._r = [2];
+collectComponent.displayName = "collectComponent";
 
 function createComponent(Ctor, props, context) {
   var list = components[Ctor.name],
@@ -2498,6 +2566,7 @@ function createComponent(Ctor, props, context) {
 
 
 createComponent._r = [2];
+createComponent.displayName = "createComponent";
 
 function doRender(props, state, context) {
   return this.constructor(props, context);
@@ -2511,6 +2580,7 @@ function doRender(props, state, context) {
 
 
 doRender._r = [2];
+doRender.displayName = "doRender";
 
 function setComponentProps(component, props, opts, context, mountAll) {
   if (component._disable) return;
@@ -2552,6 +2622,7 @@ function setComponentProps(component, props, opts, context, mountAll) {
 
 
 setComponentProps._r = [2];
+setComponentProps.displayName = "setComponentProps";
 
 function renderComponent(component, opts, mountAll, isChild) {
   if (component._disable) return;
@@ -2695,6 +2766,7 @@ function renderComponent(component, opts, mountAll, isChild) {
 
 
 renderComponent._r = [2];
+renderComponent.displayName = "renderComponent";
 
 function buildComponentFromVNode(dom, vnode, context, mountAll) {
   var c = dom && dom._component,
@@ -2743,6 +2815,7 @@ function buildComponentFromVNode(dom, vnode, context, mountAll) {
 
 
 buildComponentFromVNode._r = [2];
+buildComponentFromVNode.displayName = "buildComponentFromVNode";
 
 function unmountComponent(component) {
   if (options.beforeUnmount) options.beforeUnmount(component);
@@ -2779,6 +2852,7 @@ function unmountComponent(component) {
 
 
 unmountComponent._r = [2];
+unmountComponent.displayName = "unmountComponent";
 
 function Component(props, context) {
   this._dirty = true;
@@ -2800,6 +2874,7 @@ function Component(props, context) {
 }
 
 Component._r = [2];
+Component.displayName = "Component";
 extend(Component.prototype, {
   /** Returns a `boolean` indicating if the component should re-render when receiving the given `props` and `state`.
    *	@param {object} nextProps
@@ -2861,6 +2936,7 @@ function render(vnode, parent, merge) {
 }
 
 render._r = [2];
+render.displayName = "render";
 var preact = {
   h: h,
   createElement: h,
@@ -2901,8 +2977,6 @@ var devtools = createCommonjsModule(function (module, exports) {
   (function (global, factory) {
     factory(require$$0);
   })(commonjsGlobal, function (preact) {
-    'use strict'; // render modes
-
     var ATTR_KEY = '__preactattr_'; // DOM properties that should NOT have "px" added when numeric
 
     /* global __REACT_DEVTOOLS_GLOBAL_HOOK__ */
@@ -3160,6 +3234,7 @@ var devtools = createCommonjsModule(function (module, exports) {
 
 
       componentAdded._r = [2];
+      componentAdded.displayName = "componentAdded";
 
       var componentUpdated = function componentUpdated(component) {
         var prevRenderedChildren = [];
@@ -3194,6 +3269,7 @@ var devtools = createCommonjsModule(function (module, exports) {
 
 
       componentUpdated._r = [2];
+      componentUpdated.displayName = "componentUpdated";
 
       var componentRemoved = function componentRemoved(component) {
         var instance = updateReactComponent(component);
@@ -3210,6 +3286,7 @@ var devtools = createCommonjsModule(function (module, exports) {
       };
 
       componentRemoved._r = [2];
+      componentRemoved.displayName = "componentRemoved";
       return {
         componentAdded: componentAdded,
         componentUpdated: componentUpdated,
@@ -3322,8 +3399,6 @@ var devtools = createCommonjsModule(function (module, exports) {
 });
 
 var getDynamicStyles = createCommonjsModule(function (module, exports) {
-  'use strict';
-
   Object.defineProperty(exports, "__esModule", {
     value: true
   });
@@ -3369,8 +3444,6 @@ var getDynamicStyles = createCommonjsModule(function (module, exports) {
 unwrapExports(getDynamicStyles);
 
 var SheetsRegistry_1 = createCommonjsModule(function (module, exports) {
-  'use strict';
-
   Object.defineProperty(exports, "__esModule", {
     value: true
   });
@@ -3484,173 +3557,14 @@ var SheetsRegistry_1 = createCommonjsModule(function (module, exports) {
 });
 unwrapExports(SheetsRegistry_1);
 
-// shim for using process in browser
-// based off https://github.com/defunctzombie/node-process/blob/master/browser.js
-function defaultSetTimout() {
-  throw new Error('setTimeout has not been defined');
-}
-
-defaultSetTimout._r = [2];
-
-function defaultClearTimeout() {
-  throw new Error('clearTimeout has not been defined');
-}
-
-defaultClearTimeout._r = [2];
-var cachedSetTimeout = defaultSetTimout;
-var cachedClearTimeout = defaultClearTimeout;
-
-if (typeof global$1.setTimeout === 'function') {
-  cachedSetTimeout = setTimeout;
-}
-
-if (typeof global$1.clearTimeout === 'function') {
-  cachedClearTimeout = clearTimeout;
-}
-
-function runTimeout(fun) {
-  if (cachedSetTimeout === setTimeout) {
-    //normal enviroments in sane situations
-    return setTimeout(fun, 0);
-  } // if setTimeout wasn't available but was latter defined
-
-
-  if ((cachedSetTimeout === defaultSetTimout || !cachedSetTimeout) && setTimeout) {
-    cachedSetTimeout = setTimeout;
-    return setTimeout(fun, 0);
-  }
-
-  try {
-    // when when somebody has screwed with setTimeout but no I.E. maddness
-    return cachedSetTimeout(fun, 0);
-  } catch (e) {
-    try {
-      // When we are in I.E. but the script has been evaled so I.E. doesn't trust the global object when called normally
-      return cachedSetTimeout.call(null, fun, 0);
-    } catch (e) {
-      // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error
-      return cachedSetTimeout.call(this, fun, 0);
-    }
-  }
-}
-
-runTimeout._r = [2];
-
-function runClearTimeout(marker) {
-  if (cachedClearTimeout === clearTimeout) {
-    //normal enviroments in sane situations
-    return clearTimeout(marker);
-  } // if clearTimeout wasn't available but was latter defined
-
-
-  if ((cachedClearTimeout === defaultClearTimeout || !cachedClearTimeout) && clearTimeout) {
-    cachedClearTimeout = clearTimeout;
-    return clearTimeout(marker);
-  }
-
-  try {
-    // when when somebody has screwed with setTimeout but no I.E. maddness
-    return cachedClearTimeout(marker);
-  } catch (e) {
-    try {
-      // When we are in I.E. but the script has been evaled so I.E. doesn't  trust the global object when called normally
-      return cachedClearTimeout.call(null, marker);
-    } catch (e) {
-      // same as above but when it's a version of I.E. that must have the global object for 'this', hopfully our context correct otherwise it will throw a global error.
-      // Some versions of I.E. have different rules for clearTimeout vs setTimeout
-      return cachedClearTimeout.call(this, marker);
-    }
-  }
-}
-
-runClearTimeout._r = [2];
-var queue = [];
-var draining = false;
-var currentQueue;
-var queueIndex = -1;
-
-function cleanUpNextTick() {
-  if (!draining || !currentQueue) {
-    return;
-  }
-
-  draining = false;
-
-  if (currentQueue.length) {
-    queue = currentQueue.concat(queue);
-  } else {
-    queueIndex = -1;
-  }
-
-  if (queue.length) {
-    drainQueue();
-  }
-}
-
-cleanUpNextTick._r = [2];
-
-function drainQueue() {
-  if (draining) {
-    return;
-  }
-
-  var timeout = runTimeout(cleanUpNextTick);
-  draining = true;
-  var len = queue.length;
-
-  while (len) {
-    currentQueue = queue;
-    queue = [];
-
-    while (++queueIndex < len) {
-      if (currentQueue) {
-        currentQueue[queueIndex].run();
-      }
-    }
-
-    queueIndex = -1;
-    len = queue.length;
-  }
-
-  currentQueue = null;
-  draining = false;
-  runClearTimeout(timeout);
-}
-
-drainQueue._r = [2];
- // v8 likes predictible objects
-
-
-
-
-
-
- // empty string to avoid regexp issues
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
- // from https://github.com/kumavis/browser-process-hrtime/blob/master/index.js
-
-var performance = global$1.performance || {};
-
-var performanceNow = performance.now || performance.mozNow || performance.msNow || performance.oNow || performance.webkitNow || function () {
-  return new Date().getTime();
-}; // generate timestamp or delta
-// see http://nodejs.org/api/process.html#process_process_hrtime
-
+/**
+ * Copyright 2014-2015, Facebook, Inc.
+ * All rights reserved.
+ *
+ * This source code is licensed under the BSD-style license found in the
+ * LICENSE file in the root directory of this source tree. An additional grant
+ * of patent rights can be found in the PATENTS file in the same directory.
+ */
 /**
  * Similar to invariant but only logs a warning if the condition is not met.
  * This can be used to log issues in development environments in critical
@@ -3661,6 +3575,7 @@ var performanceNow = performance.now || performance.mozNow || performance.msNow 
 var warning = function warning() {};
 
 warning._r = [2];
+warning.displayName = "warning";
 
 {
   warning = function warning(condition, format, args) {
@@ -3701,8 +3616,6 @@ warning._r = [2];
 var browser = warning;
 
 var SheetsManager_1 = createCommonjsModule(function (module, exports) {
-  'use strict';
-
   Object.defineProperty(exports, "__esModule", {
     value: true
   });
@@ -3789,7 +3702,7 @@ var SheetsManager_1 = createCommonjsModule(function (module, exports) {
 
         if (index === -1) {
           // eslint-ignore-next-line no-console
-          (0, _warning2['default'])(false, 'SheetsManager: can\'t find sheet to unmanage');
+          (_warning2['default'])(false, 'SheetsManager: can\'t find sheet to unmanage');
           return;
         }
 
@@ -3813,8 +3726,6 @@ var SheetsManager_1 = createCommonjsModule(function (module, exports) {
 unwrapExports(SheetsManager_1);
 
 var toCssValue_1 = createCommonjsModule(function (module, exports) {
-  'use strict';
-
   Object.defineProperty(exports, "__esModule", {
     value: true
   });
@@ -3832,6 +3743,7 @@ var toCssValue_1 = createCommonjsModule(function (module, exports) {
 
 
   joinWithSpace._r = [2];
+  joinWithSpace.displayName = "joinWithSpace";
 
   function toCssValue(value) {
     if (!Array.isArray(value)) return value; // Support space separated values.
@@ -3845,66 +3757,13 @@ var toCssValue_1 = createCommonjsModule(function (module, exports) {
 });
 unwrapExports(toCssValue_1);
 
-var ponyfill = function symbolObservablePonyfill(root) {
-  var result;
-  var Symbol = root.Symbol;
-
-  if (typeof Symbol === 'function') {
-    if (Symbol.observable) {
-      result = Symbol.observable;
-    } else {
-      result = Symbol('observable');
-      Symbol.observable = result;
-    }
-  } else {
-    result = '@@observable';
-  }
-
-  return result;
-};
-
-ponyfill._r = [2];
-
-var symbolObservable = ponyfill(commonjsGlobal || window || commonjsGlobal);
-
-var isObservable = function isObservable(fn) {
-  return Boolean(fn && fn[symbolObservable]);
-};
-
-isObservable._r = [2];
-
-var isDynamic = createCommonjsModule(function (module, exports) {
-  'use strict';
-
-  Object.defineProperty(exports, "__esModule", {
-    value: true
-  });
-
-  var _isObservable2 = _interopRequireDefault$$1(isObservable);
-
-  function _interopRequireDefault$$1(obj) {
-    return obj && obj.__esModule ? obj : {
-      'default': obj
-    };
-  }
-
-  exports['default'] = function (value) {
-    return typeof value === 'function' || (0, _isObservable2['default'])(value);
-  };
-});
-unwrapExports(isDynamic);
-
 var toCss_1 = createCommonjsModule(function (module, exports) {
-  'use strict';
-
   Object.defineProperty(exports, "__esModule", {
     value: true
   });
   exports['default'] = toCss;
 
   var _toCssValue2 = _interopRequireDefault$$1(toCssValue_1);
-
-  var _isDynamic2 = _interopRequireDefault$$1(isDynamic);
 
   function _interopRequireDefault$$1(obj) {
     return obj && obj.__esModule ? obj : {
@@ -3950,7 +3809,7 @@ var toCss_1 = createCommonjsModule(function (module, exports) {
             var value = fallback[prop];
 
             if (value != null) {
-              result += '\n' + indentStr(prop + ': ' + (0, _toCssValue2['default'])(value) + ';', indent);
+              result += '\n' + indentStr(prop + ': ' + (_toCssValue2['default'])(value) + ';', indent);
             }
           }
         }
@@ -3960,31 +3819,22 @@ var toCss_1 = createCommonjsModule(function (module, exports) {
             var _value = fallbacks[_prop];
 
             if (_value != null) {
-              result += '\n' + indentStr(_prop + ': ' + (0, _toCssValue2['default'])(_value) + ';', indent);
+              result += '\n' + indentStr(_prop + ': ' + (_toCssValue2['default'])(_value) + ';', indent);
             }
           }
         }
     }
 
-    var isDynamicValue = false;
+    for (var _prop2 in style) {
+      var _value2 = style[_prop2];
 
-    if (!style.isDynamic) {
-      for (var _prop2 in style) {
-        var _value2 = style[_prop2];
-
-        if ((0, _isDynamic2['default'])(_value2)) {
-          _value2 = style['$' + _prop2];
-          isDynamicValue = true;
-        }
-
-        if (_value2 != null && _prop2 !== 'fallbacks') {
-          result += '\n' + indentStr(_prop2 + ': ' + (0, _toCssValue2['default'])(_value2) + ';', indent);
-        }
+      if (_value2 != null && _prop2 !== 'fallbacks') {
+        result += '\n' + indentStr(_prop2 + ': ' + (_toCssValue2['default'])(_value2) + ';', indent);
       }
     } // Allow empty style in this case, because properties will be added dynamically.
 
 
-    if (!result && !isDynamicValue && !style.isDynamic) return result;
+    if (!result && !options.allowEmpty) return result;
     indent--;
     result = indentStr(selector + ' {' + result + '\n', indent) + indentStr('}', indent);
     return result;
@@ -3993,11 +3843,23 @@ var toCss_1 = createCommonjsModule(function (module, exports) {
 unwrapExports(toCss_1);
 
 var StyleRule_1 = createCommonjsModule(function (module, exports) {
-  'use strict';
-
   Object.defineProperty(exports, "__esModule", {
     value: true
   });
+
+  var _extends$$1 = Object.assign || function (target) {
+    for (var i = 1; i < arguments.length; i++) {
+      var source = arguments[i];
+
+      for (var key in source) {
+        if (Object.prototype.hasOwnProperty.call(source, key)) {
+          target[key] = source[key];
+        }
+      }
+    }
+
+    return target;
+  };
 
   var _typeof$$1 = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
     return typeof obj;
@@ -4028,8 +3890,6 @@ var StyleRule_1 = createCommonjsModule(function (module, exports) {
   var _toCss2 = _interopRequireDefault$$1(toCss_1);
 
   var _toCssValue2 = _interopRequireDefault$$1(toCssValue_1);
-
-  var _isDynamic2 = _interopRequireDefault$$1(isDynamic);
 
   function _interopRequireDefault$$1(obj) {
     return obj && obj.__esModule ? obj : {
@@ -4072,24 +3932,18 @@ var StyleRule_1 = createCommonjsModule(function (module, exports) {
        * Get or set a style property.
        */
       value: function prop(name, nextValue) {
-        // The result of a dynamic value is prefixed with $ and is not innumerable in
-        // order to be ignored by all plugins or during stringification.
-        var $name = (0, _isDynamic2['default'])(this.style[name]) ? '$' + name : name; // Its a setter.
-
+        // It's a setter.
         if (nextValue != null) {
           // Don't do anything if the value has not changed.
-          if (this.style[$name] !== nextValue) {
+          if (this.style[name] !== nextValue) {
             nextValue = this.options.jss.plugins.onChangeValue(nextValue, name, this);
-            Object.defineProperty(this.style, $name, {
-              value: nextValue,
-              writable: true
-            }); // Renderable is defined if StyleSheet option `link` is true.
+            this.style[name] = nextValue; // Renderable is defined if StyleSheet option `link` is true.
 
             if (this.renderable) this.renderer.setStyle(this.renderable, name, nextValue);else {
               var sheet = this.options.sheet;
 
               if (sheet && sheet.attached) {
-                (0, _warning2['default'])(false, 'Rule is not linked. Missing sheet option "link: true".');
+                (_warning2['default'])(false, 'Rule is not linked. Missing sheet option "link: true".');
               }
             }
           }
@@ -4097,7 +3951,7 @@ var StyleRule_1 = createCommonjsModule(function (module, exports) {
           return this;
         }
 
-        return this.style[$name];
+        return this.style[name];
       }
       /**
        * Apply rule to an element inline.
@@ -4127,7 +3981,7 @@ var StyleRule_1 = createCommonjsModule(function (module, exports) {
 
         for (var prop in this.style) {
           var value = this.style[prop];
-          if ((0, _isDynamic2['default'])(value)) json[prop] = this.style['$' + prop];else if ((typeof value === 'undefined' ? 'undefined' : _typeof$$1(value)) !== 'object') json[prop] = value;else if (Array.isArray(value)) json[prop] = (0, _toCssValue2['default'])(value);
+          if ((typeof value === 'undefined' ? 'undefined' : _typeof$$1(value)) !== 'object') json[prop] = value;else if (Array.isArray(value)) json[prop] = (_toCssValue2['default'])(value);
         }
 
         return json;
@@ -4139,7 +3993,12 @@ var StyleRule_1 = createCommonjsModule(function (module, exports) {
     }, {
       key: 'toString',
       value: function toString(options) {
-        return (0, _toCss2['default'])(this.selector, this.style, options);
+        var sheet = this.options.sheet;
+        var link = sheet ? sheet.options.link : false;
+        var opts = link ? _extends$$1({}, options, {
+          allowEmpty: true
+        }) : options;
+        return (_toCss2['default'])(this.selector, this.style, opts);
       }
     }, {
       key: 'selector',
@@ -4172,9 +4031,87 @@ var StyleRule_1 = createCommonjsModule(function (module, exports) {
 });
 unwrapExports(StyleRule_1);
 
-var cloneStyle_1 = createCommonjsModule(function (module, exports) {
-  'use strict';
+var ponyfill = createCommonjsModule(function (module, exports) {
+  Object.defineProperty(exports, "__esModule", {
+    value: true
+  });
+  exports['default'] = symbolObservablePonyfill;
 
+  function symbolObservablePonyfill(root) {
+    var result;
+    var _Symbol = root.Symbol;
+
+    if (typeof _Symbol === 'function') {
+      if (_Symbol.observable) {
+        result = _Symbol.observable;
+      } else {
+        result = _Symbol('observable');
+        _Symbol.observable = result;
+      }
+    } else {
+      result = '@@observable';
+    }
+
+    return result;
+  }
+
+  
+});
+unwrapExports(ponyfill);
+
+var lib$1 = createCommonjsModule(function (module, exports) {
+  Object.defineProperty(exports, "__esModule", {
+    value: true
+  });
+
+  var _ponyfill2 = _interopRequireDefault$$1(ponyfill);
+
+  function _interopRequireDefault$$1(obj) {
+    return obj && obj.__esModule ? obj : {
+      'default': obj
+    };
+  }
+
+  var root;
+  /* global window */
+
+  if (typeof self !== 'undefined') {
+    root = self;
+  } else if (typeof window !== 'undefined') {
+    root = window;
+  } else if (typeof commonjsGlobal !== 'undefined') {
+    root = commonjsGlobal;
+  } else {
+    root = module;
+  }
+
+  var result = (_ponyfill2['default'])(root);
+  exports['default'] = result;
+});
+unwrapExports(lib$1);
+
+var symbolObservable = lib$1;
+
+var isObservable = createCommonjsModule(function (module, exports) {
+  Object.defineProperty(exports, "__esModule", {
+    value: true
+  });
+
+  var _symbolObservable2 = _interopRequireDefault$$1(symbolObservable);
+
+  function _interopRequireDefault$$1(obj) {
+    return obj && obj.__esModule ? obj : {
+      'default': obj
+    };
+  }
+
+  exports['default'] = function (value) {
+    return value && value[_symbolObservable2['default']] && value === value[_symbolObservable2['default']]();
+  };
+});
+unwrapExports(isObservable);
+
+var cloneStyle_1 = createCommonjsModule(function (module, exports) {
   Object.defineProperty(exports, "__esModule", {
     value: true
   });
@@ -4202,18 +4139,22 @@ var cloneStyle_1 = createCommonjsModule(function (module, exports) {
     if (style == null) return style; // Support string value for SimpleRule.
 
     var typeOfStyle = typeof style === 'undefined' ? 'undefined' : _typeof$$1(style);
-    if (typeOfStyle === 'string' || typeOfStyle === 'number') return style; // Support array for FontFaceRule.
+
+    if (typeOfStyle === 'string' || typeOfStyle === 'number' || typeOfStyle === 'function') {
+      return style;
+    } // Support array for FontFaceRule.
+
 
     if (isArray(style)) return style.map(cloneStyle); // Support Observable styles.  Observables are immutable, so we don't need to
     // copy them.
 
-    if ((0, _isObservable2['default'])(style)) return style;
+    if ((_isObservable2['default'])(style)) return style;
     var newStyle = {};
 
     for (var name in style) {
       var value = style[name];
 
-      if ((typeof value === 'undefined' ? 'undefined' : _typeof$$1(value)) === 'object' && !(0, _isObservable2['default'])(value)) {
+      if ((typeof value === 'undefined' ? 'undefined' : _typeof$$1(value)) === 'object') {
         newStyle[name] = cloneStyle(value);
         continue;
       }
@@ -4227,8 +4168,6 @@ var cloneStyle_1 = createCommonjsModule(function (module, exports) {
 unwrapExports(cloneStyle_1);
 
 var createRule_1 = createCommonjsModule(function (module, exports) {
-  'use strict';
-
   Object.defineProperty(exports, "__esModule", {
     value: true
   });
@@ -4254,15 +4193,13 @@ var createRule_1 = createCommonjsModule(function (module, exports) {
     var name = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 'unnamed';
     var decl = arguments[1];
     var options = arguments[2];
-    var jss = options.jss; // It has `isDynamic` property if an Observable rule was used, so no need to
-    // clone it.
-
-    var declCopy = decl && decl.isDynamic ? decl : (0, _cloneStyle2['default'])(decl);
+    var jss = options.jss;
+    var declCopy = (_cloneStyle2['default'])(decl);
     var rule = jss.plugins.onCreateRule(name, declCopy, options);
     if (rule) return rule; // It is an at-rule and it has no instance.
 
     if (name[0] === '@') {
-      (0, _warning2['default'])(false, '[JSS] Unknown at-rule %s', name);
+      (_warning2['default'])(false, '[JSS] Unknown at-rule %s', name);
     }
 
     return new _StyleRule2['default'](name, declCopy, options);
@@ -4270,32 +4207,7 @@ var createRule_1 = createCommonjsModule(function (module, exports) {
 });
 unwrapExports(createRule_1);
 
-var updateStyle = createCommonjsModule(function (module, exports) {
-  'use strict';
-
-  Object.defineProperty(exports, "__esModule", {
-    value: true
-  });
-
-  exports['default'] = function (rule, data, RuleList) {
-    if (rule.type === 'style') {
-      for (var prop in rule.style) {
-        var value = rule.style[prop];
-
-        if (typeof value === 'function') {
-          rule.prop(prop, value(data));
-        }
-      }
-    } else if (rule.rules instanceof RuleList) {
-      rule.rules.update(data);
-    }
-  };
-});
-unwrapExports(updateStyle);
-
 var linkRule_1 = createCommonjsModule(function (module, exports) {
-  "use strict";
-
   Object.defineProperty(exports, "__esModule", {
     value: true
   });
@@ -4311,9 +4223,49 @@ var linkRule_1 = createCommonjsModule(function (module, exports) {
 });
 unwrapExports(linkRule_1);
 
-var RuleList_1 = createCommonjsModule(function (module, exports) {
-  'use strict';
+var global_1 = createCommonjsModule(function (module, exports) {
+  Object.defineProperty(exports, "__esModule", {
+    value: true
+  });
+  exports['default'] = typeof window === 'undefined' ? commonjsGlobal : window;
+});
+unwrapExports(global_1);
 
+var _escape = createCommonjsModule(function (module, exports) {
+  Object.defineProperty(exports, "__esModule", {
+    value: true
+  });
+
+  var _warning2 = _interopRequireDefault$$1(browser);
+
+  var _global2 = _interopRequireDefault$$1(global_1);
+
+  function _interopRequireDefault$$1(obj) {
+    return obj && obj.__esModule ? obj : {
+      'default': obj
+    };
+  }
+
+  var CSS = _global2['default'].CSS;
+  var env = "development";
+
+  exports['default'] = function (str) {
+    // We don't need to escape it in production, because we are not using user's
+    // input for selectors, we are generating a selector completely.
+    if (env === 'production') return str;
+
+    if (!CSS || !CSS.escape) {
+      (_warning2['default'])(false, '[JSS] CSS.escape polyfill in DEV mode is required in this browser, ' + 'check out https://github.com/mathiasbynens/CSS.escape');
+      return str;
+    }
+
+    return CSS.escape(str);
+  };
+});
+
+unwrapExports(_escape);
+
+var RuleList_1 = createCommonjsModule(function (module, exports) {
   Object.defineProperty(exports, "__esModule", {
     value: true
   });
@@ -4352,11 +4304,11 @@ var RuleList_1 = createCommonjsModule(function (module, exports) {
 
   var _createRule2 = _interopRequireDefault$$1(createRule_1);
 
-  var _updateStyle2 = _interopRequireDefault$$1(updateStyle);
-
   var _linkRule2 = _interopRequireDefault$$1(linkRule_1);
 
   var _StyleRule2 = _interopRequireDefault$$1(StyleRule_1);
+
+  var _escape2 = _interopRequireDefault$$1(_escape);
 
   function _interopRequireDefault$$1(obj) {
     return obj && obj.__esModule ? obj : {
@@ -4415,16 +4367,16 @@ var RuleList_1 = createCommonjsModule(function (module, exports) {
         }, options);
 
         if (!options.selector && this.classes[name]) {
-          options.selector = '.' + this.classes[name];
+          options.selector = '.' + (_escape2['default'])(this.classes[name]);
         }
 
         this.raw[name] = decl;
-        var rule = (0, _createRule2['default'])(name, decl, options);
+        var rule = (_createRule2['default'])(name, decl, options);
         var className = void 0;
 
         if (!options.selector && rule instanceof _StyleRule2['default']) {
           className = generateClassName(rule, sheet);
-          rule.selector = '.' + className;
+          rule.selector = '.' + (_escape2['default'])(className);
         }
 
         this.register(rule, className);
@@ -4507,13 +4459,17 @@ var RuleList_1 = createCommonjsModule(function (module, exports) {
     }, {
       key: 'update',
       value: function update(name, data) {
+        var _options2 = this.options,
+            plugins = _options2.jss.plugins,
+            sheet = _options2.sheet;
+
         if (typeof name === 'string') {
-          (0, _updateStyle2['default'])(this.get(name), data, RuleList);
+          plugins.onUpdate(data, this.get(name), sheet);
           return;
         }
 
         for (var index = 0; index < this.index.length; index++) {
-          (0, _updateStyle2['default'])(this.index[index], name, RuleList);
+          plugins.onUpdate(name, this.index[index], sheet);
         }
       }
       /**
@@ -4532,7 +4488,7 @@ var RuleList_1 = createCommonjsModule(function (module, exports) {
 
           if (map[_key]) _key = map[_key];
           var rule = this.map[_key];
-          if (rule) (0, _linkRule2['default'])(rule, cssRule);
+          if (rule) (_linkRule2['default'])(rule, cssRule);
         }
       }
       /**
@@ -4543,12 +4499,14 @@ var RuleList_1 = createCommonjsModule(function (module, exports) {
       key: 'toString',
       value: function toString(options) {
         var str = '';
+        var sheet = this.options.sheet;
+        var link = sheet ? sheet.options.link : false;
 
         for (var index = 0; index < this.index.length; index++) {
           var rule = this.index[index];
           var css = rule.toString(options); // No need to render an empty rule.
 
-          if (!css) continue;
+          if (!css && !link) continue;
           if (str) str += '\n';
           str += css;
         }
@@ -4565,8 +4523,6 @@ var RuleList_1 = createCommonjsModule(function (module, exports) {
 unwrapExports(RuleList_1);
 
 var sheets = createCommonjsModule(function (module, exports) {
-  'use strict';
-
   Object.defineProperty(exports, "__esModule", {
     value: true
   });
@@ -4591,8 +4547,6 @@ var sheets = createCommonjsModule(function (module, exports) {
 unwrapExports(sheets);
 
 var StyleSheet_1 = createCommonjsModule(function (module, exports) {
-  'use strict';
-
   Object.defineProperty(exports, "__esModule", {
     value: true
   });
@@ -4738,7 +4692,7 @@ var StyleSheet_1 = createCommonjsModule(function (module, exports) {
       key: 'insertRule',
       value: function insertRule(rule) {
         var renderable = this.renderer.insertRule(rule);
-        if (renderable && this.options.link) (0, _linkRule2['default'])(rule, renderable);
+        if (renderable && this.options.link) (_linkRule2['default'])(rule, renderable);
       }
       /**
        * Create and add rules.
@@ -4845,8 +4799,6 @@ var StyleSheet_1 = createCommonjsModule(function (module, exports) {
 unwrapExports(StyleSheet_1);
 
 var createGenerateClassName = createCommonjsModule(function (module, exports) {
-  'use strict';
-
   Object.defineProperty(exports, "__esModule", {
     value: true
   });
@@ -4855,19 +4807,20 @@ var createGenerateClassName = createCommonjsModule(function (module, exports) {
 
   var _StyleSheet2 = _interopRequireDefault$$1(StyleSheet_1);
 
+  var _global2 = _interopRequireDefault$$1(global_1);
+
   function _interopRequireDefault$$1(obj) {
     return obj && obj.__esModule ? obj : {
       'default': obj
     };
   }
 
-  var globalRef = typeof window === 'undefined' ? commonjsGlobal : window;
   var ns = '2f1acc6c3a606b082e5eef5e54414ffb';
-  if (globalRef[ns] == null) globalRef[ns] = 0; // In case we have more than one JSS version.
+  if (_global2['default'][ns] == null) _global2['default'][ns] = 0; // In case we have more than one JSS version.
 
-  var jssCounter = globalRef[ns]++;
+  var jssCounter = _global2['default'][ns]++;
   var maxRules = 1e10;
-  var env$$1 = "development";
+  var env = "development";
   /**
    * Returns a function which generates unique class names based on counters.
    * When new generator function is created, rule counter is reseted.
@@ -4880,15 +4833,15 @@ var createGenerateClassName = createCommonjsModule(function (module, exports) {
       ruleCounter += 1;
 
       if (ruleCounter > maxRules) {
-        (0, _warning2['default'])(false, 'You might have a memory leak. Rule counter is at %s.', ruleCounter);
+        (_warning2['default'])(false, '[JSS] You might have a memory leak. Rule counter is at %s.', ruleCounter);
       }
 
-      if (env$$1 === 'production') {
+      if (env === 'production') {
         return 'c' + jssCounter + ruleCounter;
       }
 
       var prefix = sheet ? sheet.options.classNamePrefix || '' : '';
-      return '' + prefix + rule.key + '-' + jssCounter + '-' + ruleCounter;
+      return prefix + rule.key + '-' + jssCounter + '-' + ruleCounter;
     };
   };
 });
@@ -4909,8 +4862,6 @@ var module$1 = Object.freeze({
 });
 
 var PluginsRegistry_1 = createCommonjsModule(function (module, exports) {
-  'use strict';
-
   Object.defineProperty(exports, "__esModule", {
     value: true
   });
@@ -4956,7 +4907,8 @@ var PluginsRegistry_1 = createCommonjsModule(function (module, exports) {
         onProcessRule: [],
         onProcessStyle: [],
         onProcessSheet: [],
-        onChangeValue: []
+        onChangeValue: [],
+        onUpdate: []
         /**
          * Call `onCreateRule` hooks and return an object if returned by a hook.
          */
@@ -5019,6 +4971,17 @@ var PluginsRegistry_1 = createCommonjsModule(function (module, exports) {
         }
       }
       /**
+       * Call `onUpdate` hooks.
+       */
+
+    }, {
+      key: 'onUpdate',
+      value: function onUpdate(data, rule, sheet) {
+        for (var i = 0; i < this.hooks.onUpdate.length; i++) {
+          this.hooks.onUpdate[i](data, rule, sheet);
+        }
+      }
+      /**
        * Call `onChangeValue` hooks.
        */
 
@@ -5042,7 +5005,7 @@ var PluginsRegistry_1 = createCommonjsModule(function (module, exports) {
       key: 'use',
       value: function use(plugin) {
         for (var name in plugin) {
-          if (this.hooks[name]) this.hooks[name].push(plugin[name]);else (0, _warning2['default'])(false, '[JSS] Unknown hook "%s".', name);
+          if (this.hooks[name]) this.hooks[name].push(plugin[name]);else (_warning2['default'])(false, '[JSS] Unknown hook "%s".', name);
         }
       }
     }]);
@@ -5055,8 +5018,6 @@ var PluginsRegistry_1 = createCommonjsModule(function (module, exports) {
 unwrapExports(PluginsRegistry_1);
 
 var SimpleRule_1 = createCommonjsModule(function (module, exports) {
-  'use strict';
-
   Object.defineProperty(exports, "__esModule", {
     value: true
   });
@@ -5127,8 +5088,6 @@ var SimpleRule_1 = createCommonjsModule(function (module, exports) {
 unwrapExports(SimpleRule_1);
 
 var KeyframesRule_1 = createCommonjsModule(function (module, exports) {
-  'use strict';
-
   Object.defineProperty(exports, "__esModule", {
     value: true
   });
@@ -5229,8 +5188,6 @@ var KeyframesRule_1 = createCommonjsModule(function (module, exports) {
 unwrapExports(KeyframesRule_1);
 
 var ConditionalRule_1 = createCommonjsModule(function (module, exports) {
-  'use strict';
-
   Object.defineProperty(exports, "__esModule", {
     value: true
   });
@@ -5356,8 +5313,6 @@ var ConditionalRule_1 = createCommonjsModule(function (module, exports) {
 unwrapExports(ConditionalRule_1);
 
 var FontFaceRule_1 = createCommonjsModule(function (module, exports) {
-  'use strict';
-
   Object.defineProperty(exports, "__esModule", {
     value: true
   });
@@ -5416,14 +5371,14 @@ var FontFaceRule_1 = createCommonjsModule(function (module, exports) {
           var str = '';
 
           for (var index = 0; index < this.style.length; index++) {
-            str += (0, _toCss2['default'])(this.key, this.style[index]);
+            str += (_toCss2['default'])(this.key, this.style[index]);
             if (this.style[index + 1]) str += '\n';
           }
 
           return str;
         }
 
-        return (0, _toCss2['default'])(this.key, this.style, options);
+        return (_toCss2['default'])(this.key, this.style, options);
       }
     }]);
 
@@ -5435,8 +5390,6 @@ var FontFaceRule_1 = createCommonjsModule(function (module, exports) {
 unwrapExports(FontFaceRule_1);
 
 var ViewportRule_1 = createCommonjsModule(function (module, exports) {
-  'use strict';
-
   Object.defineProperty(exports, "__esModule", {
     value: true
   });
@@ -5491,7 +5444,7 @@ var ViewportRule_1 = createCommonjsModule(function (module, exports) {
     _createClass$$1(ViewportRule, [{
       key: 'toString',
       value: function toString(options) {
-        return (0, _toCss2['default'])(this.key, this.style, options);
+        return (_toCss2['default'])(this.key, this.style, options);
       }
     }]);
 
@@ -5503,8 +5456,6 @@ var ViewportRule_1 = createCommonjsModule(function (module, exports) {
 unwrapExports(ViewportRule_1);
 
 var rules = createCommonjsModule(function (module, exports) {
-  'use strict';
-
   Object.defineProperty(exports, "__esModule", {
     value: true
   });
@@ -5549,6 +5500,7 @@ var rules = createCommonjsModule(function (module, exports) {
     };
 
     onCreateRule._r = [2];
+    onCreateRule.displayName = "onCreateRule";
     return {
       onCreateRule: onCreateRule
     };
@@ -5557,17 +5509,15 @@ var rules = createCommonjsModule(function (module, exports) {
 unwrapExports(rules);
 
 var observables = createCommonjsModule(function (module, exports) {
-  'use strict';
-
   Object.defineProperty(exports, "__esModule", {
     value: true
   });
 
-  var _isObservable2 = _interopRequireDefault$$1(isObservable);
-
   var _StyleRule2 = _interopRequireDefault$$1(StyleRule_1);
 
   var _createRule2 = _interopRequireDefault$$1(createRule_1);
+
+  var _isObservable2 = _interopRequireDefault$$1(isObservable);
 
   function _interopRequireDefault$$1(obj) {
     return obj && obj.__esModule ? obj : {
@@ -5577,18 +5527,10 @@ var observables = createCommonjsModule(function (module, exports) {
 
   exports['default'] = {
     onCreateRule: function onCreateRule(name, decl, options) {
-      if (!(0, _isObservable2['default'])(decl)) return null; // Cast `decl` to `Observable`, since it passed the type guard.
+      if (!(_isObservable2['default'])(decl)) return null; // Cast `decl` to `Observable`, since it passed the type guard.
 
       var style$ = decl;
-      var initialStyle = {}; // It can't be enumerable, otherwise it will be rendered.
-
-      Object.defineProperty(initialStyle, 'isDynamic', {
-        value: true,
-        writable: false
-      }); // We know `rule` is a `StyleRule`, and the other types don't have a
-      // `prop` method, so we must explicitly cast to `StyleRule`.
-
-      var rule = (0, _createRule2['default'])(name, initialStyle, options); // TODO
+      var rule = (_createRule2['default'])(name, {}, options); // TODO
       // Call `stream.subscribe()` returns a subscription, which should be explicitly
       // unsubscribed from when we know this sheet is no longer needed.
 
@@ -5601,20 +5543,22 @@ var observables = createCommonjsModule(function (module, exports) {
     },
     onProcessRule: function onProcessRule(rule) {
       if (!(rule instanceof _StyleRule2['default'])) return;
-      var style = rule.style;
+      var styleRule = rule;
+      var style = styleRule.style;
 
       var _loop = function _loop(prop) {
         var value = style[prop];
-        if (!(0, _isObservable2['default'])(value)) return 'continue';
+        if (!(_isObservable2['default'])(value)) return 'continue';
+        delete style[prop];
         value.subscribe({
           next: function next(nextValue) {
-            // $FlowFixMe
-            rule.prop(prop, nextValue);
+            styleRule.prop(prop, nextValue);
           }
         });
       };
 
       _loop._r = [2];
+      _loop.displayName = "_loop";
 
       for (var prop in style) {
         var _ret = _loop(prop);
@@ -5626,9 +5570,102 @@ var observables = createCommonjsModule(function (module, exports) {
 });
 unwrapExports(observables);
 
-var DomRenderer_1 = createCommonjsModule(function (module, exports) {
-  'use strict';
+var kebabCase = createCommonjsModule(function (module, exports) {
+  Object.defineProperty(exports, "__esModule", {
+    value: true
+  });
+  var regExp = /([A-Z])/g;
 
+  var replace = function replace(str) {
+    return "-" + str.toLowerCase();
+  };
+
+  replace._r = [2];
+  replace.displayName = "replace";
+
+  exports["default"] = function (str) {
+    return str.replace(regExp, replace);
+  };
+});
+unwrapExports(kebabCase);
+
+var functions = createCommonjsModule(function (module, exports) {
+  Object.defineProperty(exports, "__esModule", {
+    value: true
+  });
+
+  var _RuleList2 = _interopRequireDefault$$1(RuleList_1);
+
+  var _StyleRule2 = _interopRequireDefault$$1(StyleRule_1);
+
+  var _kebabCase2 = _interopRequireDefault$$1(kebabCase);
+
+  var _createRule2 = _interopRequireDefault$$1(createRule_1);
+
+  function _interopRequireDefault$$1(obj) {
+    return obj && obj.__esModule ? obj : {
+      'default': obj
+    };
+  } // A symbol replacement.
+
+
+  var now = Date.now();
+  var fnValuesNs = 'fnValues' + now;
+  var fnStyleNs = 'fnStyle' + ++now;
+  exports['default'] = {
+    onCreateRule: function onCreateRule(name, decl, options) {
+      if (typeof decl !== 'function') return null;
+      var rule = (_createRule2['default'])(name, {}, options);
+      rule[fnStyleNs] = decl;
+      return rule;
+    },
+    onProcessStyle: function onProcessStyle(style, rule) {
+      var fn = {};
+
+      for (var prop in style) {
+        var value = style[prop];
+        if (typeof value !== 'function') continue;
+        delete style[prop];
+        fn[(_kebabCase2['default'])(prop)] = value;
+      }
+
+      rule = rule;
+      rule[fnValuesNs] = fn;
+      return style;
+    },
+    onUpdate: function onUpdate(data, rule) {
+      // It is a rules container like for e.g. ConditionalRule.
+      if (rule.rules instanceof _RuleList2['default']) {
+        rule.rules.update(data);
+        return;
+      }
+
+      if (!(rule instanceof _StyleRule2['default'])) return;
+      rule = rule; // If we have a fn values map, it is a rule with function values.
+
+      if (rule[fnValuesNs]) {
+        for (var prop in rule[fnValuesNs]) {
+          rule.prop(prop, rule[fnValuesNs][prop](data));
+        }
+      }
+
+      rule = rule;
+      var fnStyle = rule[fnStyleNs]; // If we have a style function, the entire rule is dynamic and style object
+      // will be returned from that function.
+
+      if (fnStyle) {
+        var style = fnStyle(data);
+
+        for (var _prop in style) {
+          rule.prop(_prop, style[_prop]);
+        }
+      }
+    }
+  };
+});
+unwrapExports(functions);
+
+var DomRenderer_1 = createCommonjsModule(function (module, exports) {
   Object.defineProperty(exports, "__esModule", {
     value: true
   });
@@ -5656,6 +5693,8 @@ var DomRenderer_1 = createCommonjsModule(function (module, exports) {
   var _sheets2 = _interopRequireDefault$$1(sheets);
 
   var _StyleRule2 = _interopRequireDefault$$1(StyleRule_1);
+
+  var _global2 = _interopRequireDefault$$1(global_1);
 
   function _interopRequireDefault$$1(obj) {
     return obj && obj.__esModule ? obj : {
@@ -5713,6 +5752,7 @@ var DomRenderer_1 = createCommonjsModule(function (module, exports) {
     };
 
     extractKey._r = [2];
+    extractKey.displayName = "extractKey";
     return function (cssRule) {
       if (cssRule.type === CSSRuleTypes.STYLE_RULE) return cssRule.selectorText;
 
@@ -5880,7 +5920,7 @@ var DomRenderer_1 = createCommonjsModule(function (module, exports) {
       if (comment) return comment.nextSibling; // If user specifies an insertion point and it can't be found in the document -
       // bad specificity issues may appear.
 
-      (0, _warning2['default'])(insertionPoint === 'jss', '[JSS] Insertion point "%s" not found.', insertionPoint);
+      (_warning2['default'])(insertionPoint === 'jss', '[JSS] Insertion point "%s" not found.', insertionPoint);
     }
 
     return null;
@@ -5905,7 +5945,7 @@ var DomRenderer_1 = createCommonjsModule(function (module, exports) {
       // https://stackoverflow.com/questions/41328728/force-casting-in-flow
       var insertionPointElement = insertionPoint;
       var _parentNode = insertionPointElement.parentNode;
-      if (_parentNode) _parentNode.insertBefore(style, insertionPointElement.nextSibling);else (0, _warning2['default'])(false, '[JSS] Insertion point is not in the DOM.');
+      if (_parentNode) _parentNode.insertBefore(style, insertionPointElement.nextSibling);else (_warning2['default'])(false, '[JSS] Insertion point is not in the DOM.');
       return;
     }
 
@@ -5935,7 +5975,10 @@ var DomRenderer_1 = createCommonjsModule(function (module, exports) {
       this.element.type = 'text/css';
       this.element.setAttribute('data-jss', '');
       if (media) this.element.setAttribute('media', media);
-      if (meta) this.element.setAttribute('data-meta', meta);
+      if (meta) this.element.setAttribute('data-meta', meta); // eslint-disable-next-line no-underscore-dangle
+
+      var nonce = _global2['default'].__webpack_nonce__;
+      if (nonce) this.element.setAttribute('nonce', nonce);
     }
     /**
      * Insert style element into render tree.
@@ -5994,7 +6037,7 @@ var DomRenderer_1 = createCommonjsModule(function (module, exports) {
         try {
           sheet.insertRule(str, index);
         } catch (err) {
-          (0, _warning2['default'])(false, '[JSS] Can not insert an unsupported rule \n\r%s', rule);
+          (_warning2['default'])(false, '[JSS] Can not insert an unsupported rule \n\r%s', rule);
           return false;
         }
 
@@ -6060,8 +6103,6 @@ var DomRenderer_1 = createCommonjsModule(function (module, exports) {
 unwrapExports(DomRenderer_1);
 
 var VirtualRenderer_1 = createCommonjsModule(function (module, exports) {
-  'use strict';
-
   Object.defineProperty(exports, "__esModule", {
     value: true
   });
@@ -6165,8 +6206,6 @@ unwrapExports(VirtualRenderer_1);
 var _isInBrowser = ( module$1 && isBrowser ) || module$1;
 
 var Jss_1 = createCommonjsModule(function (module, exports) {
-  'use strict';
-
   Object.defineProperty(exports, "__esModule", {
     value: true
   });
@@ -6219,6 +6258,8 @@ var Jss_1 = createCommonjsModule(function (module, exports) {
 
   var _observables2 = _interopRequireDefault$$1(observables);
 
+  var _functions2 = _interopRequireDefault$$1(functions);
+
   var _sheets2 = _interopRequireDefault$$1(sheets);
 
   var _StyleRule2 = _interopRequireDefault$$1(StyleRule_1);
@@ -6243,20 +6284,20 @@ var Jss_1 = createCommonjsModule(function (module, exports) {
     }
   }
 
-  var defaultPlugins = _rules2['default'].concat([_observables2['default']]);
+  var defaultPlugins = _rules2['default'].concat([_observables2['default'], _functions2['default']]);
 
   var Jss = function () {
     function Jss(options) {
       _classCallCheck$$1(this, Jss);
 
-      this.version = "9.1.0";
+      this.version = "9.3.2";
       this.plugins = new _PluginsRegistry2['default']();
       this.options = {
         createGenerateClassName: _createGenerateClassName2['default'],
         Renderer: _isInBrowser2['default'] ? _DomRenderer2['default'] : _VirtualRenderer2['default'],
         plugins: []
       };
-      this.generateClassName = (0, _createGenerateClassName2['default'])(); // eslint-disable-next-line prefer-spread
+      this.generateClassName = (_createGenerateClassName2['default'])(); // eslint-disable-next-line prefer-spread
 
       this.use.apply(this, defaultPlugins);
       this.setup(options);
@@ -6343,7 +6384,7 @@ var Jss_1 = createCommonjsModule(function (module, exports) {
         ruleOptions.Renderer = this.options.Renderer;
         if (!ruleOptions.generateClassName) ruleOptions.generateClassName = this.generateClassName;
         if (!ruleOptions.classes) ruleOptions.classes = {};
-        var rule = (0, _createRule3['default'])(name, style, ruleOptions);
+        var rule = (_createRule3['default'])(name, style, ruleOptions);
 
         if (!ruleOptions.selector && rule instanceof _StyleRule2['default']) {
           rule.selector = '.' + ruleOptions.generateClassName(rule);
@@ -6384,9 +6425,7 @@ var Jss_1 = createCommonjsModule(function (module, exports) {
 });
 unwrapExports(Jss_1);
 
-var lib$1 = createCommonjsModule(function (module, exports) {
-  'use strict';
-
+var lib = createCommonjsModule(function (module, exports) {
   Object.defineProperty(exports, "__esModule", {
     value: true
   });
@@ -6450,12 +6489,16 @@ var lib$1 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = create();
 });
-unwrapExports(lib$1);
-var lib_1 = lib$1.create;
+unwrapExports(lib);
+var lib_1 = lib.create;
+var lib_2 = lib.createGenerateClassName;
+var lib_3 = lib.sheets;
+var lib_4 = lib.RuleList;
+var lib_5 = lib.SheetsManager;
+var lib_6 = lib.SheetsRegistry;
+var lib_7 = lib.getDynamicStyles;
 
 var lib$2 = createCommonjsModule(function (module, exports) {
-  "use strict";
-
   Object.defineProperty(exports, "__esModule", {
     value: true
   });
@@ -6520,8 +6563,6 @@ var lib$2 = createCommonjsModule(function (module, exports) {
 var jssCamel = unwrapExports(lib$2);
 
 var lib$3 = createCommonjsModule(function (module, exports) {
-  'use strict';
-
   Object.defineProperty(exports, "__esModule", {
     value: true
   });
@@ -6576,7 +6617,7 @@ var lib$3 = createCommonjsModule(function (module, exports) {
       this.type = 'global';
       this.key = key;
       this.options = options;
-      this.rules = new lib$1.RuleList(_extends$$1({}, options, {
+      this.rules = new lib.RuleList(_extends$$1({}, options, {
         parent: this
       }));
 
@@ -6742,8 +6783,6 @@ var lib$3 = createCommonjsModule(function (module, exports) {
 var jssGlobal = unwrapExports(lib$3);
 
 var lib$4 = createCommonjsModule(function (module, exports) {
-  'use strict';
-
   Object.defineProperty(exports, "__esModule", {
     value: true
   });
@@ -6788,7 +6827,7 @@ var lib$4 = createCommonjsModule(function (module, exports) {
       return function (match, key) {
         var rule = container.getRule(key);
         if (rule) return rule.selector;
-        (0, _warning2.default)(false, '[JSS] Could not find the referenced rule %s in %s.', key, container.options.meta || container);
+        (_warning2.default)(false, '[JSS] Could not find the referenced rule %s in %s.', key, container.options.meta || container);
         return key;
       };
     }
@@ -6798,6 +6837,7 @@ var lib$4 = createCommonjsModule(function (module, exports) {
     };
 
     hasAnd._r = [2];
+    hasAnd.displayName = "hasAnd";
 
     function replaceParentRefs(nestedProp, parentProp) {
       var parentSelectors = parentProp.split(separatorRegExp);
@@ -6920,6 +6960,7 @@ function uuid() {
   return uuid;
 }
 uuid._r = [2];
+uuid.displayName = "uuid";
 
 var AbstractLocationStore =
 /*#__PURE__*/
@@ -6967,8 +7008,9 @@ function (_AbstractLocationStor) {
   };
 
   return BrowserLocationStore;
-}(AbstractLocationStore), (_applyDecoratedDescriptor$2(_class$2.prototype, "location", [memkey], Object.getOwnPropertyDescriptor(_class$2.prototype, "location"), _class$2.prototype)), _class$2);
+}(AbstractLocationStore), _applyDecoratedDescriptor$2(_class$2.prototype, "location", [memkey], Object.getOwnPropertyDescriptor(_class$2.prototype, "location"), _class$2.prototype), _class$2);
 BrowserLocationStore._r = [0, [Location, History]];
+BrowserLocationStore.displayName = "BrowserLocationStore";
 
 var _class$3;
 var _dec;
@@ -7026,6 +7068,7 @@ function (_Error) {
   return HttpError;
 }(Error);
 HttpError._r = [0, [Number, String, "IErrorParams"]];
+HttpError.displayName = "HttpError";
 
 function timeoutPromise(promise, timeout, params) {
   if (!timeout) return promise;
@@ -7038,6 +7081,7 @@ function timeoutPromise(promise, timeout, params) {
 }
 
 timeoutPromise._r = [2, [null, "IErrorParams"]];
+timeoutPromise.displayName = "timeoutPromise";
 var FetcherResponse = (_class$3 =
 /*#__PURE__*/
 function () {
@@ -7121,13 +7165,14 @@ function () {
   };
 
   return FetcherResponse;
-}(), (_applyDecoratedDescriptor$3(_class$3.prototype, "text", [mem], Object.getOwnPropertyDescriptor(_class$3.prototype, "text"), _class$3.prototype)), _class$3);
+}(), _applyDecoratedDescriptor$3(_class$3.prototype, "text", [mem], Object.getOwnPropertyDescriptor(_class$3.prototype, "text"), _class$3.prototype), _class$3);
 FetcherResponse._r = [0, [String, {
   timeout: Number
 }, "V", null, {
   request: Function
 }]];
-var Fetcher = (_dec = mem.key, (_class3 = (_temp$2 = _class4 =
+FetcherResponse.displayName = "FetcherResponse";
+var Fetcher = (_dec = mem.key, _class3 = (_temp$2 = _class4 =
 /*#__PURE__*/
 function () {
   function Fetcher(baseUrl, init, state, renderer) {
@@ -7152,89 +7197,14 @@ function () {
   };
 
   return Fetcher;
-}(), _class4.Response = FetcherResponse, _temp$2), (_applyDecoratedDescriptor$3(_class3.prototype, "fetch", [_dec], Object.getOwnPropertyDescriptor(_class3.prototype, "fetch"), _class3.prototype)), _class3));
+}(), _class4.Response = FetcherResponse, _temp$2), _applyDecoratedDescriptor$3(_class3.prototype, "fetch", [_dec], Object.getOwnPropertyDescriptor(_class3.prototype, "fetch"), _class3.prototype), _class3);
 Fetcher._r = [0, [String, {
   timeout: Number
 }, Object, {
   beginFetch: Function,
   endFetch: Function
 }]];
-var ServerRenderer =
-/*#__PURE__*/
-function () {
-  function ServerRenderer(render) {
-    this._size = 0;
-    this._callbacks = [];
-    this._errors = [];
-    this._error = false;
-    this._state = {};
-    this._render = render;
-  }
-
-  var _proto3 = ServerRenderer.prototype;
-
-  _proto3.beginFetch = function beginFetch() {
-    this._size++;
-  };
-
-  _proto3.endFetch = function endFetch(v, e) {
-    var _ref;
-
-    this._size--;
-    var data;
-
-    if (e) {
-      data = e;
-      this._error = true;
-    } else {
-      data = v.json();
-    }
-
-    var method = (v._init ? v._init.method : null) || 'GET';
-    var result = method !== 'GET' ? (_ref = {}, _ref[method] = data, _ref) : data;
-    this._state[v._url] = result;
-
-    if (this._size === 0) {
-      if (!this._error) {
-        this._render();
-      }
-
-      if (this._size === 0) {
-        var _state = this._state;
-        var cbs = this._error ? this._errors : this._callbacks;
-
-        for (var i = 0; i < cbs.length; i++) {
-          cbs[i](_state);
-        }
-
-        this._callbacks = [];
-        this._errors = [];
-        this._error = false;
-      }
-    }
-  };
-
-  _proto3.then = function then(cb) {
-    this._callbacks.push(cb);
-
-    return this;
-  };
-
-  _proto3.catch = function _catch(cb) {
-    this._errors.push(cb);
-
-    return this;
-  };
-
-  _proto3.render = function render() {
-    this._render();
-
-    return this;
-  };
-
-  return ServerRenderer;
-}();
-ServerRenderer._r = [0, [Function]];
+Fetcher.displayName = "Fetcher";
 
 defaultContext.setLogger(new ConsoleLogger());
 
@@ -7244,6 +7214,7 @@ function ErrorableView(_ref) {
 }
 
 ErrorableView._r = [1];
+ErrorableView.displayName = "ErrorableView";
 var jss = lib_1({
   plugins: [jssNested(), jssCamel(), jssGlobal()]
 });
@@ -7322,10 +7293,10 @@ function () {
     }
   }]);
   return FirstCounterService;
-}(), (_descriptor$1 = _applyDecoratedDescriptor$4(_class$4.prototype, "$", [force], {
+}(), _descriptor$1 = _applyDecoratedDescriptor$4(_class$4.prototype, "$", [force], {
   enumerable: true,
   initializer: null
-}), _applyDecoratedDescriptor$4(_class$4.prototype, "value", [mem], Object.getOwnPropertyDescriptor(_class$4.prototype, "value"), _class$4.prototype), _applyDecoratedDescriptor$4(_class$4.prototype, "value", [mem], Object.getOwnPropertyDescriptor(_class$4.prototype, "value"), _class$4.prototype)), _class$4);
+}), _applyDecoratedDescriptor$4(_class$4.prototype, "value", [mem], Object.getOwnPropertyDescriptor(_class$4.prototype, "value"), _class$4.prototype), _applyDecoratedDescriptor$4(_class$4.prototype, "value", [mem], Object.getOwnPropertyDescriptor(_class$4.prototype, "value"), _class$4.prototype), _class$4);
 
 function CounterMessageView(_ref) {
   var value = _ref.value;
@@ -7333,6 +7304,7 @@ function CounterMessageView(_ref) {
 }
 
 CounterMessageView._r = [1];
+CounterMessageView.displayName = "CounterMessageView";
 
 function FirstCounterView(_, counter) {
   return lom_h("div", null, lom_h(CounterMessageView, {
@@ -7351,6 +7323,7 @@ function FirstCounterView(_, counter) {
 }
 
 FirstCounterView._r = [1, [FirstCounterService]];
+FirstCounterView.displayName = "FirstCounterView";
 
 var SecondCounterService =
 /*#__PURE__*/
@@ -7379,6 +7352,7 @@ function SecondCounterMessageView(_ref2) {
 }
 
 SecondCounterMessageView._r = [1];
+SecondCounterMessageView.displayName = "SecondCounterMessageView";
 
 function SecondCounterAddButtonView(_ref3) {
   var onClick = _ref3.onClick,
@@ -7390,6 +7364,7 @@ function SecondCounterAddButtonView(_ref3) {
 }
 
 SecondCounterAddButtonView._r = [1];
+SecondCounterAddButtonView.displayName = "SecondCounterAddButtonView";
 var SecondCounterView = cloneComponent(FirstCounterView, [[FirstCounterService, SecondCounterService], [CounterMessageView, SecondCounterMessageView], ['FirstCounterAddButton', SecondCounterAddButtonView], ['FirstCounterGenErrorButton', null]], 'SecondCounterView');
 
 function ThirdCounterAddButtonView(_ref4) {
@@ -7402,11 +7377,13 @@ function ThirdCounterAddButtonView(_ref4) {
 }
 
 ThirdCounterAddButtonView._r = [1];
+ThirdCounterAddButtonView.displayName = "ThirdCounterAddButtonView";
 var ThirdCounterView = cloneComponent(SecondCounterView, [['FirstCounterAddButton', ThirdCounterAddButtonView]], 'ThirdCounterView');
 function CounterView() {
   return lom_h("ul", null, lom_h("li", null, "FirstCounter: ", lom_h(FirstCounterView, null)), lom_h("li", null, "SecondCounter extends FirstCounter: ", lom_h(SecondCounterView, null)), lom_h("li", null, "ThirdCounter extends SecondCounter: ", lom_h(ThirdCounterView, null)));
 }
 CounterView._r = [1];
+CounterView.displayName = "CounterView";
 
 var _class$5;
 var _descriptor$2;
@@ -7470,10 +7447,10 @@ function () {
     }
   }]);
   return HelloContext;
-}(), (_descriptor$2 = _applyDecoratedDescriptor$5(_class$5.prototype, "name", [mem], {
+}(), _descriptor$2 = _applyDecoratedDescriptor$5(_class$5.prototype, "name", [mem], {
   enumerable: true,
   initializer: null
-}), _applyDecoratedDescriptor$5(_class$5.prototype, "props", [props], Object.getOwnPropertyDescriptor(_class$5.prototype, "props"), _class$5.prototype), _applyDecoratedDescriptor$5(_class$5.prototype, "greet", [mem], Object.getOwnPropertyDescriptor(_class$5.prototype, "greet"), _class$5.prototype)), _class$5);
+}), _applyDecoratedDescriptor$5(_class$5.prototype, "props", [props], Object.getOwnPropertyDescriptor(_class$5.prototype, "props"), _class$5.prototype), _applyDecoratedDescriptor$5(_class$5.prototype, "greet", [mem], Object.getOwnPropertyDescriptor(_class$5.prototype, "greet"), _class$5.prototype), _class$5);
 function HelloView(_, _ref2) {
   var context = _ref2.context;
   return lom_h("div", null, context.greet, lom_h("br", null), lom_h("input", {
@@ -7487,6 +7464,7 @@ function HelloView(_, _ref2) {
 HelloView._r = [1, [{
   context: HelloContext
 }]];
+HelloView.displayName = "HelloView";
 
 var globToRegexp = function globToRegexp(glob, opts) {
   if (typeof glob !== 'string') {
@@ -7620,6 +7598,7 @@ var globToRegexp = function globToRegexp(glob, opts) {
 };
 
 globToRegexp._r = [2];
+globToRegexp.displayName = "globToRegexp";
 
 var isarray = Array.isArray || function (arr) {
   return Object.prototype.toString.call(arr) == '[object Array]';
@@ -7729,6 +7708,7 @@ function parse(str, options) {
 
 
 parse._r = [2];
+parse.displayName = "parse";
 
 function compile(str, options) {
   return tokensToFunction(parse(str, options));
@@ -7742,6 +7722,7 @@ function compile(str, options) {
 
 
 compile._r = [2];
+compile.displayName = "compile";
 
 function encodeURIComponentPretty(str) {
   return encodeURI(str).replace(/[\/?#]/g, function (c) {
@@ -7757,6 +7738,7 @@ function encodeURIComponentPretty(str) {
 
 
 encodeURIComponentPretty._r = [2];
+encodeURIComponentPretty.displayName = "encodeURIComponentPretty";
 
 function encodeAsterisk(str) {
   return encodeURI(str).replace(/[?#]/g, function (c) {
@@ -7769,6 +7751,7 @@ function encodeAsterisk(str) {
 
 
 encodeAsterisk._r = [2];
+encodeAsterisk.displayName = "encodeAsterisk";
 
 function tokensToFunction(tokens) {
   // Compile all the tokens into regexps.
@@ -7857,6 +7840,7 @@ function tokensToFunction(tokens) {
 
 
 tokensToFunction._r = [2];
+tokensToFunction.displayName = "tokensToFunction";
 
 function escapeString(str) {
   return str.replace(/([.+*?=^!:${}()[\]|\/\\])/g, '\\$1');
@@ -7870,6 +7854,7 @@ function escapeString(str) {
 
 
 escapeString._r = [2];
+escapeString.displayName = "escapeString";
 
 function escapeGroup(group) {
   return group.replace(/([=!:$\/()])/g, '\\$1');
@@ -7884,6 +7869,7 @@ function escapeGroup(group) {
 
 
 escapeGroup._r = [2];
+escapeGroup.displayName = "escapeGroup";
 
 function attachKeys(re, keys) {
   re.keys = keys;
@@ -7898,6 +7884,7 @@ function attachKeys(re, keys) {
 
 
 attachKeys._r = [2];
+attachKeys.displayName = "attachKeys";
 
 function flags(options) {
   return options.sensitive ? '' : 'i';
@@ -7912,6 +7899,7 @@ function flags(options) {
 
 
 flags._r = [2];
+flags.displayName = "flags";
 
 function regexpToRegexp(path, keys) {
   // Use a negative lookahead to match only capturing groups.
@@ -7945,6 +7933,7 @@ function regexpToRegexp(path, keys) {
 
 
 regexpToRegexp._r = [2];
+regexpToRegexp.displayName = "regexpToRegexp";
 
 function arrayToRegexp(path, keys, options) {
   var parts = [];
@@ -7967,6 +7956,7 @@ function arrayToRegexp(path, keys, options) {
 
 
 arrayToRegexp._r = [2];
+arrayToRegexp.displayName = "arrayToRegexp";
 
 function stringToRegexp(path, keys, options) {
   return tokensToRegExp(parse(path, options), keys, options);
@@ -7982,6 +7972,7 @@ function stringToRegexp(path, keys, options) {
 
 
 stringToRegexp._r = [2];
+stringToRegexp.displayName = "stringToRegexp";
 
 function tokensToRegExp(tokens, keys, options) {
   if (!isarray(keys)) {
@@ -8059,6 +8050,7 @@ function tokensToRegExp(tokens, keys, options) {
 
 
 tokensToRegExp._r = [2];
+tokensToRegExp.displayName = "tokensToRegExp";
 
 function pathToRegexp(path, keys, options) {
   if (!isarray(keys)) {
@@ -8092,6 +8084,7 @@ function pathToRegexp(path, keys, options) {
 }
 
 pathToRegexp._r = [2];
+pathToRegexp.displayName = "pathToRegexp";
 pathToRegexp_1.parse = parse_1;
 pathToRegexp_1.compile = compile_1;
 pathToRegexp_1.tokensToFunction = tokensToFunction_1;
@@ -8165,6 +8158,7 @@ function getHeaderMatcher(expectedHeaders, HeadersConstructor) {
 }
 
 getHeaderMatcher._r = [2];
+getHeaderMatcher.displayName = "getHeaderMatcher";
 
 function areHeadersEqual(currentHeader, expectedHeader) {
   var key = expectedHeader.key;
@@ -8186,6 +8180,7 @@ function areHeadersEqual(currentHeader, expectedHeader) {
 }
 
 areHeadersEqual._r = [2];
+areHeadersEqual.displayName = "areHeadersEqual";
 
 function normalizeRequest(url, options, Request) {
   if (Request.prototype.isPrototypeOf(url)) {
@@ -8210,6 +8205,7 @@ function normalizeRequest(url, options, Request) {
 }
 
 normalizeRequest._r = [2];
+normalizeRequest.displayName = "normalizeRequest";
 
 var compileRoute = function compileRoute(route, Request, HeadersConstructor) {
   route = _extends$2({}, route);
@@ -8290,6 +8286,7 @@ var compileRoute = function compileRoute(route, Request, HeadersConstructor) {
   };
 
   matcher._r = [2];
+  matcher.displayName = "matcher";
 
   if (route.times) {
     (function () {
@@ -8316,6 +8313,7 @@ var compileRoute = function compileRoute(route, Request, HeadersConstructor) {
 };
 
 compileRoute._r = [2];
+compileRoute.displayName = "compileRoute";
 
 var _typeof$2 = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
   return typeof obj;
@@ -8347,6 +8345,7 @@ var FetchMock = function FetchMock() {
 };
 
 FetchMock._r = [2];
+FetchMock.displayName = "FetchMock";
 
 FetchMock.prototype.bindMethods = function () {
   this.fetchMock = FetchMock.prototype.fetchMock.bind(this);
@@ -8728,6 +8727,7 @@ FetchMock.prototype.sandbox = function (Promise) {
   };
 
   proxy._r = [2];
+  proxy.displayName = "proxy";
 
   var functionInstance = _extends$1(proxy, // Ensures that the entire returned object is a callable function
   FetchMock.prototype, // all prototype methods
@@ -8891,7 +8891,7 @@ function () {
     }
   }]);
   return KeyValueTheme;
-}(), (_applyDecoratedDescriptor$6(_class$6.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class$6.prototype, "css"), _class$6.prototype)), _class$6);
+}(), _applyDecoratedDescriptor$6(_class$6.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class$6.prototype, "css"), _class$6.prototype), _class$6);
 
 function KeyView(_ref, _ref2) {
   var children = _ref.children;
@@ -8904,6 +8904,7 @@ function KeyView(_ref, _ref2) {
 KeyView._r = [1, [{
   theme: KeyValueTheme
 }]];
+KeyView.displayName = "KeyView";
 
 function ValueView(_ref3, _ref4) {
   var children = _ref3.children;
@@ -8916,6 +8917,7 @@ function ValueView(_ref3, _ref4) {
 ValueView._r = [1, [{
   theme: KeyValueTheme
 }]];
+ValueView.displayName = "ValueView";
 function ItemView(_ref5, _ref6) {
   var children = _ref5.children;
   var css = _ref6.theme.css;
@@ -8926,6 +8928,7 @@ function ItemView(_ref5, _ref6) {
 ItemView._r = [1, [{
   theme: KeyValueTheme
 }]];
+ItemView.displayName = "ItemView";
 ItemView.Key = KeyView;
 ItemView.Value = ValueView;
 var Locale = (_class2$1 =
@@ -8949,8 +8952,9 @@ function () {
   }
 
   return Locale;
-}(), (_applyDecoratedDescriptor$6(_class2$1.prototype, "lang", [mem], Object.getOwnPropertyDescriptor(_class2$1.prototype, "lang"), _class2$1.prototype), _applyDecoratedDescriptor$6(_class2$1.prototype, "lang", [mem], Object.getOwnPropertyDescriptor(_class2$1.prototype, "lang"), _class2$1.prototype)), _class2$1);
+}(), _applyDecoratedDescriptor$6(_class2$1.prototype, "lang", [mem], Object.getOwnPropertyDescriptor(_class2$1.prototype, "lang"), _class2$1.prototype), _applyDecoratedDescriptor$6(_class2$1.prototype, "lang", [mem], Object.getOwnPropertyDescriptor(_class2$1.prototype, "lang"), _class2$1.prototype), _class2$1);
 Locale._r = [0, [String]];
+Locale.displayName = "Locale";
 var BrowserLocalStorage =
 /*#__PURE__*/
 function () {
@@ -8982,6 +8986,7 @@ function () {
   return BrowserLocalStorage;
 }();
 BrowserLocalStorage._r = [0, [Storage, String]];
+BrowserLocalStorage.displayName = "BrowserLocalStorage";
 
 function delayed(v, delay) {
   return function resp(url, params) {
@@ -8994,6 +8999,7 @@ function delayed(v, delay) {
 }
 
 delayed._r = [2, ["V", Number]];
+delayed.displayName = "delayed";
 function mockFetch(storage, delay, mocks) {
   if (delay === void 0) {
     delay = 500;
@@ -9008,12 +9014,14 @@ function mockFetch(storage, delay, mocks) {
   });
 }
 mockFetch._r = [2, [Storage]];
+mockFetch.displayName = "mockFetch";
 
 function getBody(body) {
   return typeof body === 'string' ? JSON.parse(body) : body || {};
 }
 
 getBody._r = [2];
+getBody.displayName = "getBody";
 
 function sortByDate(el1, el2) {
   if (!el2.created || el1.created) {
@@ -9040,6 +9048,7 @@ sortByDate._r = [2, [{
   title: String,
   completed: Boolean
 }]];
+sortByDate.displayName = "sortByDate";
 function todoMocks(rawStorage) {
   var storage = new BrowserLocalStorage(rawStorage, 'lom_todomvc');
   var infos = new BrowserLocalStorage(rawStorage, 'lom_todomvc_info');
@@ -9164,6 +9173,7 @@ function todoMocks(rawStorage) {
   }];
 }
 todoMocks._r = [2, [Storage]];
+todoMocks.displayName = "todoMocks";
 
 var _class$8;
 var _descriptor$3;
@@ -9213,6 +9223,7 @@ function toJson(r) {
 }
 
 toJson._r = [2, [Response]];
+toJson.displayName = "toJson";
 
 var TodoModel =
 /*#__PURE__*/
@@ -9267,6 +9278,7 @@ function () {
 }();
 
 TodoModel._r = [0, [TodoService]];
+TodoModel.displayName = "TodoModel";
 var TodoService = (_class$8 =
 /*#__PURE__*/
 function () {
@@ -9426,7 +9438,7 @@ function () {
     }
   }]);
   return TodoService;
-}(), (_descriptor$3 = _applyDecoratedDescriptor$8(_class$8.prototype, "opCount", [mem], {
+}(), _descriptor$3 = _applyDecoratedDescriptor$8(_class$8.prototype, "opCount", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return 0;
@@ -9434,8 +9446,9 @@ function () {
 }), _descriptor2 = _applyDecoratedDescriptor$8(_class$8.prototype, "$", [force], {
   enumerable: true,
   initializer: null
-}), _applyDecoratedDescriptor$8(_class$8.prototype, "todoExtInfo", [memkey], Object.getOwnPropertyDescriptor(_class$8.prototype, "todoExtInfo"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "todos"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "todos"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "activeTodoCount", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "activeTodoCount"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "toggleAll", [action], Object.getOwnPropertyDescriptor(_class$8.prototype, "toggleAll"), _class$8.prototype)), _class$8);
+}), _applyDecoratedDescriptor$8(_class$8.prototype, "todoExtInfo", [memkey], Object.getOwnPropertyDescriptor(_class$8.prototype, "todoExtInfo"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "todos"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "todos"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "activeTodoCount", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "activeTodoCount"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "toggleAll", [action], Object.getOwnPropertyDescriptor(_class$8.prototype, "toggleAll"), _class$8.prototype), _class$8);
 TodoService._r = [0, [Fetcher]];
+TodoService.displayName = "TodoService";
 
 var _class$9;
 
@@ -9514,8 +9527,9 @@ function () {
     }
   }]);
   return TodoFilterService;
-}(), (_applyDecoratedDescriptor$9(_class$9.prototype, "filteredTodos", [mem], Object.getOwnPropertyDescriptor(_class$9.prototype, "filteredTodos"), _class$9.prototype)), _class$9);
+}(), _applyDecoratedDescriptor$9(_class$9.prototype, "filteredTodos", [mem], Object.getOwnPropertyDescriptor(_class$9.prototype, "filteredTodos"), _class$9.prototype), _class$9);
 TodoFilterService._r = [0, [TodoService, AbstractLocationStore]];
+TodoFilterService.displayName = "TodoFilterService";
 
 var _class$10;
 var _descriptor$4;
@@ -9592,12 +9606,12 @@ function () {
     }
   }]);
   return TodoToAdd;
-}(), (_descriptor$4 = _applyDecoratedDescriptor$10(_class$10.prototype, "title", [mem], {
+}(), _descriptor$4 = _applyDecoratedDescriptor$10(_class$10.prototype, "title", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return '';
   }
-}), _applyDecoratedDescriptor$10(_class$10.prototype, "props", [props], Object.getOwnPropertyDescriptor(_class$10.prototype, "props"), _class$10.prototype), _applyDecoratedDescriptor$10(_class$10.prototype, "onInput", [action], Object.getOwnPropertyDescriptor(_class$10.prototype, "onInput"), _class$10.prototype)), _class$10);
+}), _applyDecoratedDescriptor$10(_class$10.prototype, "props", [props], Object.getOwnPropertyDescriptor(_class$10.prototype, "props"), _class$10.prototype), _applyDecoratedDescriptor$10(_class$10.prototype, "onInput", [action], Object.getOwnPropertyDescriptor(_class$10.prototype, "onInput"), _class$10.prototype), _class$10);
 var TodoHeaderTheme = (_class3$1 =
 /*#__PURE__*/
 function () {
@@ -9625,7 +9639,7 @@ function () {
     }
   }]);
   return TodoHeaderTheme;
-}(), (_applyDecoratedDescriptor$10(_class3$1.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class3$1.prototype, "css"), _class3$1.prototype)), _class3$1);
+}(), _applyDecoratedDescriptor$10(_class3$1.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class3$1.prototype, "css"), _class3$1.prototype), _class3$1);
 function TodoHeaderView(_, _ref3) {
   var todoToAdd = _ref3.todoToAdd,
       css = _ref3.theme.css;
@@ -9642,6 +9656,7 @@ TodoHeaderView._r = [1, [{
   theme: TodoHeaderTheme,
   todoToAdd: TodoToAdd
 }]];
+TodoHeaderView.displayName = "TodoHeaderView";
 
 var _class$12;
 var _descriptor$5;
@@ -9764,7 +9779,7 @@ function () {
   };
 
   return TodoItemStore;
-}(), (_descriptor$5 = _applyDecoratedDescriptor$12(_class$12.prototype, "todoBeingEditedId", [mem], {
+}(), _descriptor$5 = _applyDecoratedDescriptor$12(_class$12.prototype, "todoBeingEditedId", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return null;
@@ -9777,7 +9792,7 @@ function () {
 }), _descriptor3 = _applyDecoratedDescriptor$12(_class$12.prototype, "props", [props], {
   enumerable: true,
   initializer: null
-}), _applyDecoratedDescriptor$12(_class$12.prototype, "setText", [action], Object.getOwnPropertyDescriptor(_class$12.prototype, "setText"), _class$12.prototype)), _class$12);
+}), _applyDecoratedDescriptor$12(_class$12.prototype, "setText", [action], Object.getOwnPropertyDescriptor(_class$12.prototype, "setText"), _class$12.prototype), _class$12);
 var TodoItemTheme = (_class3$2 =
 /*#__PURE__*/
 function () {
@@ -9896,7 +9911,7 @@ function () {
     }
   }]);
   return TodoItemTheme;
-}(), (_applyDecoratedDescriptor$12(_class3$2.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class3$2.prototype, "css"), _class3$2.prototype)), _class3$2);
+}(), _applyDecoratedDescriptor$12(_class3$2.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class3$2.prototype, "css"), _class3$2.prototype), _class3$2);
 function TodoItemView(_ref2, _ref3) {
   var todo = _ref2.todo;
   var itemStore = _ref3.itemStore,
@@ -9938,6 +9953,7 @@ TodoItemView._r = [1, [{
   theme: TodoItemTheme,
   itemStore: TodoItemStore
 }]];
+TodoItemView.displayName = "TodoItemView";
 
 var _class$11;
 
@@ -10027,7 +10043,7 @@ function () {
     }
   }]);
   return TodoMainTheme;
-}(), (_applyDecoratedDescriptor$11(_class$11.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class$11.prototype, "css"), _class$11.prototype)), _class$11);
+}(), _applyDecoratedDescriptor$11(_class$11.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class$11.prototype, "css"), _class$11.prototype), _class$11);
 function TodoMainView(_ref, _ref2) {
   var todoService = _ref.todoService,
       todoFilterService = _ref.todoFilterService;
@@ -10056,6 +10072,7 @@ function TodoMainView(_ref, _ref2) {
 TodoMainView._r = [1, [{
   theme: TodoMainTheme
 }]];
+TodoMainView.displayName = "TodoMainView";
 
 var _class$13;
 
@@ -10107,6 +10124,7 @@ function createHandler(todoFilterService, id) {
 }
 
 createHandler._r = [2, [TodoFilterService, "V"]];
+createHandler.displayName = "createHandler";
 var TodoFooterTheme = (_class$13 =
 /*#__PURE__*/
 function () {
@@ -10190,7 +10208,7 @@ function () {
     }
   }]);
   return TodoFooterTheme;
-}(), (_applyDecoratedDescriptor$13(_class$13.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class$13.prototype, "css"), _class$13.prototype)), _class$13);
+}(), _applyDecoratedDescriptor$13(_class$13.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class$13.prototype, "css"), _class$13.prototype), _class$13);
 function TodoFooterView(_ref, _ref2) {
   var todoService = _ref.todoService,
       todoFilterService = _ref.todoFilterService;
@@ -10228,6 +10246,7 @@ function TodoFooterView(_ref, _ref2) {
 TodoFooterView._r = [1, [{
   theme: TodoFooterTheme
 }]];
+TodoFooterView.displayName = "TodoFooterView";
 
 var _class$7;
 
@@ -10301,14 +10320,14 @@ function () {
     }
   }]);
   return TodoAppTheme;
-}(), (_applyDecoratedDescriptor$7(_class$7.prototype, "css", [mem, theme], Object.getOwnPropertyDescriptor(_class$7.prototype, "css"), _class$7.prototype)), _class$7);
+}(), _applyDecoratedDescriptor$7(_class$7.prototype, "css", [mem, theme], Object.getOwnPropertyDescriptor(_class$7.prototype, "css"), _class$7.prototype), _class$7);
 function TodoApp(_ref, _ref2) {
   _objectDestructuringEmpty(_ref);
   var todoService = _ref2.todoService,
       todoFilterService = _ref2.todoFilterService,
       theme$$1 = _ref2.theme;
   var css = theme$$1.css;
-  return lom_h("div", null, todoService.activeTodoCount > 0 ? null : null, lom_h("div", {
+  return lom_h("div", null, lom_h(ItemView, null, lom_h(ItemView.Key, null, "Key"), lom_h(ItemView.Value, null, "Value>")), todoService.activeTodoCount > 0 ? null : null, lom_h("div", {
     style: {
       padding: '0.3em 0.5em'
     }
@@ -10329,6 +10348,7 @@ TodoApp._r = [1, [{
   todoFilterService: TodoFilterService,
   theme: TodoAppTheme
 }]];
+TodoApp.displayName = "TodoApp";
 
 var _class2$2;
 var _descriptor$6;
@@ -10392,6 +10412,7 @@ function () {
 }();
 
 TimeoutHandler._r = [0, [Function, Number]];
+TimeoutHandler.displayName = "TimeoutHandler";
 var AutocompleteService = (_class2$2 =
 /*#__PURE__*/
 function () {
@@ -10435,7 +10456,7 @@ function () {
     set: function set(searchResults) {}
   }]);
   return AutocompleteService;
-}(), (_descriptor$6 = _applyDecoratedDescriptor$14(_class2$2.prototype, "$", [force], {
+}(), _descriptor$6 = _applyDecoratedDescriptor$14(_class2$2.prototype, "$", [force], {
   enumerable: true,
   initializer: null
 }), _descriptor2$2 = _applyDecoratedDescriptor$14(_class2$2.prototype, "nameToSearch", [mem], {
@@ -10448,7 +10469,7 @@ function () {
   initializer: function initializer() {
     return null;
   }
-}), _applyDecoratedDescriptor$14(_class2$2.prototype, "searchResults", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "searchResults"), _class2$2.prototype), _applyDecoratedDescriptor$14(_class2$2.prototype, "searchResults", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "searchResults"), _class2$2.prototype)), _class2$2);
+}), _applyDecoratedDescriptor$14(_class2$2.prototype, "searchResults", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "searchResults"), _class2$2.prototype), _applyDecoratedDescriptor$14(_class2$2.prototype, "searchResults", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "searchResults"), _class2$2.prototype), _class2$2);
 
 function AutocompleteResultsView(_ref2) {
   var searchResults = _ref2.searchResults;
@@ -10460,6 +10481,7 @@ function AutocompleteResultsView(_ref2) {
 }
 
 AutocompleteResultsView._r = [1];
+AutocompleteResultsView.displayName = "AutocompleteResultsView";
 function AutocompleteView(_, service) {
   var results = service.searchResults;
   var name = service.nameToSearch;
@@ -10471,6 +10493,7 @@ function AutocompleteView(_, service) {
   }));
 }
 AutocompleteView._r = [1, [AutocompleteService]];
+AutocompleteView.displayName = "AutocompleteView";
 function autocompleteMocks(rawStorage) {
   var fixture = ['John Doe', 'Vasia Pupkin'];
   return [{
@@ -10487,6 +10510,7 @@ function autocompleteMocks(rawStorage) {
   }];
 }
 autocompleteMocks._r = [2, [Storage]];
+autocompleteMocks.displayName = "autocompleteMocks";
 
 var _class$14;
 var _descriptor$7;
@@ -10534,13 +10558,13 @@ function _applyDecoratedDescriptor$15(target, property, decorators, descriptor, 
 
 var Store$1 = (_class$14 = function Store() {
   _initDefineProp$7(this, "red", _descriptor$7, this);
-}, (_descriptor$7 = _applyDecoratedDescriptor$15(_class$14.prototype, "red", [mem], {
+}, _descriptor$7 = _applyDecoratedDescriptor$15(_class$14.prototype, "red", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return 140;
   }
-})), _class$14);
-var CssChangeTheme = (_dec$1 = theme.self, (_class3$3 =
+}), _class$14);
+var CssChangeTheme = (_dec$1 = theme.self, _class3$3 =
 /*#__PURE__*/
 function () {
   function CssChangeTheme(store) {
@@ -10559,8 +10583,9 @@ function () {
     }
   }]);
   return CssChangeTheme;
-}(), (_applyDecoratedDescriptor$15(_class3$3.prototype, "css", [mem, _dec$1], Object.getOwnPropertyDescriptor(_class3$3.prototype, "css"), _class3$3.prototype)), _class3$3));
+}(), _applyDecoratedDescriptor$15(_class3$3.prototype, "css", [mem, _dec$1], Object.getOwnPropertyDescriptor(_class3$3.prototype, "css"), _class3$3.prototype), _class3$3);
 CssChangeTheme._r = [0, [Store$1]];
+CssChangeTheme.displayName = "CssChangeTheme";
 function CssChangeView(_, _ref) {
   var store = _ref.store,
       css = _ref.theme.css;
@@ -10581,6 +10606,7 @@ CssChangeView._r = [1, [{
   theme: CssChangeTheme,
   store: Store$1
 }]];
+CssChangeView.displayName = "CssChangeView";
 
 var _class;
 var _descriptor;
@@ -10648,13 +10674,14 @@ function () {
     }
   }]);
   return Store;
-}(), _class2.deps = [AbstractLocationStore], _temp), (_descriptor = _applyDecoratedDescriptor(_class.prototype, "name", [mem], {
+}(), _class2.deps = [AbstractLocationStore], _temp), _descriptor = _applyDecoratedDescriptor(_class.prototype, "name", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return 'John';
   }
-})), _class);
+}), _class);
 Store._r = [0, [AbstractLocationStore]];
+Store.displayName = "Store";
 
 function AppView(_ref, _ref2) {
   var lang = _ref.lang;
@@ -10728,6 +10755,7 @@ function AppView(_ref, _ref2) {
 AppView._r = [1, [{
   store: Store
 }]];
+AppView.displayName = "AppView";
 var el = document.getElementById('app');
 if (!el) throw new Error('Document has no #app container');
 render(lom_h(AppView, {

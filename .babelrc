@@ -4,7 +4,7 @@
     "@babel/transform-flow-strip-types",
     "@babel/proposal-object-rest-spread",
     ["@babel/proposal-class-properties", {"loose": true}],
-    "transform-metadata",
+    ["transform-metadata", {"addDisplayName": true}],
     ["@babel/transform-react-jsx", {"pragma": "lom_h"}],
     ["@babel/transform-template-literals", {"loose": true}],
     "@babel/transform-literals",
