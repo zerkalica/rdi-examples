@@ -9269,6 +9269,7 @@ function () {
       return this._title;
     },
     set: function set(t) {
+      if (this._title === t) return;
       this._title = t;
 
       this._store.saveTodo(this.toJSON());
@@ -9738,8 +9739,10 @@ function () {
     this.handleSubmit = function (event) {
       var val = _this.editText.trim();
 
-      if (val) {
-        _this.props.todo.title = val;
+      var todo = _this.props.todo;
+
+      if (val && todo.title !== val) {
+        todo.title = val;
         _this.editText = '';
       } else {
         _this.handleDestroy();
@@ -9782,7 +9785,7 @@ function () {
 
   _proto.setText = function setText(_ref) {
     var target = _ref.target;
-    this.editText = target.value;
+    this.editText = target.value.trim();
   };
 
   return TodoItemStore;

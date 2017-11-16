@@ -29,7 +29,7 @@ class TodoItemStore {
     }
 
     @action setText({target}: Event) {
-        this.editText = (target: any).value
+        this.editText = (target: any).value.trim()
     }
 
     setEditInputRef = (el: ?HTMLInputElement) => {
@@ -40,8 +40,9 @@ class TodoItemStore {
 
     handleSubmit = (event: Event) => {
         const val = this.editText.trim()
-        if (val) {
-            this.props.todo.title = val
+        const {todo} = this.props
+        if (val && todo.title !== val) {
+            todo.title = val
             this.editText = ''
         } else {
             this.handleDestroy()

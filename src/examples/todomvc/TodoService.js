@@ -38,6 +38,7 @@ class TodoModel implements ITodo {
     }
 
     set title(t: string) {
+        if (this._title === t) return
         this._title = t
         this._store.saveTodo(this.toJSON())
     }
