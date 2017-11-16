@@ -9744,7 +9744,7 @@ function () {
       if (val && todo.title !== val) {
         todo.title = val;
         _this.editText = '';
-      } else {
+      } else if (!val) {
         _this.handleDestroy();
       }
 

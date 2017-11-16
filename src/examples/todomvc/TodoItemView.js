@@ -44,7 +44,7 @@ class TodoItemStore {
         if (val && todo.title !== val) {
             todo.title = val
             this.editText = ''
-        } else {
+        } else if (!val) {
             this.handleDestroy()
         }
         this.todoBeingEditedId = null
