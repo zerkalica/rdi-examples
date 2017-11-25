@@ -1,6 +1,6 @@
 // @flow
 import './setupReact'
-import {mem, force} from 'lom_atom'
+import {mem} from 'lom_atom'
 
 import {render} from 'preact'
 

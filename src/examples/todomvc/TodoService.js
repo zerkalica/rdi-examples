@@ -1,7 +1,7 @@
 // @flow
 import Fetcher from '../../Fetcher'
 import {uuid} from '../common-todomvc'
-import {action, mem, memkey, force} from 'lom_atom'
+import {action, mem} from 'lom_atom'
 
 interface ITodoData {
     id: string;
@@ -72,7 +72,6 @@ interface ITodoExtInfo {
 export default class TodoService {
     @mem opCount = 0
     _fetcher: Fetcher
-    @force $: TodoService
 
     constructor(fetcher: Fetcher) {
         this._fetcher = fetcher
@@ -82,15 +81,15 @@ export default class TodoService {
         return this.opCount !== 0
     }
 
-    @memkey todoExtInfo(id: string, info?: ITodoExtInfo | Error): ITodoExtInfo {
+    @mem.key todoExtInfo(id: string, info?: ITodoExtInfo | Error): ITodoExtInfo {
         if (info !== undefined && !(info instanceof Error)) return info
         fetch(`/api/todo/${id}/info`)
             .then(toJson)
             .then((data: ITodoExtInfo) => {
-                this.$.todoExtInfo(id, data)
+                this.todoExtInfo(id, mem.cache(data))
             })
             .catch((e: Error) => {
-                this.$.todoExtInfo(id, e)
+                this.todoExtInfo(id, mem.cache(e))
             })
         throw new mem.Wait()
     }
@@ -99,10 +98,10 @@ export default class TodoService {
         fetch('/api/todos')
             .then(toJson)
             .then((data: ITodoData[]) => {
-                this.$.todos = data.map((todo: ITodoData) => new TodoModel(todo, this))
+                this.todos = mem.cache(data.map((todo: ITodoData) => new TodoModel(todo, this)))
             })
             .catch((e: Error) => {
-                this.$.todos = e
+                this.todos = mem.cache(e)
             })
         throw new mem.Wait()
     }
@@ -143,7 +142,7 @@ export default class TodoService {
             })
                 .then(toJson)
                 .then((updatedTodo: ITodoData) => {
-                    this.$.todos = this.todos.map(
+                    this.todos = this.todos.map(
                         (t: ITodo) => t.id === todo.id
                             ? new TodoModel(updatedTodo, this)
                             : t

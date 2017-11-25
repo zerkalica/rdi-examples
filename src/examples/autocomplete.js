@@ -1,6 +1,6 @@
 // @flow
 
-import {mem, force} from 'lom_atom'
+import {mem} from 'lom_atom'
 import {props} from 'reactive-di'
 
 interface IAutocompleteProps {
@@ -19,7 +19,6 @@ class TimeoutHandler {
 }
 
 class AutocompleteService {
-    @force $: AutocompleteService
     @mem nameToSearch: string = ''
 
     @props set props({initialValue}: IAutocompleteProps) {
@@ -34,10 +33,10 @@ class AutocompleteService {
             fetch(`/api/autocomplete?q=${name}`)
                 .then((r: Response) => r.json())
                 .then((data: string[]) => {
-                    this.$.searchResults = data
+                    this.searchResults = mem.cache(data)
                 })
                 .catch((e: Error) => {
-                    this.$.searchResults = e
+                    this.searchResults = mem.cache(e)
                 })
         }, 500)
 
@@ -47,7 +46,7 @@ class AutocompleteService {
     @mem set searchResults(searchResults: string[] | Error) {}
 
     setValue = (e: Event) => {
-        this.$.nameToSearch = (e.target: any).value
+        this.nameToSearch = mem.cache((e.target: any).value)
     }
 }
 

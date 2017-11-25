@@ -1,17 +1,16 @@
 // @flow
 
-import {mem, force} from 'lom_atom'
+import {mem} from 'lom_atom'
 import {cloneComponent} from 'reactive-di'
 
 class FirstCounterService {
-    @force $: FirstCounterService
     lang = {
         add: 'Add',
         error: 'Gen error'
     }
     @mem get value(): number {
         setTimeout(() => {
-            this.$.value = 1
+            this.value = mem.cache(1)
             // this.value = new Error('loading error')
         }, 500)
 
