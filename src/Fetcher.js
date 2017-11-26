@@ -2,11 +2,6 @@
 
 import {mem} from 'lom_atom'
 
-interface IParent<V: Object> {
-    beginFetch(): void;
-    endFetch(f: FetcherResponse<V>, e?: Error): void;
-}
-
 type IRequestOptions = RequestOptions & {timeout?: number}
 
 export interface IErrorParams {
@@ -59,107 +54,131 @@ function timeoutPromise<D>(promise: Promise<D>, timeout?: ?number, params: IErro
     ])
 }
 
+interface IRenderer {
+    beginFetch(): void;
+    endFetch(f: FetcherResponse, e?: Error): void;
+}
+
 interface IFetcher {
+    +state: IState | void;
+    +renderer: IRenderer | void;
+    mergeOptions(init?: IRequestOptions, isSaving?: boolean): IRequestOptions | void;
     request(url: string, init?: IRequestOptions): Promise<Response>;
 }
 
-class FetcherResponse<V: Object> {
-    _url: string
-    _init: IRequestOptions | void
-    _state: V | void
-    _ptr: IParent<V> | void
+class FetcherResponse {
     _fetcher: IFetcher
+    _url: string
+    _opts: IRequestOptions | void
 
-    constructor(url: string, init?: IRequestOptions, state?: V, ptr?: IParent<V>, fetcher: IFetcher) {
+    constructor(url: string, fetcher: IFetcher) {
         this._url = url
-        this._init = init
-        this._state = state
-        this._ptr = ptr
         this._fetcher = fetcher
+        this._opts = undefined
     }
 
-    _end = (e?: any) => {
-        if (this._ptr) {
-            this._ptr.endFetch(this, e instanceof Error ? e : undefined)
-        }
-    }
-
-    _getState(): V | void | string {
-        const state = this._state
-        this._state = undefined
+    _getState<V>(): V | void {
+        const {_fetcher: {state}, _url: url} = this
         if (state !== undefined) {
-            return state
+            const apiData: V | void = (state[url]: any)
+            state[url] = undefined
+            return apiData
         }
     }
 
-    @mem text(next?: string | Error, force?: boolean): string {
+    options(opts: IRequestOptions): this {
+        this._opts = opts
+        return this
+    }
+
+    methodGet(): string {
+        return 'GET'
+    }
+
+    methodPost(): string {
+        return 'POST'
+    }
+
+    _addMethod(opts?: IRequestOptions, isSave: boolean): IRequestOptions {
+        return {
+            ...opts,
+            method: isSave ? this.methodPost() : this.methodGet()
+        }
+    }
+
+    @mem text(next?: string | Error): string {
         const state = this._getState()
         if (state !== undefined) {
-            if (typeof state !== 'string') throw new Error(`${this._url} state need an string`)
+            if (typeof state !== 'string') throw new Error(`fetch.text ${this._url}, string expected`)
             return state
         }
 
-        if (this._ptr) {
-            this._ptr.beginFetch()
-        }
-        const init = this._init
+        const {_url: url, _fetcher: fetcher} = this
+        const {renderer} = fetcher
+        const opts = fetcher.mergeOptions(this._addMethod(this._opts, next !== undefined))
         const params: IErrorParams = {
-            url: this._url,
-            method: init ? init.method : 'GET',
-            body: init ? init.body : ''
+            url: url,
+            method: opts ? opts.method : 'GET',
+            body: opts ? opts.body : ''
         }
-        timeoutPromise(this._fetcher.request(this._url, init), init ? init.timeout : null, params)
+
+        if (renderer) renderer.beginFetch()
+
+        timeoutPromise(fetcher.request(url, opts), opts ? opts.timeout : null, params)
             .then((r: Response) => r.status === 204 ? '' : r.text())
-            .then((data: string) => this.text(data, true))
-            .catch((e: Error) => {
-                if (!(e instanceof HttpError)) {
-                    const err = new HttpError((e: Object).statusCode || 500, e.message, null, null, params)
-                    err.stack = e.stack
-                    this.text(err, true)
-                }
-                this.text((e: any), true)
-                return e
+            .then((data: string) => {
+                this.text(mem.cache(data))
+                if (renderer) renderer.endFetch(this)
             })
-            .then(this._end)
+            .catch((e: Error) => {
+                const err = e instanceof HttpError
+                    ? e
+                    : new HttpError((e: Object).statusCode || 500, e.message, null, null, params)
+                err.stack = e.stack
+                this.text(mem.cache(err))
+                if (renderer) renderer.endFetch(this, e)
+            })
 
         throw new mem.Wait(`${params.method} ${params.url}`)
     }
 
-    json(): V {
-        const state = this._getState()
+    json<V: Object>(next?: V): V {
+        const state: V | void = this._getState()
         if (state !== undefined) {
             if (typeof state !== 'object') throw new Error(`${this._url} state need an object`)
             return state
         }
 
-        const text = this.text()
+        const text = this.text(next === undefined ? undefined : JSON.stringify(next, null, '\t'))
 
-        return text ? JSON.parse(text) : ({}: any)
+        return JSON.parse(text)
     }
 }
 
-type IState = Object
+type IState = {[id: string]: Object | void}
 type ISuccessCb = (state: IState) => void
 type IErrorCb = (e: Error) => void
 
-export default class Fetcher {
-    _state: IState
-    _baseUrl: string
+export default class Fetcher implements IFetcher {
+    state: IState | void
+    renderer: IRenderer | void
+
     _init: IRequestOptions | void
-    _renderer: IParent<*> | void
+    _baseUrl: string
+    _Response: Class<FetcherResponse>
 
-    static Response: Class<FetcherResponse<*>> = FetcherResponse
-
-    constructor(
-        baseUrl?: string,
-        init?: IRequestOptions,
-        state?: IState,
-        renderer?: IParent<*>
-    ) {
-        this._state = state || {}
-        this._baseUrl = baseUrl || ''
-        this._init = init
-        this._renderer = renderer
+    constructor(opts?: {
+        baseUrl?: string;
+        state?: IState;
+        init?: IRequestOptions;
+        renderer?: IRenderer;
+        Response?: Class<FetcherResponse>;
+    } = {}) {
+        this._Response = opts.Response || FetcherResponse
+        this._baseUrl = opts.baseUrl || ''
+        this.state = opts.state
+        this._init = opts.init
+        this.renderer = opts.renderer
     }
 
     request(url: string, init?: IRequestOptions): Promise<Response> {
@@ -167,23 +186,20 @@ export default class Fetcher {
     }
 
     mergeOptions(init?: IRequestOptions): IRequestOptions | void {
-        return this._init === undefined && init === undefined
-            ? undefined
-            : {...(this._init || {}), ...(init || {})}
+        if (this._init === undefined && init === undefined) return
+
+        return {
+            ...(this._init || {}),
+            ...(init || {})
+        }
     }
 
-    @mem.key fetch<V: any>(url: string): FetcherResponse<V> {
-        return new this.constructor.Response(
-            this._baseUrl + url,
-            this._init,
-            this._state,
-            this._renderer,
-            (this: IFetcher)
-        )
+    @mem.key fetch(url: string): FetcherResponse {
+        return new this._Response(this._baseUrl + url, this)
     }
 }
 
-export class ServerRenderer implements IParent<*> {
+export class ServerRenderer implements IRenderer {
     _size = 0
     _callbacks: ISuccessCb[] = []
     _errors: IErrorCb[] = []
@@ -201,7 +217,7 @@ export class ServerRenderer implements IParent<*> {
         this._size++
     }
 
-    endFetch(v: FetcherResponse<*>, e?: Error) {
+    endFetch(v: FetcherResponse, e?: Error) {
         this._size--
 
         let data: Error | Object
@@ -212,11 +228,7 @@ export class ServerRenderer implements IParent<*> {
             data = v.json()
         }
 
-        const method = (v._init ? v._init.method : null) || 'GET'
-        const result = method !== 'GET'
-            ? {[method]: data}
-            : data
-        this._state[v._url] = result
+        this._state[v._url] = data
 
         if (this._size === 0) {
             if (!this._error) {
@@ -226,7 +238,7 @@ export class ServerRenderer implements IParent<*> {
                 const state = this._state
                 const cbs = this._error ? this._errors : this._callbacks
                 for (let i = 0; i < cbs.length; i++) {
-                    cbs[i](state)
+                    cbs[i]((state: any))
                 }
                 this._callbacks = []
                 this._errors = []
@@ -235,17 +247,17 @@ export class ServerRenderer implements IParent<*> {
         }
     }
 
-    then(cb: ISuccessCb) {
+    then(cb: ISuccessCb): this {
         this._callbacks.push(cb)
         return this
     }
 
-    catch(cb: IErrorCb) {
+    catch(cb: IErrorCb): this {
         this._errors.push(cb)
         return this
     }
 
-    render() {
+    render(): this {
         this._render()
 
         return this
