@@ -51,7 +51,7 @@ class TodoAppTheme {
     }
 }
 
-export default function TodoApp(
+export default function TodoAppView(
     {}: TodoAppProps,
     {todoService, todoFilterService, theme: {css} }: {
         todoService: TodoService;
@@ -62,11 +62,11 @@ export default function TodoApp(
     return <div>
         {/* Loading fix: access data in TodoApp first to throw exception, if no todos loaded */}
         {todoService.activeTodoCount > 0 ? null : null}
-        <div style={{padding: '0.3em 0.5em'}}>{todoService.isOperationRunning ? 'Saving...' : 'Idle'}</div>
-        <div class={css.todoapp}>
-            <TodoHeaderView todoService={todoService} />
-            <TodoMainView todoService={todoService} todoFilterService={todoFilterService} />
-            <TodoFooterView todoService={todoService} todoFilterService={todoFilterService} />
+        <div id="status" style={{padding: '0.3em 0.5em'}}>{todoService.isOperationRunning ? 'Saving...' : 'Idle'}</div>
+        <div id="layout" class={css.todoapp}>
+            <TodoHeaderView id="header" todoService={todoService} />
+            <TodoMainView id="main" todoService={todoService} todoFilterService={todoFilterService} />
+            <TodoFooterView id="footer" todoService={todoService} todoFilterService={todoFilterService} />
         </div>
     </div>
 }

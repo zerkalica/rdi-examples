@@ -23,7 +23,7 @@ export function HelloView(
 ) {
     return <div>
         {context.greet}
-        <br/><input value={context.name} onInput={({target}) => {
+        <br/><input id="input" value={context.name} onInput={({target}) => {
             context.name = (target: any).value
         }} />
     </div>

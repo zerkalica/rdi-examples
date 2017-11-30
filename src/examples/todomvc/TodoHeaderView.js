@@ -63,8 +63,9 @@ export default function TodoHeaderView(
         todoToAdd: TodoToAdd;
     }
 ) {
-    return <header>
+    return <header id="main">
         <input
+            id="input"
             class={css.newTodo}
             placeholder="What needs to be done?"
             onInput={todoToAdd.onInput}

@@ -33,10 +33,10 @@ class AutocompleteService {
             fetch(`/api/autocomplete?q=${name}`)
                 .then((r: Response) => r.json())
                 .then((data: string[]) => {
-                    this.searchResults = mem.cache(data)
+                    mem.cache(this.searchResults = data)
                 })
                 .catch((e: Error) => {
-                    this.searchResults = mem.cache(e)
+                    mem.cache(this.searchResults = e)
                 })
         }, 500)
 
@@ -46,7 +46,7 @@ class AutocompleteService {
     @mem set searchResults(searchResults: string[] | Error) {}
 
     setValue = (e: Event) => {
-        this.nameToSearch = mem.cache((e.target: any).value)
+        mem.cache(this.nameToSearch = (e.target: any).value)
     }
 }
 
@@ -57,7 +57,7 @@ function AutocompleteResultsView(
 ) {
     return <ul>
         {searchResults.map((result: string, i: number) =>
-            <li key={result + i}>
+            <li key={result + i} id="list">
                 {result}
             </li>
         )}
@@ -71,12 +71,12 @@ export function AutocompleteView(
     const results = service.searchResults
     const name = service.nameToSearch
     return <div>
-        <div>
+        <div id="filter">
             Filter:
             <input value={name} onInput={service.setValue}/>
         </div>
         Values:
-        <AutocompleteResultsView searchResults={results} />
+        <AutocompleteResultsView id="results" searchResults={results} />
     </div>
 }
 

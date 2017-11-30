@@ -10,7 +10,7 @@ class FirstCounterService {
     }
     @mem get value(): number {
         setTimeout(() => {
-            this.value = mem.cache(1)
+            mem.cache(this.value = 1)
             // this.value = new Error('loading error')
         }, 500)
 
@@ -35,9 +35,9 @@ function FirstCounterView(
     counter: FirstCounterService
 ) {
     return <div>
-        <CounterMessageView value={counter.value}/>
-        <button id="FirstCounterAddButton" onClick={() => { counter.value++ }}>{counter.lang.add}</button>
-        <button id="FirstCounterGenErrorButton" onClick={() => { counter.value = ('someStr': any) }}>{counter.lang.error}</button>
+        <CounterMessageView id="message" value={counter.value}/>
+        <button id="add" onClick={() => { counter.value++ }}>{counter.lang.add}</button>
+        <button id="error" onClick={() => { counter.value = ('someStr': any) }}>{counter.lang.error}</button>
     </div>
 }
 
@@ -65,8 +65,8 @@ function SecondCounterAddButtonView(
 const SecondCounterView = cloneComponent(FirstCounterView, [
     [FirstCounterService, SecondCounterService],
     [CounterMessageView, SecondCounterMessageView],
-    ['FirstCounterAddButton', SecondCounterAddButtonView],
-    ['FirstCounterGenErrorButton', null]
+    ['add', SecondCounterAddButtonView],
+    ['error', null]
 ], 'SecondCounterView')
 
 function ThirdCounterAddButtonView(
@@ -78,7 +78,7 @@ function ThirdCounterAddButtonView(
 }
 
 const ThirdCounterView = cloneComponent(SecondCounterView, [
-    ['FirstCounterAddButton', ThirdCounterAddButtonView]
+    ['add', ThirdCounterAddButtonView]
 ], 'ThirdCounterView')
 
 export function CounterView() {

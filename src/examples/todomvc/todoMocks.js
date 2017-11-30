@@ -74,13 +74,11 @@ export default function todoMocks(
             response(url: string, params: RequestOptions) { // eslint-disable-line
                 const data: ?ITodo[] = storage.get()
                 const todos = data || defaultTodos
-                const updates: Map<string, ITodo> = new Map(getBody(params.body))
+                const updates: Map<string, $Shape<ITodo>> = new Map(getBody(params.body))
 
                 const newTodos = todos
                     .map((todo: Todo) => {
-                        return updates.has(todo.id)
-                            ? todo
-                            : {...todo, ...updates.get(todo.id)}
+                        return {...todo, ...updates.get(todo.id)}
                     })
                     .sort(sortByDate)
                 storage.set(newTodos)

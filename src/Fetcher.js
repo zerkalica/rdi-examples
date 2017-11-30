@@ -56,29 +56,43 @@ function timeoutPromise<D>(promise: Promise<D>, timeout?: ?number, params: IErro
 
 interface IRenderer {
     beginFetch(): void;
-    endFetch(f: FetcherResponse, e?: Error): void;
+    endFetch(data: string | Error, url: string): void;
 }
 
 interface IFetcher {
+    baseUrl: string;
     +state: IState | void;
     +renderer: IRenderer | void;
-    mergeOptions(init?: IRequestOptions, isSaving?: boolean): IRequestOptions | void;
-    request(url: string, init?: IRequestOptions): Promise<Response>;
+    mergeOptions(init: IRequestOptions): IRequestOptions;
 }
 
-class FetcherResponse {
+export interface FetcherApi<V> {
+    url: string;
+    getOptions(getOpts?: IRequestOptions): FetcherApi<V>;
+    postOptions(postOpts?: IRequestOptions): FetcherApi<V>;
+    text(next?: string): string;
+    json(data?: V): V;
+}
+
+class FetcherResponse<V> implements FetcherApi<V> {
     _fetcher: IFetcher
-    _url: string
-    _opts: IRequestOptions | void
+    url: string
+    _getOpts: IRequestOptions | void
+    _postOpts: IRequestOptions | void
 
     constructor(url: string, fetcher: IFetcher) {
-        this._url = url
+        this.url = url
         this._fetcher = fetcher
-        this._opts = undefined
+        this._getOpts = {
+            method: 'GET'
+        }
+        this._postOpts = {
+            method: 'PUT'
+        }
     }
 
     _getState<V>(): V | void {
-        const {_fetcher: {state}, _url: url} = this
+        const {_fetcher: {state}, url: url} = this
         if (state !== undefined) {
             const apiData: V | void = (state[url]: any)
             state[url] = undefined
@@ -86,72 +100,74 @@ class FetcherResponse {
         }
     }
 
-    options(opts: IRequestOptions): this {
-        this._opts = opts
+    getOptions(getOpts?: IRequestOptions): this {
+        this._getOpts = getOpts
         return this
     }
 
-    methodGet(): string {
-        return 'GET'
+    postOptions(postOpts?: IRequestOptions): this {
+        this._postOpts = postOpts
+
+        return this
     }
 
-    methodPost(): string {
-        return 'POST'
-    }
-
-    _addMethod(opts?: IRequestOptions, isSave: boolean): IRequestOptions {
-        return {
-            ...opts,
-            method: isSave ? this.methodPost() : this.methodGet()
-        }
+    _request(url: string, init?: IRequestOptions): Promise<Response> {
+        return fetch(url, init)
     }
 
     @mem text(next?: string | Error): string {
         const state = this._getState()
         if (state !== undefined) {
-            if (typeof state !== 'string') throw new Error(`fetch.text ${this._url}, string expected`)
+            if (typeof state !== 'string') throw new Error(`fetch.text ${this.url}, string expected`)
             return state
         }
+        if (next instanceof Error) throw new Error('Need a string')
 
-        const {_url: url, _fetcher: fetcher} = this
+        const {_fetcher: fetcher} = this
         const {renderer} = fetcher
-        const opts = fetcher.mergeOptions(this._addMethod(this._opts, next !== undefined))
+        const url = fetcher.baseUrl + this.url
+        const opts: IRequestOptions = fetcher.mergeOptions(
+            ({
+                ...(next === undefined ? this._getOpts : this._postOpts),
+                body: next === undefined ? undefined : next
+            }: IRequestOptions)
+        )
         const params: IErrorParams = {
-            url: url,
-            method: opts ? opts.method : 'GET',
-            body: opts ? opts.body : ''
+            url,
+            method: opts.method || 'GET',
+            body: opts.body || ''
         }
 
         if (renderer) renderer.beginFetch()
 
-        timeoutPromise(fetcher.request(url, opts), opts ? opts.timeout : null, params)
+        timeoutPromise(this._request(url, opts), opts ? opts.timeout : null, params)
             .then((r: Response) => r.status === 204 ? '' : r.text())
             .then((data: string) => {
-                this.text(mem.cache(data))
-                if (renderer) renderer.endFetch(this)
+                mem.cache(this.text(data))
+                if (renderer) renderer.endFetch(data, url)
             })
             .catch((e: Error) => {
                 const err = e instanceof HttpError
                     ? e
                     : new HttpError((e: Object).statusCode || 500, e.message, null, null, params)
                 err.stack = e.stack
-                this.text(mem.cache(err))
-                if (renderer) renderer.endFetch(this, e)
+                mem.cache(this.text(err))
+                if (renderer) renderer.endFetch(err, url)
             })
 
         throw new mem.Wait(`${params.method} ${params.url}`)
     }
 
-    json<V: Object>(next?: V): V {
+    json(next?: V): V {
         const state: V | void = this._getState()
         if (state !== undefined) {
-            if (typeof state !== 'object') throw new Error(`${this._url} state need an object`)
+            if (typeof state !== 'object') throw new Error(`${this.url} state need an object`)
             return state
         }
 
         const text = this.text(next === undefined ? undefined : JSON.stringify(next, null, '\t'))
 
-        return JSON.parse(text)
+        return JSON.parse(text.valueOf())
     }
 }
 
@@ -164,38 +180,29 @@ export default class Fetcher implements IFetcher {
     renderer: IRenderer | void
 
     _init: IRequestOptions | void
-    _baseUrl: string
-    _Response: Class<FetcherResponse>
+    baseUrl: string
 
     constructor(opts?: {
         baseUrl?: string;
         state?: IState;
         init?: IRequestOptions;
         renderer?: IRenderer;
-        Response?: Class<FetcherResponse>;
     } = {}) {
-        this._Response = opts.Response || FetcherResponse
-        this._baseUrl = opts.baseUrl || ''
+        this.baseUrl = opts.baseUrl || ''
         this.state = opts.state
         this._init = opts.init
         this.renderer = opts.renderer
     }
 
-    request(url: string, init?: IRequestOptions): Promise<Response> {
-        return fetch(url, init)
-    }
-
-    mergeOptions(init?: IRequestOptions): IRequestOptions | void {
-        if (this._init === undefined && init === undefined) return
-
+    mergeOptions(init: IRequestOptions): IRequestOptions {
         return {
             ...(this._init || {}),
             ...(init || {})
         }
     }
 
-    @mem.key fetch(url: string): FetcherResponse {
-        return new this._Response(this._baseUrl + url, this)
+    @mem.key request<V>(url: string): FetcherApi<V> {
+        return new FetcherResponse(url, this)
     }
 }
 
@@ -217,18 +224,18 @@ export class ServerRenderer implements IRenderer {
         this._size++
     }
 
-    endFetch(v: FetcherResponse, e?: Error) {
+    endFetch(data: string | Error, url: string) {
         this._size--
 
-        let data: Error | Object
-        if (e) {
-            data = e
+        if (data instanceof Error) {
             this._error = true
         } else {
-            data = v.json()
+            try {
+                this._state[url] = JSON.parse(data)
+            } catch (e) {
+                console.warn(e)
+            }
         }
-
-        this._state[v._url] = data
 
         if (this._size === 0) {
             if (!this._error) {

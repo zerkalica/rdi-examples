@@ -75,12 +75,13 @@ export default function TodoMainView(
 
     return <section class={css.main}>
         <input
+            id="input"
             class={css.toggleAll}
             type="checkbox"
             onChange={todoService.toggleAll}
             checked={todoService.activeTodoCount === 0}
         />
-        <ul class={css.todoList}>
+        <ul class={css.todoList} id="items">
             {todoFilterService.filteredTodos.map((todo: ITodo) =>
                 <TodoItemView
                     key={todo.id}

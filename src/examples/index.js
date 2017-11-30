@@ -76,7 +76,7 @@ function AppView(
     }
 
     return <div style={{dislay: 'flex', justifyContent: 'center'}}>
-        <div style={{padding: '1em'}}>
+        <div id="menu" style={{padding: '1em'}}>
             {store.pages.map((link: string) =>
                 <button
                     key={link}
@@ -86,14 +86,14 @@ function AppView(
                 >{link}</button>
             )}
         </div>
-        <div style={{border: '1px solid gray', padding: '1em', margin: '0 1em'}}>
-            <h1>{store.page}</h1>
+        <div id="layout" style={{border: '1px solid gray', padding: '1em', margin: '0 1em'}}>
+            <h1 id="title">{store.page}</h1>
             {page}
         </div>
 
-        <ItemView>
-            <ItemView.Key>Some initial value:</ItemView.Key>
-            <ItemView.Value><input value={store.name} onInput={({target}: Event) => {
+        <ItemView id="inital">
+            <ItemView.Key id="key">Some initial value:</ItemView.Key>
+            <ItemView.Value id="value"><input id="value-input" value={store.name} onInput={({target}: Event) => {
                 store.name = (target: any).value
             }} /></ItemView.Value>
         </ItemView>

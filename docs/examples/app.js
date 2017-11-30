@@ -1,3 +1,4 @@
+(function(l, i, v, e) { v = l.createElement(i); v.async = 1; v.src = '//' + (location.host || 'localhost').split(':')[0] + ':35729/livereload.js?snipver=1'; e = l.getElementsByTagName(i)[0]; e.parentNode.insertBefore(v, e)})(document, 'script');
 (function () {
 'use strict';
 
@@ -77,14 +78,12 @@ function _inheritsLoose$1(subClass, superClass) {
 
 _inheritsLoose$1._r = [2];
 _inheritsLoose$1.displayName = "_inheritsLoose";
-var ATOM_FORCE_NONE = 0;
-var ATOM_FORCE_CACHE = 1;
-var ATOM_FORCE_UPDATE = 2;
 var ATOM_STATUS_DESTROYED = 0;
 var ATOM_STATUS_OBSOLETE = 1;
 var ATOM_STATUS_CHECKING = 2;
 var ATOM_STATUS_PULLING = 3;
 var ATOM_STATUS_ACTUAL = 4;
+var ATOM_STATUS_DEEP_RESET = 5;
 var catchedId = Symbol('lom_atom_catched');
 var origId = Symbol('orig_error');
 
@@ -177,6 +176,11 @@ function conform(target, source, isComponent, stack) {
 
 conform._r = [2];
 conform.displayName = "conform";
+
+var _class$1;
+
+var _temp$1;
+
 var throwOnAccess = {
   get: function get(target, key) {
     if (key === origId) return target.valueOf();
@@ -216,11 +220,10 @@ function actualizeMaster(master) {
 
 actualizeMaster._r = [2];
 actualizeMaster.displayName = "actualizeMaster";
-
-var Atom =
+var Atom = (_temp$1 = _class$1 =
 /*#__PURE__*/
 function () {
-  function Atom(field, owner, context, hostAtoms, key, keyHash, isComponent) {
+  function Atom(field, owner, context, hostAtoms, manualReset, key, keyHash, isComponent) {
     this._masters = null;
     this._slaves = null;
     this._keyHash = keyHash;
@@ -228,12 +231,13 @@ function () {
     this.field = field;
     this.owner = owner;
     this.isComponent = isComponent || false;
+    this.manualReset = manualReset || false;
     this._context = context;
     this.current = undefined;
     this._next = undefined;
     this._suggested = undefined;
     this._hostAtoms = hostAtoms;
-    this.status = this.current === undefined ? ATOM_STATUS_OBSOLETE : ATOM_STATUS_ACTUAL;
+    this.status = ATOM_STATUS_OBSOLETE;
   }
 
   var _proto = Atom.prototype;
@@ -273,21 +277,26 @@ function () {
     this._keyHash = undefined;
   };
 
-  _proto.value = function value(next) {
+  _proto.reset = function reset() {
+    this._suggested = this._next;
+    this._next = undefined;
+    this.status = ATOM_STATUS_DEEP_RESET;
+  };
+
+  _proto.value = function value(next, forceCache) {
     var context = this._context;
-    var force = context.force;
-    context.force = context.prevForce;
 
-    if (force === ATOM_FORCE_CACHE) {
-      this._push(next);
-    } else {
-      var normalized;
+    if (forceCache === true) {
+      if (next === undefined) {
+        this.reset();
 
-      if (next !== undefined && (normalized = conform(next, this._suggested, this.isComponent)) !== this._suggested && (this.current instanceof Error || (normalized = conform(next, this.current, this.isComponent)) !== this.current)) {
-        this._suggested = this._next = normalized;
-        force = ATOM_FORCE_UPDATE;
+        if (this._slaves) {
+          this._slaves.forEach(obsoleteSlave);
+        }
+      } else {
+        this._push(next);
       }
-
+    } else {
       var slave = context.current;
 
       if (slave && (!slave.isComponent || !this.isComponent)) {
@@ -302,11 +311,14 @@ function () {
         slave.addMaster(this);
       }
 
-      if (force === ATOM_FORCE_UPDATE) {
-        this._push(this._pull());
-      } else {
-        this.actualize();
+      var normalized;
+
+      if (next !== undefined && (normalized = conform(next, this._suggested, this.isComponent)) !== this._suggested && (this.current instanceof Error || (normalized = conform(next, this.current, this.isComponent)) !== this.current)) {
+        this._suggested = this._next = normalized;
+        this.status = ATOM_STATUS_DEEP_RESET;
       }
+
+      this.actualize();
     }
 
     return this.current;
@@ -316,8 +328,6 @@ function () {
     if (this.status === ATOM_STATUS_PULLING) {
       throw new Error("Cyclic atom dependency of " + String(this));
     }
-
-    if (this.status === ATOM_STATUS_ACTUAL) return;
 
     if (this.status === ATOM_STATUS_CHECKING) {
       if (this._masters) {
@@ -329,7 +339,19 @@ function () {
       }
     }
 
-    if (this.status !== ATOM_STATUS_ACTUAL) {
+    var deepReset = Atom.deepReset;
+
+    if (this.status === ATOM_STATUS_DEEP_RESET && !this.isComponent) {
+      Atom.deepReset = deepReset || new Set();
+
+      this._push(this._pull());
+
+      Atom.deepReset = deepReset;
+    } else if (deepReset !== undefined && !this.manualReset && !deepReset.has(this)) {
+      deepReset.add(this);
+
+      this._push(this._pull());
+    } else if (this.status !== ATOM_STATUS_ACTUAL) {
       this._push(this._pull());
     }
   };
@@ -340,14 +362,8 @@ function () {
       this._next = undefined;
     }
 
-    var prev = this.current;
-
-    if (nextRaw === undefined) {
-      this.status = ATOM_STATUS_OBSOLETE;
-      return;
-    }
-
     this.status = ATOM_STATUS_ACTUAL;
+    var prev = this.current;
     var next = nextRaw instanceof Error ? new Proxy(nextRaw, throwOnAccess) : conform(nextRaw, prev, this.isComponent);
 
     if (prev !== next) {
@@ -384,7 +400,7 @@ function () {
     }
 
     context.current = slave;
-    return newValue;
+    return this.status === ATOM_STATUS_ACTUAL ? this.current : newValue;
   };
 
   _proto.dislead = function dislead(slave) {
@@ -428,7 +444,8 @@ function () {
   _proto.addMaster = function addMaster(master) {
     if (!this._masters) {
       this._masters = new Set();
-    }
+    } // if (master.manualReset) this.manualReset = true
+
 
     this._masters.add(master);
   };
@@ -441,8 +458,7 @@ function () {
   }]);
 
   return Atom;
-}();
-
+}(), _class$1.deepReset = undefined, _temp$1);
 var scheduleNative = typeof requestAnimationFrame === 'function' ? function (handler) {
   return requestAnimationFrame(handler);
 } : function (handler) {
@@ -467,8 +483,8 @@ function () {
     var _this = this;
 
     this.current = null;
-    this.force = ATOM_FORCE_NONE;
-    this.prevForce = ATOM_FORCE_NONE;
+    this.isCacheForce = false;
+    this.isDeepReset = false;
     this._logger = undefined;
     this._updating = [];
     this._reaping = new Set();
@@ -781,13 +797,12 @@ function detached(proto, name, descr) {
       var atom = hostAtoms.get(this);
 
       if (atom === undefined) {
-        atom = new Atom(name, this, defaultContext, hostAtoms, undefined, undefined, true);
+        atom = new Atom(name, this, defaultContext, hostAtoms, false, undefined, undefined, true);
         hostAtoms.set(this, atom);
       }
 
       if (force) {
-        defaultContext.prevForce = defaultContext.force;
-        defaultContext.force = ATOM_FORCE_UPDATE;
+        atom.status = 5; // atom.reset()
       }
 
       return atom.value();
@@ -820,8 +835,9 @@ function createValueHandler(initializer) {
 
 createValueHandler._r = [2];
 createValueHandler.displayName = "createValueHandler";
+var isForceCache = false;
 
-function mem(proto, name, descr) {
+function mem(proto, name, descr, deepReset) {
   var handlerKey = name + "$";
   if (proto[handlerKey] !== undefined) return descr;
   var hostAtoms = new WeakMap();
@@ -835,11 +851,11 @@ function mem(proto, name, descr) {
     var atom = hostAtoms.get(this);
 
     if (atom === undefined) {
-      atom = new Atom(name, this, defaultContext, hostAtoms);
+      atom = new Atom(name, this, defaultContext, hostAtoms, deepReset);
       hostAtoms.set(this, atom);
     }
 
-    return atom.value(next);
+    return atom.value(next, isForceCache);
   }
 
   if (descr.value !== undefined) {
@@ -863,6 +879,13 @@ function mem(proto, name, descr) {
 
 mem._r = [2];
 mem.displayName = "mem";
+
+function memManual(proto, name, descr) {
+  return mem(proto, name, descr, true);
+}
+
+memManual._r = [2];
+memManual.displayName = "memManual";
 
 function getKeyFromObj(params) {
   var keys = Object.keys(params).sort();
@@ -890,7 +913,7 @@ function getKey(params) {
 getKey._r = [2];
 getKey.displayName = "getKey";
 
-function memkey(proto, name, descr) {
+function memkey(proto, name, descr, deepReset) {
   var longName = getId(proto, name);
   var handler = descr.value;
 
@@ -918,11 +941,11 @@ function memkey(proto, name, descr) {
     var atom = atomMap.get(key);
 
     if (atom === undefined) {
-      atom = new Atom(name, this, defaultContext, atomMap, rawKey, key);
+      atom = new Atom(name, this, defaultContext, atomMap, deepReset, rawKey, key);
       atomMap.set(key, atom);
     }
 
-    return atom.value(next);
+    return atom.value(next, isForceCache);
   }
 
   descr.value = value;
@@ -931,41 +954,40 @@ function memkey(proto, name, descr) {
 
 memkey._r = [2];
 memkey.displayName = "memkey";
-var proxyHandler = {
-  get: function get(obj, key) {
-    return obj[key + '()'];
-  }
-};
 
-function toAtom(obj) {
-  return new Proxy(obj, proxyHandler);
+function memkeyManual(proto, name, descr) {
+  return memkey(proto, name, descr, true);
 }
 
-toAtom._r = [2];
-toAtom.displayName = "toAtom";
+memkeyManual._r = [2];
+memkeyManual.displayName = "memkeyManual";
+memkey.manual = memkeyManual;
 
 function cache(data) {
-  defaultContext.prevForce = defaultContext.force;
-  defaultContext.force = ATOM_FORCE_CACHE;
+  isForceCache = false;
   return data;
 }
 
 cache._r = [2];
 cache.displayName = "cache";
+Object.defineProperties(mem, {
+  cache: {
+    get: function get() {
+      isForceCache = true;
+      return cache;
+    }
+  },
+  manual: {
+    value: memManual
+  },
+  key: {
+    value: memkey
+  },
+  Wait: {
+    value: AtomWait // toAtom: {value: toAtom }
 
-function force(data) {
-  defaultContext.prevForce = defaultContext.force;
-  defaultContext.force = ATOM_FORCE_UPDATE;
-  return data;
-}
-
-force._r = [2];
-force.displayName = "force";
-mem.cache = cache;
-mem.force = force;
-mem.key = memkey;
-mem.Wait = AtomWait;
-mem.toAtom = toAtom;
+  }
+});
 
 function stringToColor(str) {
   var hash = 0;
@@ -1097,7 +1119,7 @@ function () {
     if (!result) {
       var _sheet = this._sheetProcessor.createStyleSheet(css, {
         meta: key,
-        classNamePrefix: key.replace(badClassSymbols, '_').slice(2) + '__'
+        classNamePrefix: key.replace(badClassSymbols, '') + '_'
       });
 
       _sheet.attach();
@@ -1165,11 +1187,6 @@ theme._r = [2];
 theme.displayName = "theme";
 theme.self = themeSelf;
 theme.sheetManager = undefined;
-
-var _class$1;
-
-var _temp$1;
-
 var depId = 0;
 var rdiId = Symbol('rdiId');
 
@@ -1180,7 +1197,8 @@ var Alias = function Alias(dest) {
 
 Alias._r = [2];
 Alias.displayName = "Alias";
-var Injector = (_temp$1 = _class$1 =
+
+var Injector =
 /*#__PURE__*/
 function () {
   function Injector(items, sheetProcessor, state, displayName, instance, cache) {
@@ -1188,7 +1206,8 @@ function () {
     this._listeners = undefined;
     this._state = state;
     this.instance = instance || 0;
-    this.displayName = displayName || '$';
+    this.displayName = displayName || '';
+    if (Injector.parentContext === undefined) Injector.parentContext = this;
 
     if (sheetProcessor) {
       theme.sheetManager = new SheetManager(sheetProcessor);
@@ -1402,7 +1421,7 @@ function () {
   };
 
   _proto.copy = function copy(displayName, instance, items) {
-    return new Injector(items, null, this._state, this.displayName + '.' + displayName, instance, Object.create(this._cache));
+    return new Injector(items, null, this._state, displayName, instance, Object.create(this._cache));
   };
 
   _proto.resolve = function resolve(argDeps) {
@@ -1453,7 +1472,7 @@ function () {
   };
 
   return Injector;
-}(), _class$1.parentContext = undefined, _temp$1);
+}();
 
 function _applyDecoratedDescriptor$1(target, property, decorators, descriptor, context) {
   var desc = {};
@@ -1511,6 +1530,8 @@ function createReactWrapper(BaseComponent, ErrorComponent, detached, rootInjecto
       _this._el = undefined;
       var injector = rootInjector;
       _this._keys = undefined;
+      var cns = _this.constructor;
+      var name = cns.displayName;
 
       if (props) {
         _this._keys = Object.keys(props);
@@ -1518,9 +1539,8 @@ function createReactWrapper(BaseComponent, ErrorComponent, detached, rootInjecto
         if (props.__lom_ctx !== undefined) injector = props.__lom_ctx;
       }
 
-      var cns = _this.constructor;
       _this._render = cns.render;
-      _this._injector = injector.copy(cns.displayName, cns.instance, _this._render.aliases);
+      _this._injector = injector.copy(name, cns.instance, _this._render.aliases);
       cns.instance++;
       return _this;
     }
@@ -1630,7 +1650,9 @@ function createReactWrapper(BaseComponent, ErrorComponent, detached, rootInjecto
 createReactWrapper._r = [2];
 createReactWrapper.displayName = "createReactWrapper";
 
-function createCreateElement(atomize, createElement) {
+function createCreateElement(atomize, createElement, compositeId) {
+  var parentId = '';
+
   function lomCreateElement() {
     var args = arguments;
     var attrs = args[1];
@@ -1639,20 +1661,31 @@ function createCreateElement(atomize, createElement) {
     var isAtomic = typeof el === 'function' && el.constructor.render === undefined;
     var id = attrs ? attrs._id || attrs.id : undefined;
     var parentContext = Injector.parentContext;
+    var oldParentId = parentId;
+
+    if (compositeId === true) {
+      if (!attrs) attrs = {};
+      attrs.id = parentContext.toString();
+      if (id) attrs.id += '.' + id;
+      parentId = attrs.id;
+    }
 
     if (isAtomic) {
-      if (parentContext !== undefined) {
-        newEl = parentContext.alias(el, id);
-        if (newEl === null) return null;
-        if (newEl !== undefined) el = newEl;
+      newEl = parentContext.alias(el, id);
 
-        if (!attrs) {
-          attrs = {
-            __lom_ctx: parentContext
-          };
-        } else {
-          attrs.__lom_ctx = parentContext;
-        }
+      if (newEl === null) {
+        parentId = oldParentId;
+        return null;
+      }
+
+      if (newEl !== undefined) el = newEl;
+
+      if (!attrs) {
+        attrs = {
+          __lom_ctx: parentContext
+        };
+      } else {
+        attrs.__lom_ctx = parentContext;
       }
 
       if (el.__lom === undefined) {
@@ -1661,53 +1694,72 @@ function createCreateElement(atomize, createElement) {
 
       newEl = el.__lom;
     } else {
-      if (parentContext !== undefined && id) {
+      if (id) {
         newEl = parentContext.alias(el, id);
-        if (newEl === null) return null;
+
+        if (newEl === null) {
+          parentId = oldParentId;
+          return null;
+        }
+
         if (newEl !== undefined) el = newEl;
       }
 
       newEl = el;
     }
 
+    var result;
+
     switch (args.length) {
       case 2:
-        return createElement(newEl, attrs);
+        result = createElement(newEl, attrs);
+        break;
 
       case 3:
-        return createElement(newEl, attrs, args[2]);
+        result = createElement(newEl, attrs, args[2]);
+        break;
 
       case 4:
-        return createElement(newEl, attrs, args[2], args[3]);
+        result = createElement(newEl, attrs, args[2], args[3]);
+        break;
 
       case 5:
-        return createElement(newEl, attrs, args[2], args[3], args[4]);
+        result = createElement(newEl, attrs, args[2], args[3], args[4]);
+        break;
 
       case 6:
-        return createElement(newEl, attrs, args[2], args[3], args[4], args[5]);
+        result = createElement(newEl, attrs, args[2], args[3], args[4], args[5]);
+        break;
 
       case 7:
-        return createElement(newEl, attrs, args[2], args[3], args[4], args[5], args[6]);
+        result = createElement(newEl, attrs, args[2], args[3], args[4], args[5], args[6]);
+        break;
 
       case 8:
-        return createElement(newEl, attrs, args[2], args[3], args[4], args[5], args[6], args[7]);
+        result = createElement(newEl, attrs, args[2], args[3], args[4], args[5], args[6], args[7]);
+        break;
 
       case 9:
-        return createElement(newEl, attrs, args[2], args[3], args[4], args[5], args[6], args[7], args[8]);
+        result = createElement(newEl, attrs, args[2], args[3], args[4], args[5], args[6], args[7], args[8]);
+        break;
 
       default:
         if (isAtomic === false) {
-          return createElement.apply(null, args);
+          result = createElement.apply(null, args);
+        } else {
+          var newArgs = [newEl, attrs];
+
+          for (var i = 2, l = args.length; i < l; i++) {
+            newArgs.push(args[i]);
+          }
+
+          result = createElement.apply(null, newArgs);
         }
 
-        var newArgs = [newEl, attrs];
-
-        for (var i = 2, l = args.length; i < l; i++) {
-          newArgs.push(args[i]);
-        }
-
-        return createElement.apply(null, newArgs);
     }
+
+    parentId = oldParentId;
+    return result;
   }
 
   return lomCreateElement;
@@ -3302,7 +3354,7 @@ var devtools = createCommonjsModule(function (module, exports) {
     }
 
     initDevTools();
-  }); 
+  }); //# sourceMappingURL=devtools.js.map
 
 });
 
@@ -3473,13 +3525,6 @@ unwrapExports(SheetsRegistry_1);
  * LICENSE file in the root directory of this source tree. An additional grant
  * of patent rights can be found in the PATENTS file in the same directory.
  */
-/**
- * Similar to invariant but only logs a warning if the condition is not met.
- * This can be used to log issues in development environments in critical
- * paths. Removing the logging code for production environments will keep the
- * same logic and follow the same code paths.
- */
-
 var warning = function warning() {};
 
 warning._r = [2];
@@ -3610,7 +3655,7 @@ var SheetsManager_1 = createCommonjsModule(function (module, exports) {
 
         if (index === -1) {
           // eslint-ignore-next-line no-console
-          (_warning2['default'])(false, 'SheetsManager: can\'t find sheet to unmanage');
+          (0, _warning2['default'])(false, 'SheetsManager: can\'t find sheet to unmanage');
           return;
         }
 
@@ -3717,7 +3762,7 @@ var toCss_1 = createCommonjsModule(function (module, exports) {
             var value = fallback[prop];
 
             if (value != null) {
-              result += '\n' + indentStr(prop + ': ' + (_toCssValue2['default'])(value) + ';', indent);
+              result += '\n' + indentStr(prop + ': ' + (0, _toCssValue2['default'])(value) + ';', indent);
             }
           }
         }
@@ -3727,7 +3772,7 @@ var toCss_1 = createCommonjsModule(function (module, exports) {
             var _value = fallbacks[_prop];
 
             if (_value != null) {
-              result += '\n' + indentStr(_prop + ': ' + (_toCssValue2['default'])(_value) + ';', indent);
+              result += '\n' + indentStr(_prop + ': ' + (0, _toCssValue2['default'])(_value) + ';', indent);
             }
           }
         }
@@ -3737,7 +3782,7 @@ var toCss_1 = createCommonjsModule(function (module, exports) {
       var _value2 = style[_prop2];
 
       if (_value2 != null && _prop2 !== 'fallbacks') {
-        result += '\n' + indentStr(_prop2 + ': ' + (_toCssValue2['default'])(_value2) + ';', indent);
+        result += '\n' + indentStr(_prop2 + ': ' + (0, _toCssValue2['default'])(_value2) + ';', indent);
       }
     } // Allow empty style in this case, because properties will be added dynamically.
 
@@ -3851,7 +3896,7 @@ var StyleRule_1 = createCommonjsModule(function (module, exports) {
               var sheet = this.options.sheet;
 
               if (sheet && sheet.attached) {
-                (_warning2['default'])(false, 'Rule is not linked. Missing sheet option "link: true".');
+                (0, _warning2['default'])(false, 'Rule is not linked. Missing sheet option "link: true".');
               }
             }
           }
@@ -3889,7 +3934,7 @@ var StyleRule_1 = createCommonjsModule(function (module, exports) {
 
         for (var prop in this.style) {
           var value = this.style[prop];
-          if ((typeof value === 'undefined' ? 'undefined' : _typeof$$1(value)) !== 'object') json[prop] = value;else if (Array.isArray(value)) json[prop] = (_toCssValue2['default'])(value);
+          if ((typeof value === 'undefined' ? 'undefined' : _typeof$$1(value)) !== 'object') json[prop] = value;else if (Array.isArray(value)) json[prop] = (0, _toCssValue2['default'])(value);
         }
 
         return json;
@@ -3906,7 +3951,7 @@ var StyleRule_1 = createCommonjsModule(function (module, exports) {
         var opts = link ? _extends$$1({}, options, {
           allowEmpty: true
         }) : options;
-        return (_toCss2['default'])(this.selector, this.style, opts);
+        return (0, _toCss2['default'])(this.selector, this.style, opts);
       }
     }, {
       key: 'selector',
@@ -3993,7 +4038,7 @@ var lib$1 = createCommonjsModule(function (module, exports) {
     root = module;
   }
 
-  var result = (_ponyfill2['default'])(root);
+  var result = (0, _ponyfill2['default'])(root);
   exports['default'] = result;
 });
 unwrapExports(lib$1);
@@ -4056,7 +4101,7 @@ var cloneStyle_1 = createCommonjsModule(function (module, exports) {
     if (isArray(style)) return style.map(cloneStyle); // Support Observable styles.  Observables are immutable, so we don't need to
     // copy them.
 
-    if ((_isObservable2['default'])(style)) return style;
+    if ((0, _isObservable2['default'])(style)) return style;
     var newStyle = {};
 
     for (var name in style) {
@@ -4102,12 +4147,12 @@ var createRule_1 = createCommonjsModule(function (module, exports) {
     var decl = arguments[1];
     var options = arguments[2];
     var jss = options.jss;
-    var declCopy = (_cloneStyle2['default'])(decl);
+    var declCopy = (0, _cloneStyle2['default'])(decl);
     var rule = jss.plugins.onCreateRule(name, declCopy, options);
     if (rule) return rule; // It is an at-rule and it has no instance.
 
     if (name[0] === '@') {
-      (_warning2['default'])(false, '[JSS] Unknown at-rule %s', name);
+      (0, _warning2['default'])(false, '[JSS] Unknown at-rule %s', name);
     }
 
     return new _StyleRule2['default'](name, declCopy, options);
@@ -4144,8 +4189,6 @@ var _escape = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _warning2 = _interopRequireDefault$$1(browser);
-
   var _global2 = _interopRequireDefault$$1(global_1);
 
   function _interopRequireDefault$$1(obj) {
@@ -4156,15 +4199,15 @@ var _escape = createCommonjsModule(function (module, exports) {
 
   var CSS = _global2['default'].CSS;
   var env = "development";
+  var escapeRegex = /([[\].#*$><+~=|^:(),"'`])/g;
 
   exports['default'] = function (str) {
     // We don't need to escape it in production, because we are not using user's
-    // input for selectors, we are generating a selector completely.
+    // input for selectors, we are generating a valid selector.
     if (env === 'production') return str;
 
     if (!CSS || !CSS.escape) {
-      (_warning2['default'])(false, '[JSS] CSS.escape polyfill in DEV mode is required in this browser, ' + 'check out https://github.com/mathiasbynens/CSS.escape');
-      return str;
+      return str.replace(escapeRegex, '\\$1');
     }
 
     return CSS.escape(str);
@@ -4275,16 +4318,16 @@ var RuleList_1 = createCommonjsModule(function (module, exports) {
         }, options);
 
         if (!options.selector && this.classes[name]) {
-          options.selector = '.' + (_escape2['default'])(this.classes[name]);
+          options.selector = '.' + (0, _escape2['default'])(this.classes[name]);
         }
 
         this.raw[name] = decl;
-        var rule = (_createRule2['default'])(name, decl, options);
+        var rule = (0, _createRule2['default'])(name, decl, options);
         var className = void 0;
 
         if (!options.selector && rule instanceof _StyleRule2['default']) {
           className = generateClassName(rule, sheet);
-          rule.selector = '.' + (_escape2['default'])(className);
+          rule.selector = '.' + (0, _escape2['default'])(className);
         }
 
         this.register(rule, className);
@@ -4396,7 +4439,7 @@ var RuleList_1 = createCommonjsModule(function (module, exports) {
 
           if (map[_key]) _key = map[_key];
           var rule = this.map[_key];
-          if (rule) (_linkRule2['default'])(rule, cssRule);
+          if (rule) (0, _linkRule2['default'])(rule, cssRule);
         }
       }
       /**
@@ -4600,7 +4643,7 @@ var StyleSheet_1 = createCommonjsModule(function (module, exports) {
       key: 'insertRule',
       value: function insertRule(rule) {
         var renderable = this.renderer.insertRule(rule);
-        if (renderable && this.options.link) (_linkRule2['default'])(rule, renderable);
+        if (renderable && this.options.link) (0, _linkRule2['default'])(rule, renderable);
       }
       /**
        * Create and add rules.
@@ -4741,7 +4784,7 @@ var createGenerateClassName = createCommonjsModule(function (module, exports) {
       ruleCounter += 1;
 
       if (ruleCounter > maxRules) {
-        (_warning2['default'])(false, '[JSS] You might have a memory leak. Rule counter is at %s.', ruleCounter);
+        (0, _warning2['default'])(false, '[JSS] You might have a memory leak. Rule counter is at %s.', ruleCounter);
       }
 
       if (env === 'production') {
@@ -4913,7 +4956,7 @@ var PluginsRegistry_1 = createCommonjsModule(function (module, exports) {
       key: 'use',
       value: function use(plugin) {
         for (var name in plugin) {
-          if (this.hooks[name]) this.hooks[name].push(plugin[name]);else (_warning2['default'])(false, '[JSS] Unknown hook "%s".', name);
+          if (this.hooks[name]) this.hooks[name].push(plugin[name]);else (0, _warning2['default'])(false, '[JSS] Unknown hook "%s".', name);
         }
       }
     }]);
@@ -5279,14 +5322,14 @@ var FontFaceRule_1 = createCommonjsModule(function (module, exports) {
           var str = '';
 
           for (var index = 0; index < this.style.length; index++) {
-            str += (_toCss2['default'])(this.key, this.style[index]);
+            str += (0, _toCss2['default'])(this.key, this.style[index]);
             if (this.style[index + 1]) str += '\n';
           }
 
           return str;
         }
 
-        return (_toCss2['default'])(this.key, this.style, options);
+        return (0, _toCss2['default'])(this.key, this.style, options);
       }
     }]);
 
@@ -5352,7 +5395,7 @@ var ViewportRule_1 = createCommonjsModule(function (module, exports) {
     _createClass$$1(ViewportRule, [{
       key: 'toString',
       value: function toString(options) {
-        return (_toCss2['default'])(this.key, this.style, options);
+        return (0, _toCss2['default'])(this.key, this.style, options);
       }
     }]);
 
@@ -5435,10 +5478,10 @@ var observables = createCommonjsModule(function (module, exports) {
 
   exports['default'] = {
     onCreateRule: function onCreateRule(name, decl, options) {
-      if (!(_isObservable2['default'])(decl)) return null; // Cast `decl` to `Observable`, since it passed the type guard.
+      if (!(0, _isObservable2['default'])(decl)) return null; // Cast `decl` to `Observable`, since it passed the type guard.
 
       var style$ = decl;
-      var rule = (_createRule2['default'])(name, {}, options); // TODO
+      var rule = (0, _createRule2['default'])(name, {}, options); // TODO
       // Call `stream.subscribe()` returns a subscription, which should be explicitly
       // unsubscribed from when we know this sheet is no longer needed.
 
@@ -5456,7 +5499,7 @@ var observables = createCommonjsModule(function (module, exports) {
 
       var _loop = function _loop(prop) {
         var value = style[prop];
-        if (!(_isObservable2['default'])(value)) return 'continue';
+        if (!(0, _isObservable2['default'])(value)) return 'continue';
         delete style[prop];
         value.subscribe({
           next: function next(nextValue) {
@@ -5523,7 +5566,7 @@ var functions = createCommonjsModule(function (module, exports) {
   exports['default'] = {
     onCreateRule: function onCreateRule(name, decl, options) {
       if (typeof decl !== 'function') return null;
-      var rule = (_createRule2['default'])(name, {}, options);
+      var rule = (0, _createRule2['default'])(name, {}, options);
       rule[fnStyleNs] = decl;
       return rule;
     },
@@ -5534,7 +5577,7 @@ var functions = createCommonjsModule(function (module, exports) {
         var value = style[prop];
         if (typeof value !== 'function') continue;
         delete style[prop];
-        fn[(_kebabCase2['default'])(prop)] = value;
+        fn[(0, _kebabCase2['default'])(prop)] = value;
       }
 
       rule = rule;
@@ -5828,7 +5871,7 @@ var DomRenderer_1 = createCommonjsModule(function (module, exports) {
       if (comment) return comment.nextSibling; // If user specifies an insertion point and it can't be found in the document -
       // bad specificity issues may appear.
 
-      (_warning2['default'])(insertionPoint === 'jss', '[JSS] Insertion point "%s" not found.', insertionPoint);
+      (0, _warning2['default'])(insertionPoint === 'jss', '[JSS] Insertion point "%s" not found.', insertionPoint);
     }
 
     return null;
@@ -5853,7 +5896,7 @@ var DomRenderer_1 = createCommonjsModule(function (module, exports) {
       // https://stackoverflow.com/questions/41328728/force-casting-in-flow
       var insertionPointElement = insertionPoint;
       var _parentNode = insertionPointElement.parentNode;
-      if (_parentNode) _parentNode.insertBefore(style, insertionPointElement.nextSibling);else (_warning2['default'])(false, '[JSS] Insertion point is not in the DOM.');
+      if (_parentNode) _parentNode.insertBefore(style, insertionPointElement.nextSibling);else (0, _warning2['default'])(false, '[JSS] Insertion point is not in the DOM.');
       return;
     }
 
@@ -5945,7 +5988,7 @@ var DomRenderer_1 = createCommonjsModule(function (module, exports) {
         try {
           sheet.insertRule(str, index);
         } catch (err) {
-          (_warning2['default'])(false, '[JSS] Can not insert an unsupported rule \n\r%s', rule);
+          (0, _warning2['default'])(false, '[JSS] Can not insert an unsupported rule \n\r%s', rule);
           return false;
         }
 
@@ -6198,14 +6241,14 @@ var Jss_1 = createCommonjsModule(function (module, exports) {
     function Jss(options) {
       _classCallCheck$$1(this, Jss);
 
-      this.version = "9.3.2";
+      this.version = "9.3.3";
       this.plugins = new _PluginsRegistry2['default']();
       this.options = {
         createGenerateClassName: _createGenerateClassName2['default'],
         Renderer: _isInBrowser2['default'] ? _DomRenderer2['default'] : _VirtualRenderer2['default'],
         plugins: []
       };
-      this.generateClassName = (_createGenerateClassName2['default'])(); // eslint-disable-next-line prefer-spread
+      this.generateClassName = (0, _createGenerateClassName2['default'])(); // eslint-disable-next-line prefer-spread
 
       this.use.apply(this, defaultPlugins);
       this.setup(options);
@@ -6292,7 +6335,7 @@ var Jss_1 = createCommonjsModule(function (module, exports) {
         ruleOptions.Renderer = this.options.Renderer;
         if (!ruleOptions.generateClassName) ruleOptions.generateClassName = this.generateClassName;
         if (!ruleOptions.classes) ruleOptions.classes = {};
-        var rule = (_createRule3['default'])(name, style, ruleOptions);
+        var rule = (0, _createRule3['default'])(name, style, ruleOptions);
 
         if (!ruleOptions.selector && rule instanceof _StyleRule2['default']) {
           rule.selector = '.' + ruleOptions.generateClassName(rule);
@@ -6735,7 +6778,7 @@ var lib$4 = createCommonjsModule(function (module, exports) {
       return function (match, key) {
         var rule = container.getRule(key);
         if (rule) return rule.selector;
-        (_warning2.default)(false, '[JSS] Could not find the referenced rule %s in %s.', key, container.options.meta || container);
+        (0, _warning2.default)(false, '[JSS] Could not find the referenced rule %s in %s.', key, container.options.meta || container);
         return key;
       };
     }
@@ -6884,7 +6927,8 @@ function () {
 
   return AbstractLocationStore;
 }();
-var BrowserLocationStore = (_dec = mem.key, _class$2 =
+AbstractLocationStore.displayName = "AbstractLocationStore";
+var BrowserLocationStore = (_dec = mem.key.manual, _class$2 =
 /*#__PURE__*/
 function (_AbstractLocationStor) {
   _inheritsLoose(BrowserLocationStore, _AbstractLocationStor);
@@ -6923,9 +6967,7 @@ BrowserLocationStore.displayName = "BrowserLocationStore";
 
 var _class$3;
 var _dec$1;
-var _class3;
-var _class4;
-var _temp$2;
+var _class2$1;
 
 function _applyDecoratedDescriptor$3(target, property, decorators, descriptor, context) {
   var desc = {};
@@ -6994,125 +7036,126 @@ timeoutPromise.displayName = "timeoutPromise";
 var FetcherResponse = (_class$3 =
 /*#__PURE__*/
 function () {
-  function FetcherResponse(url, init, state, ptr, fetcher) {
-    var _this2 = this;
-
-    this._end = function (e) {
-      if (_this2._ptr) {
-        _this2._ptr.endFetch(_this2, e instanceof Error ? e : undefined);
-      }
-    };
-
-    this._url = url;
-    this._init = init;
-    this._state = state;
-    this._ptr = ptr;
+  function FetcherResponse(url, fetcher) {
+    this.url = url;
     this._fetcher = fetcher;
+    this._getOpts = {
+      method: 'GET'
+    };
+    this._postOpts = {
+      method: 'PUT'
+    };
   }
 
   var _proto = FetcherResponse.prototype;
 
   _proto._getState = function _getState() {
-    var state = this._state;
-    this._state = undefined;
+    var state = this._fetcher.state,
+        url = this.url;
 
     if (state !== undefined) {
-      return state;
+      var apiData = state[url];
+      state[url] = undefined;
+      return apiData;
     }
   };
 
-  _proto.text = function text(next, force) {
-    var _this3 = this;
+  _proto.getOptions = function getOptions(getOpts) {
+    this._getOpts = getOpts;
+    return this;
+  };
+
+  _proto.postOptions = function postOptions(postOpts) {
+    this._postOpts = postOpts;
+    return this;
+  };
+
+  _proto._request = function _request(url, init) {
+    return fetch(url, init);
+  };
+
+  _proto.text = function text(next) {
+    var _this2 = this;
 
     var state = this._getState();
 
     if (state !== undefined) {
-      if (typeof state !== 'string') throw new Error(this._url + " state need an string");
+      if (typeof state !== 'string') throw new Error("fetch.text " + this.url + ", string expected");
       return state;
     }
 
-    if (this._ptr) {
-      this._ptr.beginFetch();
-    }
-
-    var init = this._init;
+    if (next instanceof Error) throw new Error('Need a string');
+    var fetcher = this._fetcher;
+    var renderer = fetcher.renderer;
+    var url = fetcher.baseUrl + this.url;
+    var opts = fetcher.mergeOptions(_extends({}, next === undefined ? this._getOpts : this._postOpts, {
+      body: next === undefined ? undefined : next
+    }));
     var params = {
-      url: this._url,
-      method: init ? init.method : 'GET',
-      body: init ? init.body : ''
+      url: url,
+      method: opts.method || 'GET',
+      body: opts.body || ''
     };
-    timeoutPromise(this._fetcher.request(this._url, init), init ? init.timeout : null, params).then(function (r) {
+    if (renderer) renderer.beginFetch();
+    timeoutPromise(this._request(url, opts), opts ? opts.timeout : null, params).then(function (r) {
       return r.status === 204 ? '' : r.text();
     }).then(function (data) {
-      return _this3.text(data, true);
+      mem.cache(_this2.text(data));
+      if (renderer) renderer.endFetch(data, url);
     }).catch(function (e) {
-      if (!(e instanceof HttpError)) {
-        var _err = new HttpError(e.statusCode || 500, e.message, null, null, params);
-
-        _err.stack = e.stack;
-
-        _this3.text(_err, true);
-      }
-
-      _this3.text(e, true);
-
-      return e;
-    }).then(this._end);
+      var err = e instanceof HttpError ? e : new HttpError(e.statusCode || 500, e.message, null, null, params);
+      err.stack = e.stack;
+      mem.cache(_this2.text(err));
+      if (renderer) renderer.endFetch(err, url);
+    });
     throw new mem.Wait(params.method + " " + params.url);
   };
 
-  _proto.json = function json() {
+  _proto.json = function json(next) {
     var state = this._getState();
 
     if (state !== undefined) {
-      if (typeof state !== 'object') throw new Error(this._url + " state need an object");
+      if (typeof state !== 'object') throw new Error(this.url + " state need an object");
       return state;
     }
 
-    var text = this.text();
-    return text ? JSON.parse(text) : {};
+    var text = this.text(next === undefined ? undefined : JSON.stringify(next, null, '\t'));
+    return JSON.parse(text.valueOf());
   };
 
   return FetcherResponse;
 }(), _applyDecoratedDescriptor$3(_class$3.prototype, "text", [mem], Object.getOwnPropertyDescriptor(_class$3.prototype, "text"), _class$3.prototype), _class$3);
 FetcherResponse._r = [0, [String, {
-  timeout: Number
-}, "V", null, {
-  request: Function
+  baseUrl: String,
+  mergeOptions: Function
 }]];
 FetcherResponse.displayName = "FetcherResponse";
-var Fetcher = (_dec$1 = mem.key, _class3 = (_temp$2 = _class4 =
+var Fetcher = (_dec$1 = mem.key, _class2$1 =
 /*#__PURE__*/
 function () {
-  function Fetcher(baseUrl, init, state, renderer) {
-    this._state = state || {};
-    this._baseUrl = baseUrl || '';
-    this._init = init;
-    this._renderer = renderer;
+  function Fetcher(opts) {
+    if (opts === void 0) {
+      opts = {};
+    }
+
+    this.baseUrl = opts.baseUrl || '';
+    this.state = opts.state;
+    this._init = opts.init;
+    this.renderer = opts.renderer;
   }
 
   var _proto2 = Fetcher.prototype;
 
-  _proto2.request = function request(url, init) {
-    return fetch(url, init);
-  };
-
   _proto2.mergeOptions = function mergeOptions(init) {
-    return this._init === undefined && init === undefined ? undefined : _extends({}, this._init || {}, init || {});
+    return _extends({}, this._init || {}, init || {});
   };
 
-  _proto2.fetch = function fetch(url) {
-    return new this.constructor.Response(this._baseUrl + url, this._init, this._state, this._renderer, this);
+  _proto2.request = function request(url) {
+    return new FetcherResponse(url, this);
   };
 
   return Fetcher;
-}(), _class4.Response = FetcherResponse, _temp$2), _applyDecoratedDescriptor$3(_class3.prototype, "fetch", [_dec$1], Object.getOwnPropertyDescriptor(_class3.prototype, "fetch"), _class3.prototype), _class3);
-Fetcher._r = [0, [String, {
-  timeout: Number
-}, Object, {
-  beginFetch: Function,
-  endFetch: Function
-}]];
+}(), _applyDecoratedDescriptor$3(_class2$1.prototype, "request", [_dec$1], Object.getOwnPropertyDescriptor(_class2$1.prototype, "request"), _class2$1.prototype), _class2$1);
 Fetcher.displayName = "Fetcher";
 
 defaultContext.setLogger(new ConsoleLogger());
@@ -7127,8 +7170,10 @@ ErrorableView.displayName = "ErrorableView";
 var jss = lib_1({
   plugins: [jssNested(), jssCamel(), jssGlobal()]
 });
-var injector = new Injector([[Fetcher, new Fetcher('/api')], [AbstractLocationStore, new BrowserLocationStore(location, history)]], jss);
-var lomCreateElement = createCreateElement(createReactWrapper(Component, ErrorableView, detached, injector), h);
+var injector = new Injector([[Fetcher, new Fetcher({
+  baseUrl: '/api'
+})], [AbstractLocationStore, new BrowserLocationStore(location, history)]], jss);
+var lomCreateElement = createCreateElement(createReactWrapper(Component, ErrorableView, detached, injector), h, true);
 global$1['lom_h'] = lomCreateElement;
 
 var _class$4;
@@ -7178,7 +7223,7 @@ function () {
       var _this = this;
 
       setTimeout(function () {
-        _this.value = mem.cache(1); // this.value = new Error('loading error')
+        mem.cache(_this.value = 1); // this.value = new Error('loading error')
       }, 500);
       throw new mem.Wait();
     },
@@ -7190,6 +7235,7 @@ function () {
   }]);
   return FirstCounterService;
 }(), _applyDecoratedDescriptor$4(_class$4.prototype, "value", [mem], Object.getOwnPropertyDescriptor(_class$4.prototype, "value"), _class$4.prototype), _applyDecoratedDescriptor$4(_class$4.prototype, "value", [mem], Object.getOwnPropertyDescriptor(_class$4.prototype, "value"), _class$4.prototype), _class$4);
+FirstCounterService.displayName = "FirstCounterService";
 
 function CounterMessageView(_ref) {
   var value = _ref.value;
@@ -7201,14 +7247,15 @@ CounterMessageView.displayName = "CounterMessageView";
 
 function FirstCounterView(_, counter) {
   return lom_h("div", null, lom_h(CounterMessageView, {
+    id: "message",
     value: counter.value
   }), lom_h("button", {
-    id: "FirstCounterAddButton",
+    id: "add",
     onClick: function onClick() {
       counter.value++;
     }
   }, counter.lang.add), lom_h("button", {
-    id: "FirstCounterGenErrorButton",
+    id: "error",
     onClick: function onClick() {
       counter.value = 'someStr';
     }
@@ -7239,6 +7286,8 @@ function (_FirstCounterService) {
   return SecondCounterService;
 }(FirstCounterService);
 
+SecondCounterService.displayName = "SecondCounterService";
+
 function SecondCounterMessageView(_ref2) {
   var value = _ref2.value;
   return lom_h("div", null, "SecondCounter Count: ", value);
@@ -7258,7 +7307,7 @@ function SecondCounterAddButtonView(_ref3) {
 
 SecondCounterAddButtonView._r = [1];
 SecondCounterAddButtonView.displayName = "SecondCounterAddButtonView";
-var SecondCounterView = cloneComponent(FirstCounterView, [[FirstCounterService, SecondCounterService], [CounterMessageView, SecondCounterMessageView], ['FirstCounterAddButton', SecondCounterAddButtonView], ['FirstCounterGenErrorButton', null]], 'SecondCounterView');
+var SecondCounterView = cloneComponent(FirstCounterView, [[FirstCounterService, SecondCounterService], [CounterMessageView, SecondCounterMessageView], ['add', SecondCounterAddButtonView], ['error', null]], 'SecondCounterView');
 
 function ThirdCounterAddButtonView(_ref4) {
   var onClick = _ref4.onClick,
@@ -7271,7 +7320,7 @@ function ThirdCounterAddButtonView(_ref4) {
 
 ThirdCounterAddButtonView._r = [1];
 ThirdCounterAddButtonView.displayName = "ThirdCounterAddButtonView";
-var ThirdCounterView = cloneComponent(SecondCounterView, [['FirstCounterAddButton', ThirdCounterAddButtonView]], 'ThirdCounterView');
+var ThirdCounterView = cloneComponent(SecondCounterView, [['add', ThirdCounterAddButtonView]], 'ThirdCounterView');
 function CounterView() {
   return lom_h("ul", null, lom_h("li", null, "FirstCounter: ", lom_h(FirstCounterView, null)), lom_h("li", null, "SecondCounter extends FirstCounter: ", lom_h(SecondCounterView, null)), lom_h("li", null, "ThirdCounter extends SecondCounter: ", lom_h(ThirdCounterView, null)));
 }
@@ -7344,9 +7393,11 @@ function () {
   enumerable: true,
   initializer: null
 }), _applyDecoratedDescriptor$5(_class$5.prototype, "props", [props], Object.getOwnPropertyDescriptor(_class$5.prototype, "props"), _class$5.prototype), _applyDecoratedDescriptor$5(_class$5.prototype, "greet", [mem], Object.getOwnPropertyDescriptor(_class$5.prototype, "greet"), _class$5.prototype), _class$5);
+HelloContext.displayName = "HelloContext";
 function HelloView(_, _ref2) {
   var context = _ref2.context;
   return lom_h("div", null, context.greet, lom_h("br", null), lom_h("input", {
+    id: "input",
     value: context.name,
     onInput: function onInput(_ref3) {
       var target = _ref3.target;
@@ -7496,10 +7547,6 @@ globToRegexp.displayName = "globToRegexp";
 var isarray = Array.isArray || function (arr) {
   return Object.prototype.toString.call(arr) == '[object Array]';
 };
-
-/**
- * Expose `pathToRegexp`.
- */
 
 var pathToRegexp_1 = pathToRegexp;
 var parse_1 = parse;
@@ -8731,7 +8778,7 @@ fetchMock$1.setImplementations({
 var client = new fetchMock$1();
 
 var _class$6;
-var _class2$1;
+var _class2$2;
 
 function _applyDecoratedDescriptor$6(target, property, decorators, descriptor, context) {
   var desc = {};
@@ -8785,6 +8832,7 @@ function () {
   }]);
   return KeyValueTheme;
 }(), _applyDecoratedDescriptor$6(_class$6.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class$6.prototype, "css"), _class$6.prototype), _class$6);
+KeyValueTheme.displayName = "KeyValueTheme";
 
 function KeyView(_ref, _ref2) {
   var children = _ref.children;
@@ -8824,7 +8872,7 @@ ItemView._r = [1, [{
 ItemView.displayName = "ItemView";
 ItemView.Key = KeyView;
 ItemView.Value = ValueView;
-var Locale = (_class2$1 =
+var Locale = (_class2$2 =
 /*#__PURE__*/
 function () {
   _createClass(Locale, [{
@@ -8845,7 +8893,7 @@ function () {
   }
 
   return Locale;
-}(), _applyDecoratedDescriptor$6(_class2$1.prototype, "lang", [mem], Object.getOwnPropertyDescriptor(_class2$1.prototype, "lang"), _class2$1.prototype), _applyDecoratedDescriptor$6(_class2$1.prototype, "lang", [mem], Object.getOwnPropertyDescriptor(_class2$1.prototype, "lang"), _class2$1.prototype), _class2$1);
+}(), _applyDecoratedDescriptor$6(_class2$2.prototype, "lang", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "lang"), _class2$2.prototype), _applyDecoratedDescriptor$6(_class2$2.prototype, "lang", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "lang"), _class2$2.prototype), _class2$2);
 Locale._r = [0, [String]];
 Locale.displayName = "Locale";
 var BrowserLocalStorage =
@@ -8992,7 +9040,7 @@ function todoMocks(rawStorage) {
       var todos = data || defaultTodos;
       var updates = new Map(getBody(params.body));
       var newTodos = todos.map(function (todo) {
-        return updates.has(todo.id) ? todo : _extends({}, todo, updates.get(todo.id));
+        return _extends({}, todo, updates.get(todo.id));
       }).sort(sortByDate);
       storage.set(newTodos);
       return newTodos;
@@ -9070,17 +9118,6 @@ todoMocks.displayName = "todoMocks";
 
 var _dec$2;
 var _class$8;
-var _descriptor$2;
-
-function _initDefineProp$2(target, property, descriptor, context) {
-  if (!descriptor) return;
-  Object.defineProperty(target, property, {
-    enumerable: descriptor.enumerable,
-    configurable: descriptor.configurable,
-    writable: descriptor.writable,
-    value: descriptor.initializer ? descriptor.initializer.call(context) : void 0
-  });
-}
 
 function _applyDecoratedDescriptor$8(target, property, decorators, descriptor, context) {
   var desc = {};
@@ -9135,7 +9172,7 @@ function () {
   var _proto = TodoModel.prototype;
 
   _proto.remove = function remove() {
-    this._store.remove(this.id);
+    this._store.remove(this);
   };
 
   _proto.toggle = function toggle() {
@@ -9177,8 +9214,6 @@ var TodoService = (_dec$2 = mem.key, _class$8 =
 /*#__PURE__*/
 function () {
   function TodoService(fetcher) {
-    _initDefineProp$2(this, "opCount", _descriptor$2, this);
-
     this._fetcher = fetcher;
   }
 
@@ -9189,97 +9224,64 @@ function () {
 
     if (info !== undefined && !(info instanceof Error)) return info;
     fetch("/api/todo/" + id + "/info").then(toJson).then(function (data) {
-      _this.todoExtInfo(id, mem.cache(data));
+      mem.cache(_this.todoExtInfo(id, data));
     }).catch(function (e) {
-      _this.todoExtInfo(id, mem.cache(e));
+      mem.cache(_this.todoExtInfo(id, e));
     });
     throw new mem.Wait();
   };
 
-  _proto2._handlePromise = function _handlePromise(p) {
-    var _this2 = this;
-
-    this.opCount++;
-    return p.then(function () {
-      _this2.opCount--;
-    }).catch(function (e) {
-      _this2.opCount--;
-      _this2.todos = e;
-    });
-  };
-
   _proto2.addTodo = function addTodo(title) {
-    var _this3 = this;
-
     var todo = new TodoModel({
       title: title
     }, this);
     this.todos = this.todos.concat([todo]);
-
-    this._handlePromise(fetch('/api/todo', {
-      method: 'PUT',
-      body: JSON.stringify(todo)
-    }).then(toJson).then(function (updatedTodo) {
-      _this3.todos = _this3.todos.map(function (t) {
-        return t.id === todo.id ? new TodoModel(updatedTodo, _this3) : t;
-      });
-    }));
+    this.adding = todo;
   };
 
-  _proto2.saveTodo = function saveTodo(todo) {
-    var _this4 = this;
-
+  _proto2.saveTodo = function saveTodo(todoData) {
+    var todo = new TodoModel(todoData, this);
     this.todos = this.todos.map(function (t) {
-      return t.id === todo.id ? new TodoModel(todo, _this4) : t;
+      return t.id === todo.id ? todo : t;
     });
-
-    this._handlePromise(fetch("/api/todo/" + todo.id, {
-      method: 'POST',
-      body: JSON.stringify(todo)
-    }).then(toJson).then(function (updatedTodo) {
-      _this4.todos = _this4.todos.map(function (t) {
-        return t.id === todo.id ? new TodoModel(updatedTodo, _this4) : t;
-      });
-    }));
+    this.saving = todo;
   };
 
-  _proto2.remove = function remove(id) {
-    this.todos = this.todos.filter(function (todo) {
-      return todo.id !== id;
+  _proto2.remove = function remove(todo) {
+    this.todos = this.todos.filter(function (t) {
+      return t.id !== todo.id;
     });
-
-    this._handlePromise(fetch("/api/todo/" + id, {
-      method: 'DELETE'
-    }));
+    this.removing = todo;
   };
 
   _proto2.toggleAll = function toggleAll() {
-    var _this5 = this;
+    var _this2 = this;
 
+    var completed = !!this.todos.find(function (todo) {
+      return !todo.completed;
+    });
     this.todos = this.todos.map(function (todo) {
       return new TodoModel({
         title: todo.title,
         id: todo.id,
-        completed: true
-      }, _this5);
+        completed: completed
+      }, _this2);
     });
-
-    this._handlePromise(fetch("/api/todos", {
-      method: 'PUT',
-      body: JSON.stringify(this.todos.map(function (todo) {
-        return [todo.id, {
-          completed: true
-        }];
-      }))
-    }));
+    var patches = this.todos.map(function (todo) {
+      return [todo.id, {
+        completed: completed
+      }];
+    });
+    this.patching = patches;
   };
 
   _proto2.clearCompleted = function clearCompleted() {
     var newTodos = [];
     var delIds = [];
+    var todos = this.todos;
 
-    for (var i = 0; i < this.todos.length; i++) {
-      var todo = this.todos[i];
+    for (var i = 0; i < todos.length; i++) {
+      var todo = todos[i];
 
       if (todo.completed) {
         delIds.push(todo.id);
@@ -9289,31 +9291,17 @@ function () {
     }
 
     this.todos = newTodos;
-
-    this._handlePromise(fetch("/api/todos", {
-      method: 'DELETE',
-      body: JSON.stringify(delIds)
-    }));
+    this.clearing = delIds;
   };
 
   _createClass(TodoService, [{
-    key: "isOperationRunning",
-    get: function get() {
-      return this.opCount !== 0;
-    }
-  }, {
     key: "todos",
     get: function get() {
-      var _this6 = this;
+      var _this3 = this;
 
-      fetch('/api/todos').then(toJson).then(function (data) {
-        _this6.todos = mem.cache(data.map(function (todo) {
-          return new TodoModel(todo, _this6);
-        }));
-      }).catch(function (e) {
-        _this6.todos = mem.cache(e);
+      return this._fetcher.request('/todos').json().map(function (todo) {
+        return new TodoModel(todo, _this3);
       });
-      throw new mem.Wait();
     },
     set: function set(todos) {}
   }, {
@@ -9328,14 +9316,78 @@ function () {
     get: function get() {
       return this.todos.length - this.activeTodoCount;
     }
+  }, {
+    key: "adding",
+    get: function get() {
+      return null;
+    },
+    set: function set(next) {
+      this._fetcher.request('/todo').json(next).valueOf();
+
+      mem.cache(this.adding = null);
+    }
+  }, {
+    key: "saving",
+    get: function get() {
+      return null;
+    },
+    set: function set(next) {
+      this._fetcher.request("/todo/" + next.id).postOptions({
+        method: 'POST'
+      }).json(next).valueOf();
+
+      mem.cache(this.saving = null);
+    }
+  }, {
+    key: "removing",
+    get: function get() {
+      return null;
+    },
+    set: function set(next) {
+      this._fetcher.request("/todo/" + next.id).getOptions({
+        method: 'DELETE'
+      }).json().valueOf();
+
+      mem.cache(this.removing = null);
+    }
+  }, {
+    key: "patching",
+    get: function get() {
+      return null;
+    },
+    set: function set(patches) {
+      this._fetcher.request("/todos").postOptions({
+        method: 'PUT'
+      }).json(patches).valueOf();
+
+      mem.cache(this.patching = null);
+    }
+  }, {
+    key: "clearing",
+    get: function get() {
+      return null;
+    },
+    set: function set(delIds) {
+      this._fetcher.request("/todos").postOptions({
+        method: 'DELETE'
+      }).json(delIds).valueOf();
+
+      mem.cache(this.clearing = null);
+    }
+  }, {
+    key: "isOperationRunning",
+    get: function get() {
+      var count = 0;
+      if (this.adding) count++;
+      if (this.saving) count++;
+      if (this.removing) count++;
+      if (this.patching) count++;
+      if (this.clearing) count++;
+      return count !== 0;
+    }
   }]);
   return TodoService;
-}(), _descriptor$2 = _applyDecoratedDescriptor$8(_class$8.prototype, "opCount", [mem], {
-  enumerable: true,
-  initializer: function initializer() {
-    return 0;
-  }
-}), _applyDecoratedDescriptor$8(_class$8.prototype, "todoExtInfo", [_dec$2], Object.getOwnPropertyDescriptor(_class$8.prototype, "todoExtInfo"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "todos"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "todos"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "activeTodoCount", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "activeTodoCount"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "toggleAll", [action], Object.getOwnPropertyDescriptor(_class$8.prototype, "toggleAll"), _class$8.prototype), _class$8);
+}(), _applyDecoratedDescriptor$8(_class$8.prototype, "todoExtInfo", [_dec$2], Object.getOwnPropertyDescriptor(_class$8.prototype, "todoExtInfo"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "todos"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "todos"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "activeTodoCount", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "activeTodoCount"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "adding", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "adding"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "adding", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "adding"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "saving", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "saving"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "saving", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "saving"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "removing", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "removing"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "removing", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "removing"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "patching", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "patching"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "patching", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "patching"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "toggleAll", [action], Object.getOwnPropertyDescriptor(_class$8.prototype, "toggleAll"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "clearing", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "clearing"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "clearing", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "clearing"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "isOperationRunning", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "isOperationRunning"), _class$8.prototype), _class$8);
 TodoService._r = [0, [Fetcher]];
 TodoService.displayName = "TodoService";
 
@@ -9421,10 +9473,10 @@ TodoFilterService._r = [0, [TodoService, AbstractLocationStore]];
 TodoFilterService.displayName = "TodoFilterService";
 
 var _class$10;
-var _descriptor$3;
-var _class3$1;
+var _descriptor$2;
+var _class3;
 
-function _initDefineProp$3(target, property, descriptor, context) {
+function _initDefineProp$2(target, property, descriptor, context) {
   if (!descriptor) return;
   Object.defineProperty(target, property, {
     enumerable: descriptor.enumerable,
@@ -9469,7 +9521,7 @@ function () {
   function TodoToAdd() {
     var _this = this;
 
-    _initDefineProp$3(this, "title", _descriptor$3, this);
+    _initDefineProp$2(this, "title", _descriptor$2, this);
 
     this.onKeyDown = function (e) {
       if (e.keyCode === 13 && _this.title) {
@@ -9495,13 +9547,14 @@ function () {
     }
   }]);
   return TodoToAdd;
-}(), _descriptor$3 = _applyDecoratedDescriptor$10(_class$10.prototype, "title", [mem], {
+}(), _descriptor$2 = _applyDecoratedDescriptor$10(_class$10.prototype, "title", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return '';
   }
 }), _applyDecoratedDescriptor$10(_class$10.prototype, "props", [props], Object.getOwnPropertyDescriptor(_class$10.prototype, "props"), _class$10.prototype), _applyDecoratedDescriptor$10(_class$10.prototype, "onInput", [action], Object.getOwnPropertyDescriptor(_class$10.prototype, "onInput"), _class$10.prototype), _class$10);
-var TodoHeaderTheme = (_class3$1 =
+TodoToAdd.displayName = "TodoToAdd";
+var TodoHeaderTheme = (_class3 =
 /*#__PURE__*/
 function () {
   function TodoHeaderTheme() {}
@@ -9528,11 +9581,15 @@ function () {
     }
   }]);
   return TodoHeaderTheme;
-}(), _applyDecoratedDescriptor$10(_class3$1.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class3$1.prototype, "css"), _class3$1.prototype), _class3$1);
+}(), _applyDecoratedDescriptor$10(_class3.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class3.prototype, "css"), _class3.prototype), _class3);
+TodoHeaderTheme.displayName = "TodoHeaderTheme";
 function TodoHeaderView(_, _ref3) {
   var todoToAdd = _ref3.todoToAdd,
       css = _ref3.theme.css;
-  return lom_h("header", null, lom_h("input", {
+  return lom_h("header", {
+    id: "main"
+  }, lom_h("input", {
+    id: "input",
     "class": css.newTodo,
     placeholder: "What needs to be done?",
     onInput: todoToAdd.onInput,
@@ -9548,12 +9605,12 @@ TodoHeaderView._r = [1, [{
 TodoHeaderView.displayName = "TodoHeaderView";
 
 var _class$12;
-var _descriptor$4;
+var _descriptor$3;
 var _descriptor2;
 var _descriptor3;
-var _class3$2;
+var _class3$1;
 
-function _initDefineProp$4(target, property, descriptor, context) {
+function _initDefineProp$3(target, property, descriptor, context) {
   if (!descriptor) return;
   Object.defineProperty(target, property, {
     enumerable: descriptor.enumerable,
@@ -9600,11 +9657,11 @@ function () {
   function TodoItemStore() {
     var _this = this;
 
-    _initDefineProp$4(this, "todoBeingEditedId", _descriptor$4, this);
+    _initDefineProp$3(this, "todoBeingEditedId", _descriptor$3, this);
 
-    _initDefineProp$4(this, "editText", _descriptor2, this);
+    _initDefineProp$3(this, "editText", _descriptor2, this);
 
-    _initDefineProp$4(this, "props", _descriptor3, this);
+    _initDefineProp$3(this, "props", _descriptor3, this);
 
     this._focused = null;
 
@@ -9677,7 +9734,7 @@ function () {
   };
 
   return TodoItemStore;
-}(), _descriptor$4 = _applyDecoratedDescriptor$12(_class$12.prototype, "todoBeingEditedId", [mem], {
+}(), _descriptor$3 = _applyDecoratedDescriptor$12(_class$12.prototype, "todoBeingEditedId", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return null;
@@ -9691,7 +9748,8 @@ function () {
   enumerable: true,
   initializer: null
 }), _applyDecoratedDescriptor$12(_class$12.prototype, "setText", [action], Object.getOwnPropertyDescriptor(_class$12.prototype, "setText"), _class$12.prototype), _class$12);
-var TodoItemTheme = (_class3$2 =
+TodoItemStore.displayName = "TodoItemStore";
+var TodoItemTheme = (_class3$1 =
 /*#__PURE__*/
 function () {
   function TodoItemTheme() {}
@@ -9813,7 +9871,8 @@ function () {
     }
   }]);
   return TodoItemTheme;
-}(), _applyDecoratedDescriptor$12(_class3$2.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class3$2.prototype, "css"), _class3$2.prototype), _class3$2);
+}(), _applyDecoratedDescriptor$12(_class3$1.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class3$1.prototype, "css"), _class3$1.prototype), _class3$1);
+TodoItemTheme.displayName = "TodoItemTheme";
 function TodoItemView(_ref2, _ref3) {
   var todo = _ref2.todo;
   var itemStore = _ref3.itemStore,
@@ -9824,6 +9883,7 @@ function TodoItemView(_ref2, _ref3) {
   return itemStore.todoBeingEditedId === todo.id ? lom_h("li", {
     "class": css.editing
   }, lom_h("input", {
+    id: "editing",
     ref: itemStore.setEditInputRef,
     "class": css.edit,
     value: itemStore.editText,
@@ -9839,13 +9899,13 @@ function TodoItemView(_ref2, _ref3) {
     checked: todo.completed,
     onChange: itemStore.toggle
   }), lom_h("label", {
-    "class": theme$$1.label(todo.completed),
     id: "beginEdit",
+    "class": theme$$1.label(todo.completed),
     title: info.description,
     onDblClick: itemStore.beginEdit
   }, todo.title), lom_h("button", {
-    "class": css.destroy,
     id: "destroy",
+    "class": css.destroy,
     onClick: itemStore.handleDestroy
   }));
 }
@@ -9945,6 +10005,7 @@ function () {
   }]);
   return TodoMainTheme;
 }(), _applyDecoratedDescriptor$11(_class$11.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class$11.prototype, "css"), _class$11.prototype), _class$11);
+TodoMainTheme.displayName = "TodoMainTheme";
 function TodoMainView(_ref, _ref2) {
   var todoService = _ref.todoService,
       todoFilterService = _ref.todoFilterService;
@@ -9957,12 +10018,14 @@ function TodoMainView(_ref, _ref2) {
   return lom_h("section", {
     "class": css.main
   }, lom_h("input", {
+    id: "input",
     "class": css.toggleAll,
     type: "checkbox",
     onChange: todoService.toggleAll,
     checked: todoService.activeTodoCount === 0
   }), lom_h("ul", {
-    "class": css.todoList
+    "class": css.todoList,
+    id: "items"
   }, todoFilterService.filteredTodos.map(function (todo) {
     return lom_h(TodoItemView, {
       key: todo.id,
@@ -10110,6 +10173,7 @@ function () {
   }]);
   return TodoFooterTheme;
 }(), _applyDecoratedDescriptor$13(_class$13.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class$13.prototype, "css"), _class$13.prototype), _class$13);
+TodoFooterTheme.displayName = "TodoFooterTheme";
 function TodoFooterView(_ref, _ref2) {
   var todoService = _ref.todoService,
       todoFilterService = _ref.todoFilterService;
@@ -10124,20 +10188,26 @@ function TodoFooterView(_ref, _ref2) {
   return lom_h("footer", {
     "class": css.footer
   }, lom_h("span", {
-    "class": css.todoCount
-  }, lom_h("strong", null, todoService.activeTodoCount), " item(s) left"), lom_h("ul", {
-    "class": css.filters
+    "class": css.todoCount,
+    id: "count"
+  }, lom_h("strong", {
+    id: "number"
+  }, todoService.activeTodoCount), " item(s) left"), lom_h("ul", {
+    "class": css.filters,
+    id: "filters"
   }, links.map(function (link) {
     return lom_h("li", {
       key: link.id,
-      "class": css.filterItem
+      "class": css.filterItem,
+      id: "item-" + link.id
     }, lom_h("a", {
-      id: "todo-filter-" + link.id,
+      id: "link-" + link.id,
       "class": theme$$1.link(filter === link.id),
       href: "?todo_filter=" + link.id,
       onClick: createHandler(todoFilterService, link.id)
     }, link.title));
   })), todoService.completedCount === 0 ? null : lom_h("button", {
+    id: "clear",
     "class": css.clearCompleted,
     onClick: function onClick() {
       return todoService.clearCompleted();
@@ -10222,39 +10292,45 @@ function () {
   }]);
   return TodoAppTheme;
 }(), _applyDecoratedDescriptor$7(_class$7.prototype, "css", [mem, theme], Object.getOwnPropertyDescriptor(_class$7.prototype, "css"), _class$7.prototype), _class$7);
-function TodoApp(_ref, _ref2) {
+TodoAppTheme.displayName = "TodoAppTheme";
+function TodoAppView(_ref, _ref2) {
   _objectDestructuringEmpty(_ref);
   var todoService = _ref2.todoService,
       todoFilterService = _ref2.todoFilterService,
       css = _ref2.theme.css;
   return lom_h("div", null, todoService.activeTodoCount > 0 ? null : null, lom_h("div", {
+    id: "status",
     style: {
       padding: '0.3em 0.5em'
     }
   }, todoService.isOperationRunning ? 'Saving...' : 'Idle'), lom_h("div", {
+    id: "layout",
     "class": css.todoapp
   }, lom_h(TodoHeaderView, {
+    id: "header",
     todoService: todoService
   }), lom_h(TodoMainView, {
+    id: "main",
     todoService: todoService,
     todoFilterService: todoFilterService
   }), lom_h(TodoFooterView, {
+    id: "footer",
     todoService: todoService,
     todoFilterService: todoFilterService
   })));
 }
-TodoApp._r = [1, [{
+TodoAppView._r = [1, [{
   todoService: TodoService,
   todoFilterService: TodoFilterService,
   theme: TodoAppTheme
 }]];
-TodoApp.displayName = "TodoApp";
+TodoAppView.displayName = "TodoAppView";
 
-var _class2$2;
-var _descriptor$5;
+var _class2$3;
+var _descriptor$4;
 var _descriptor2$1;
 
-function _initDefineProp$5(target, property, descriptor, context) {
+function _initDefineProp$4(target, property, descriptor, context) {
   if (!descriptor) return;
   Object.defineProperty(target, property, {
     enumerable: descriptor.enumerable,
@@ -10312,18 +10388,18 @@ function () {
 
 TimeoutHandler._r = [0, [Function, Number]];
 TimeoutHandler.displayName = "TimeoutHandler";
-var AutocompleteService = (_class2$2 =
+var AutocompleteService = (_class2$3 =
 /*#__PURE__*/
 function () {
   function AutocompleteService() {
     var _this = this;
 
-    _initDefineProp$5(this, "nameToSearch", _descriptor$5, this);
+    _initDefineProp$4(this, "nameToSearch", _descriptor$4, this);
 
-    _initDefineProp$5(this, "_handler", _descriptor2$1, this);
+    _initDefineProp$4(this, "_handler", _descriptor2$1, this);
 
     this.setValue = function (e) {
-      _this.nameToSearch = mem.cache(e.target.value);
+      mem.cache(_this.nameToSearch = e.target.value);
     };
   }
 
@@ -10343,9 +10419,9 @@ function () {
         fetch("/api/autocomplete?q=" + name).then(function (r) {
           return r.json();
         }).then(function (data) {
-          _this2.searchResults = mem.cache(data);
+          mem.cache(_this2.searchResults = data);
         }).catch(function (e) {
-          _this2.searchResults = mem.cache(e);
+          mem.cache(_this2.searchResults = e);
         });
       }, 500);
       throw new mem.Wait();
@@ -10353,23 +10429,25 @@ function () {
     set: function set(searchResults) {}
   }]);
   return AutocompleteService;
-}(), _descriptor$5 = _applyDecoratedDescriptor$14(_class2$2.prototype, "nameToSearch", [mem], {
+}(), _descriptor$4 = _applyDecoratedDescriptor$14(_class2$3.prototype, "nameToSearch", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return '';
   }
-}), _applyDecoratedDescriptor$14(_class2$2.prototype, "props", [props], Object.getOwnPropertyDescriptor(_class2$2.prototype, "props"), _class2$2.prototype), _descriptor2$1 = _applyDecoratedDescriptor$14(_class2$2.prototype, "_handler", [mem], {
+}), _applyDecoratedDescriptor$14(_class2$3.prototype, "props", [props], Object.getOwnPropertyDescriptor(_class2$3.prototype, "props"), _class2$3.prototype), _descriptor2$1 = _applyDecoratedDescriptor$14(_class2$3.prototype, "_handler", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return null;
   }
-}), _applyDecoratedDescriptor$14(_class2$2.prototype, "searchResults", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "searchResults"), _class2$2.prototype), _applyDecoratedDescriptor$14(_class2$2.prototype, "searchResults", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "searchResults"), _class2$2.prototype), _class2$2);
+}), _applyDecoratedDescriptor$14(_class2$3.prototype, "searchResults", [mem], Object.getOwnPropertyDescriptor(_class2$3.prototype, "searchResults"), _class2$3.prototype), _applyDecoratedDescriptor$14(_class2$3.prototype, "searchResults", [mem], Object.getOwnPropertyDescriptor(_class2$3.prototype, "searchResults"), _class2$3.prototype), _class2$3);
+AutocompleteService.displayName = "AutocompleteService";
 
 function AutocompleteResultsView(_ref2) {
   var searchResults = _ref2.searchResults;
   return lom_h("ul", null, searchResults.map(function (result, i) {
     return lom_h("li", {
-      key: result + i
+      key: result + i,
+      id: "list"
     }, result);
   }));
 }
@@ -10379,10 +10457,13 @@ AutocompleteResultsView.displayName = "AutocompleteResultsView";
 function AutocompleteView(_, service) {
   var results = service.searchResults;
   var name = service.nameToSearch;
-  return lom_h("div", null, lom_h("div", null, "Filter:", lom_h("input", {
+  return lom_h("div", null, lom_h("div", {
+    id: "filter"
+  }, "Filter:", lom_h("input", {
     value: name,
     onInput: service.setValue
   })), "Values:", lom_h(AutocompleteResultsView, {
+    id: "results",
     searchResults: results
   }));
 }
@@ -10407,11 +10488,11 @@ autocompleteMocks._r = [2, [Storage]];
 autocompleteMocks.displayName = "autocompleteMocks";
 
 var _class$14;
-var _descriptor$6;
+var _descriptor$5;
 var _dec$3;
-var _class3$3;
+var _class3$2;
 
-function _initDefineProp$6(target, property, descriptor, context) {
+function _initDefineProp$5(target, property, descriptor, context) {
   if (!descriptor) return;
   Object.defineProperty(target, property, {
     enumerable: descriptor.enumerable,
@@ -10451,14 +10532,15 @@ function _applyDecoratedDescriptor$15(target, property, decorators, descriptor, 
 }
 
 var Store$1 = (_class$14 = function Store() {
-  _initDefineProp$6(this, "red", _descriptor$6, this);
-}, _descriptor$6 = _applyDecoratedDescriptor$15(_class$14.prototype, "red", [mem], {
+  _initDefineProp$5(this, "red", _descriptor$5, this);
+}, _descriptor$5 = _applyDecoratedDescriptor$15(_class$14.prototype, "red", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return 140;
   }
 }), _class$14);
-var CssChangeTheme = (_dec$3 = theme.self, _class3$3 =
+Store$1.displayName = "Store";
+var CssChangeTheme = (_dec$3 = theme.self, _class3$2 =
 /*#__PURE__*/
 function () {
   function CssChangeTheme(store) {
@@ -10477,7 +10559,7 @@ function () {
     }
   }]);
   return CssChangeTheme;
-}(), _applyDecoratedDescriptor$15(_class3$3.prototype, "css", [mem, _dec$3], Object.getOwnPropertyDescriptor(_class3$3.prototype, "css"), _class3$3.prototype), _class3$3);
+}(), _applyDecoratedDescriptor$15(_class3$2.prototype, "css", [mem, _dec$3], Object.getOwnPropertyDescriptor(_class3$2.prototype, "css"), _class3$2.prototype), _class3$2);
 CssChangeTheme._r = [0, [Store$1]];
 CssChangeTheme.displayName = "CssChangeTheme";
 function CssChangeView(_, _ref) {
@@ -10600,7 +10682,7 @@ function AppView(_ref, _ref2) {
       break;
 
     case 'todomvc':
-      page = lom_h(TodoApp, null);
+      page = lom_h(TodoAppView, null);
       break;
 
     case 'css-change':
@@ -10617,6 +10699,7 @@ function AppView(_ref, _ref2) {
       justifyContent: 'center'
     }
   }, lom_h("div", {
+    id: "menu",
     style: {
       padding: '1em'
     }
@@ -10632,12 +10715,22 @@ function AppView(_ref, _ref2) {
       }
     }, link);
   })), lom_h("div", {
+    id: "layout",
     style: {
       border: '1px solid gray',
       padding: '1em',
       margin: '0 1em'
     }
-  }, lom_h("h1", null, store.page), page), lom_h(ItemView, null, lom_h(ItemView.Key, null, "Some initial value:"), lom_h(ItemView.Value, null, lom_h("input", {
+  }, lom_h("h1", {
+    id: "title"
+  }, store.page), page), lom_h(ItemView, {
+    id: "inital"
+  }, lom_h(ItemView.Key, {
+    id: "key"
+  }, "Some initial value:"), lom_h(ItemView.Value, {
+    id: "value"
+  }, lom_h("input", {
+    id: "value-input",
     value: store.name,
     onInput: function onInput(_ref3) {
       var target = _ref3.target;

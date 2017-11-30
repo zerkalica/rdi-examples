@@ -1,5 +1,6 @@
 // @flow
 import Fetcher from '../../Fetcher'
+import type {FetcherApi} from '../../Fetcher'
 import {uuid} from '../common-todomvc'
 import {action, mem} from 'lom_atom'
 
@@ -44,7 +45,7 @@ class TodoModel implements ITodo {
     }
 
     remove() {
-        this._store.remove(this.id)
+        this._store.remove(this)
     }
 
     toggle() {
@@ -69,16 +70,13 @@ interface ITodoExtInfo {
     description: string;
 }
 
+type ITogglePatch = [string, $Shape<ITodo>]
+
 export default class TodoService {
-    @mem opCount = 0
     _fetcher: Fetcher
 
     constructor(fetcher: Fetcher) {
         this._fetcher = fetcher
-    }
-
-    get isOperationRunning(): boolean {
-        return this.opCount !== 0
     }
 
     @mem.key todoExtInfo(id: string, info?: ITodoExtInfo | Error): ITodoExtInfo {
@@ -86,24 +84,17 @@ export default class TodoService {
         fetch(`/api/todo/${id}/info`)
             .then(toJson)
             .then((data: ITodoExtInfo) => {
-                this.todoExtInfo(id, mem.cache(data))
+                mem.cache(this.todoExtInfo(id, data))
             })
             .catch((e: Error) => {
-                this.todoExtInfo(id, mem.cache(e))
+                mem.cache(this.todoExtInfo(id, e))
             })
         throw new mem.Wait()
     }
 
     @mem get todos(): ITodo[] {
-        fetch('/api/todos')
-            .then(toJson)
-            .then((data: ITodoData[]) => {
-                this.todos = mem.cache(data.map((todo: ITodoData) => new TodoModel(todo, this)))
-            })
-            .catch((e: Error) => {
-                this.todos = mem.cache(e)
-            })
-        throw new mem.Wait()
+        return this._fetcher.request('/todos').json()
+            .map((todo: ITodoData) => new TodoModel(todo, this))
     }
 
     @mem set todos(todos: ITodo[] | Error) {}
@@ -119,96 +110,111 @@ export default class TodoService {
         return this.todos.length - this.activeTodoCount
     }
 
-    _handlePromise<V>(p: Promise<V>): Promise<void> {
-        this.opCount++
-        return p
-            .then(() => {
-                this.opCount--
-            })
-            .catch((e: Error) => {
-                this.opCount--
-                this.todos = e
-            })
+    @mem get adding(): ?ITodo {
+        return null
+    }
+
+    @mem set adding(next: ITodo) {
+        this._fetcher
+            .request('/todo')
+            .json(next)
+            .valueOf()
+        mem.cache(this.adding = (null: any))
     }
 
     addTodo(title: string) {
         const todo = new TodoModel({title}, this)
-        this.todos = this.todos.concat([todo])
-
-        this._handlePromise(
-            fetch('/api/todo', {
-                method: 'PUT',
-                body: JSON.stringify(todo)
-            })
-                .then(toJson)
-                .then((updatedTodo: ITodoData) => {
-                    this.todos = this.todos.map(
-                        (t: ITodo) => t.id === todo.id
-                            ? new TodoModel(updatedTodo, this)
-                            : t
-                    )
-                })
-        )
+        this.todos = [...this.todos, todo]
+        this.adding = todo
     }
 
-    saveTodo(todo: ITodoData) {
+    @mem get saving(): ?ITodo {
+        return null
+    }
+
+    @mem set saving(next: ITodo) {
+        this._fetcher
+            .request(`/todo/${next.id}`)
+            .postOptions({method: 'POST'})
+            .json(next)
+            .valueOf()
+        mem.cache(this.saving = (null: any))
+    }
+
+    saveTodo(todoData: ITodoData) {
+        const todo = new TodoModel(todoData, this)
         this.todos = this.todos.map(
             (t: ITodo) => t.id === todo.id
-                ? new TodoModel(todo, this)
+                ? todo
                 : t
         )
-        this._handlePromise(
-            fetch(`/api/todo/${todo.id}`, {
-                method: 'POST',
-                body: JSON.stringify(todo)
-            })
-                .then(toJson)
-                .then((updatedTodo: ITodoData) => {
-                    this.todos = this.todos.map(
-                        (t: ITodo) => t.id === todo.id
-                            ? new TodoModel(updatedTodo, this)
-                            : t
-                    )
-                })
-        )
+        this.saving = todo
     }
 
-    remove(id: string) {
-        this.todos = this.todos.filter((todo: ITodo) => todo.id !== id)
+    @mem get removing(): ?ITodo {
+        return null
+    }
+    @mem set removing(next: ITodo) {
+        this._fetcher
+            .request(`/todo/${next.id}`)
+            .getOptions({method: 'DELETE'})
+            .json()
+            .valueOf()
+        mem.cache(this.removing = (null: any))
+    }
 
-        this._handlePromise(
-            fetch(`/api/todo/${id}`, {
-                method: 'DELETE'
-            })
-        )
+    remove(todo: ITodo) {
+        this.todos = this.todos.filter((t: ITodo) => t.id !== todo.id)
+        this.removing = todo
+    }
+
+    @mem get patching(): ?ITogglePatch[] {
+        return null
+    }
+
+    @mem set patching(patches: ITogglePatch[]) {
+        this._fetcher
+            .request(`/todos`)
+            .postOptions({method: 'PUT'})
+            .json(patches)
+            .valueOf()
+        mem.cache(this.patching = (null: any))
     }
 
     @action toggleAll() {
+        const completed = !!this.todos.find((todo) => !todo.completed)
         this.todos = this.todos.map(
             (todo: ITodo) => new TodoModel({
                 title: todo.title,
                 id: todo.id,
-                completed: true
+                completed
             }, this)
         )
-
-        this._handlePromise(
-            fetch(`/api/todos`, {
-                method: 'PUT',
-                body: JSON.stringify(
-                    this.todos.map(
-                        (todo: ITodo) => ([todo.id, {completed: true}])
-                    )
-                )
-            })
+        const patches: ITogglePatch[] = this.todos.map(
+            (todo: ITodo) => ([todo.id, {completed}])
         )
+
+        this.patching = patches
+    }
+
+    @mem get clearing(): ?string[] {
+        return null
+    }
+    @mem set clearing(delIds: string[]) {
+        this._fetcher
+            .request(`/todos`)
+            .postOptions({method: 'DELETE'})
+            .json(delIds)
+            .valueOf()
+        mem.cache(this.clearing = (null: any))
     }
 
     clearCompleted() {
         const newTodos: ITodo[] = []
         const delIds: string[] = []
-        for (let i = 0; i < this.todos.length; i++) {
-            const todo = this.todos[i]
+        const todos = this.todos
+        for (let i = 0; i < todos.length; i++) {
+            const todo = todos[i]
             if (todo.completed) {
                 delIds.push(todo.id)
             } else {
@@ -216,12 +222,16 @@ export default class TodoService {
             }
         }
         this.todos = newTodos
+        this.clearing = delIds
+    }
 
-        this._handlePromise(
-            fetch(`/api/todos`, {
-                method: 'DELETE',
-                body: JSON.stringify(delIds)
-            })
-        )
+    @mem get isOperationRunning(): boolean {
+        let count = 0
+        if (this.adding) count++
+        if (this.saving) count++
+        if (this.removing) count++
+        if (this.patching) count++
+        if (this.clearing) count++
+        return count !== 0
     }
 }

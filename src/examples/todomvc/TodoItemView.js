@@ -218,6 +218,7 @@ export default function TodoItemView(
     return itemStore.todoBeingEditedId === todo.id
         ? <li class={css.editing}>
             <input
+                id="editing"
                 ref={itemStore.setEditInputRef}
                 class={css.edit}
                 value={itemStore.editText}
@@ -235,12 +236,16 @@ export default function TodoItemView(
                 onChange={itemStore.toggle}
             />
             <label
-                class={theme.label(todo.completed)}
                 id="beginEdit"
+                class={theme.label(todo.completed)}
                 title={info.description}
                 onDblClick={itemStore.beginEdit}>
                 {todo.title}
             </label>
-            <button class={css.destroy} id="destroy" onClick={itemStore.handleDestroy} />
+            <button
+                id="destroy"
+                class={css.destroy}
+                onClick={itemStore.handleDestroy}
+            />
         </li>
 }

@@ -45,7 +45,7 @@ const jss = createJss({
 
 const injector = new Injector(
     [
-        [Fetcher, new Fetcher('/api')],
+        [Fetcher, new Fetcher({baseUrl: '/api'})],
         [AbstractLocationStore, new BrowserLocationStore(location, history)]
     ],
     (jss: any)
@@ -59,6 +59,7 @@ const lomCreateElement = createCreateElement(
         detached,
         injector
     ),
-    (h: React$CreateElement)
+    (h: React$CreateElement),
+    true
 )
 global['lom_h'] = lomCreateElement

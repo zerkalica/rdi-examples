@@ -40,7 +40,7 @@ export class BrowserLocationStore extends AbstractLocationStore {
         return new URLSearchParams(this._location.search)
     }
 
-    @mem.key location(key: string, value?: string): string {
+    @mem.key.manual location(key: string, value?: string): string {
         const params = this._params()
         if (value === undefined) return params.get(key)
 
