@@ -117,11 +117,10 @@ class TodoFooterTheme {
 }
 
 export default function TodoFooterView(
-    {todoService, todoFilterService}: {
+    _: {},
+    {todoService, todoFilterService, theme}: {
         todoService: TodoService;
         todoFilterService: TodoFilterService;
-    },
-    {theme}: {
         theme: TodoFooterTheme;
     }
 ) {
@@ -137,8 +136,12 @@ export default function TodoFooterView(
         </span>
         <ul class={css.filters} id="filters">
             {links.map((link) =>
-                <li key={link.id} class={css.filterItem} id={`item-${link.id}`}><a
-                    id={`link-${link.id}`}
+                <li
+                    key={link.id}
+                    class={css.filterItem}
+                    id={`link(${link.id})`}
+                ><a
+                    id={`link(${link.id}).a`}
                     class={theme.link(filter === link.id)}
                     href={`?todo_filter=${link.id}`}
                     onClick={createHandler(todoFilterService, link.id)}

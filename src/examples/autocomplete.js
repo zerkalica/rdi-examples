@@ -1,10 +1,11 @@
 // @flow
 
-import {mem} from 'lom_atom'
+import {mem, AtomWait} from 'lom_atom'
 import {props} from 'reactive-di'
 
 interface IAutocompleteProps {
     initialValue: string;
+    id: string;
 }
 
 class TimeoutHandler {
@@ -40,7 +41,7 @@ class AutocompleteService {
                 })
         }, 500)
 
-        throw new mem.Wait()
+        throw new AtomWait()
     }
 
     @mem set searchResults(searchResults: string[] | Error) {}
@@ -57,7 +58,7 @@ function AutocompleteResultsView(
 ) {
     return <ul>
         {searchResults.map((result: string, i: number) =>
-            <li key={result + i} id="list">
+            <li key={result + i} id={`list(${i})`}>
                 {result}
             </li>
         )}
@@ -65,15 +66,15 @@ function AutocompleteResultsView(
 }
 
 export function AutocompleteView(
-    _: IAutocompleteProps,
+    {id}: IAutocompleteProps,
     service: AutocompleteService
 ) {
     const results = service.searchResults
     const name = service.nameToSearch
-    return <div>
+    return <div id={id}>
         <div id="filter">
             Filter:
-            <input value={name} onInput={service.setValue}/>
+            <input value={name} id="value" onInput={service.setValue}/>
         </div>
         Values:
         <AutocompleteResultsView id="results" searchResults={results} />

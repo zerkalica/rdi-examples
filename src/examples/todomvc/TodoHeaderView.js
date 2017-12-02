@@ -2,19 +2,17 @@
 import {action, mem} from 'lom_atom'
 import {props, theme} from 'reactive-di'
 
+import TodoService from './TodoService'
+
 interface IStore {
     addTodo(title: string): void;
-}
-
-interface ITodoHeaderProps {
-    todoService: IStore
 }
 
 class TodoToAdd {
     @mem title: string = ''
     _todoService: IStore
 
-    @props set props({todoService}: ITodoHeaderProps) {
+    constructor(todoService: TodoService) {
         this._todoService = todoService
     }
 
@@ -57,13 +55,13 @@ class TodoHeaderTheme {
 }
 
 export default function TodoHeaderView(
-    _: ITodoHeaderProps,
+    _: {},
     {todoToAdd, theme: {css}}: {
         theme: TodoHeaderTheme;
         todoToAdd: TodoToAdd;
     }
 ) {
-    return <header id="main">
+    return <header>
         <input
             id="input"
             class={css.newTodo}

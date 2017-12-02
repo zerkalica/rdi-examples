@@ -1,5 +1,5 @@
 // @flow
-import {mem, detached, ConsoleLogger, defaultContext} from 'lom_atom'
+import {mem, AtomWait, detached, ConsoleLogger, defaultContext} from 'lom_atom'
 import {createReactWrapper, createCreateElement, Injector} from 'reactive-di'
 
 import {h, Component} from 'preact'
@@ -10,6 +10,8 @@ import jssGlobal from 'jss-global'
 import jssNested from 'jss-nested'
 
 import {BrowserLocationStore, AbstractLocationStore} from './common-todomvc'
+import {SpinnerView} from './common'
+
 import Fetcher from '../Fetcher'
 
 defaultContext.setLogger(new ConsoleLogger())
@@ -19,15 +21,13 @@ function ErrorableView({
 }: {
     error: Error
 }) {
-    return <div>
-        {error instanceof mem.Wait
-            ? <div>
-                Loading...
-            </div>
-            : <div>
-                <h3>Fatal error !</h3>
-                <div>{error.message}</div>
-                <pre>
+    return <div id="errorable">
+        {error instanceof AtomWait
+            ? <SpinnerView id="loading"/>
+            : <div id="error">
+                <h3 id="title">Fatal error !</h3>
+                <div id="message">{error.message}</div>
+                <pre id="stack">
                     {error.stack.toString()}
                 </pre>
             </div>

@@ -1,6 +1,6 @@
 // @flow
 
-import {mem} from 'lom_atom'
+import {mem, AtomWait} from 'lom_atom'
 import {cloneComponent} from 'reactive-di'
 
 class FirstCounterService {
@@ -14,7 +14,7 @@ class FirstCounterService {
             // this.value = new Error('loading error')
         }, 500)
 
-        throw new mem.Wait()
+        throw new AtomWait()
     }
 
     @mem set value(v: number | Error) {
@@ -24,17 +24,21 @@ class FirstCounterService {
     }
 }
 
-function CounterMessageView({value}: {value: number}) {
-    return <div>
+function CounterMessageView(
+    {id, value}: {
+        id: string;
+        value: number
+}) {
+    return <div id={id}>
         Count: {value}
     </div>
 }
 
 function FirstCounterView(
-    _: {},
+    {id}: {id: string},
     counter: FirstCounterService
 ) {
-    return <div>
+    return <div id={id}>
         <CounterMessageView id="message" value={counter.value}/>
         <button id="add" onClick={() => { counter.value++ }}>{counter.lang.add}</button>
         <button id="error" onClick={() => { counter.value = ('someStr': any) }}>{counter.lang.error}</button>
@@ -48,18 +52,20 @@ class SecondCounterService extends FirstCounterService {
     }
 }
 
-function SecondCounterMessageView({value}: {value: number}) {
-    return <div>
+function SecondCounterMessageView({value, id}: {value: number; id: string}) {
+    return <div id={id}>
         SecondCounter Count: {value}
     </div>
 }
 
 function SecondCounterAddButtonView(
-    {onClick, children}: {
-        onClick: () => void, children: string
+    {id, onClick, children}: {
+        id: string;
+        onClick: () => void;
+        children: string
     }
 ) {
-    return <button id="SecondCounterAddButton" onClick={onClick}>SecondCounterAddButton: {children}</button>
+    return <button id={id} onClick={onClick}>SecondCounterAddButton: {children}</button>
 }
 
 const SecondCounterView = cloneComponent(FirstCounterView, [
@@ -70,11 +76,13 @@ const SecondCounterView = cloneComponent(FirstCounterView, [
 ], 'SecondCounterView')
 
 function ThirdCounterAddButtonView(
-    {onClick, children}: {
-        onClick: () => void, children: string
+    {id, onClick, children}: {
+        id: string;
+        onClick: () => void;
+        children: string
     }
 ) {
-    return <button id="ThirdCounterAddButton" onClick={onClick}>ThirdCounterAddButton: {children}</button>
+    return <button id={id} onClick={onClick}>ThirdCounterAddButton: {children}</button>
 }
 
 const ThirdCounterView = cloneComponent(SecondCounterView, [
@@ -83,8 +91,8 @@ const ThirdCounterView = cloneComponent(SecondCounterView, [
 
 export function CounterView() {
     return <ul>
-        <li>FirstCounter: <FirstCounterView/></li>
-        <li>SecondCounter extends FirstCounter: <SecondCounterView/></li>
-        <li>ThirdCounter extends SecondCounter: <ThirdCounterView/></li>
+        <li id="list(first)">FirstCounter: <FirstCounterView id="first"/></li>
+        <li id="list(second)">SecondCounter extends FirstCounter: <SecondCounterView id="second"/></li>
+        <li id="list(third)">ThirdCounter extends SecondCounter: <ThirdCounterView id="third"/></li>
     </ul>
 }

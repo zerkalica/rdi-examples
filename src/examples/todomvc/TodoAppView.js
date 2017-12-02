@@ -3,7 +3,7 @@
 import {mem} from 'lom_atom'
 import {theme} from 'reactive-di'
 
-import {ItemView} from '../common'
+import {SpinnerView, ItemView} from '../common'
 
 import TodoService from './TodoService'
 import TodoFilterService from './TodoFilterService'
@@ -11,9 +11,6 @@ import TodoFilterService from './TodoFilterService'
 import TodoHeaderView from './TodoHeaderView'
 import TodoMainView from './TodoMainView'
 import TodoFooterView from './TodoFooterView'
-
-interface TodoAppProps {
-}
 
 class TodoAppTheme {
     @mem @theme get css() {
@@ -52,21 +49,23 @@ class TodoAppTheme {
 }
 
 export default function TodoAppView(
-    {}: TodoAppProps,
-    {todoService, todoFilterService, theme: {css} }: {
+    {id}: {id: string},
+    {
+        todoService: {isOperationRunning},
+        theme: {css}
+    }: {
         todoService: TodoService;
-        todoFilterService: TodoFilterService;
         theme: TodoAppTheme;
     }
 ) {
-    return <div>
+    return <div id={id}>
         {/* Loading fix: access data in TodoApp first to throw exception, if no todos loaded */}
-        {todoService.activeTodoCount > 0 ? null : null}
-        <div id="status" style={{padding: '0.3em 0.5em'}}>{todoService.isOperationRunning ? 'Saving...' : 'Idle'}</div>
+        {/* {activeTodoCount > 0 ? null : null} */}
         <div id="layout" class={css.todoapp}>
-            <TodoHeaderView id="header" todoService={todoService} />
-            <TodoMainView id="main" todoService={todoService} todoFilterService={todoFilterService} />
-            <TodoFooterView id="footer" todoService={todoService} todoFilterService={todoFilterService} />
+            {isOperationRunning ? <SpinnerView id="status" /> : null}
+            <TodoHeaderView id="header" />
+            <TodoMainView id="main" />
+            <TodoFooterView id="footer" />
         </div>
     </div>
 }

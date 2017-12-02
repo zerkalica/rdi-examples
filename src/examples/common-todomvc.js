@@ -28,10 +28,11 @@ export class AbstractLocationStore {
 export class BrowserLocationStore extends AbstractLocationStore {
     _location: Location
     _history: History
-    _ns: string = 'lom_app'
+    _ns: string
 
-    constructor(location: Location, history: History) {
+    constructor(location: Location, history: History, ns?: string = 'rdi_demos') {
         super()
+        this._ns = ns
         this._location = location
         this._history = history
     }

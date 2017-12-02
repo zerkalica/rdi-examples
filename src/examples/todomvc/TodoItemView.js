@@ -1,7 +1,7 @@
 // @flow
 
 import {props, theme} from 'reactive-di'
-import {action, mem} from 'lom_atom'
+import {action, defer, mem, AtomWait} from 'lom_atom'
 import type {ITodo} from './TodoService'
 import TodoService from './TodoService'
 
@@ -10,6 +10,7 @@ const ENTER_KEY = 13
 
 interface ITodoProps {
     +todo: ITodo;
+    id: string;
 }
 
 class TodoItemStore {
@@ -17,34 +18,32 @@ class TodoItemStore {
     @mem editText = ''
 
     @props props: ITodoProps
-    _focused: ?HTMLInputElement = null
 
     beginEdit = () => {
         const {todo} = this.props
         this.todoBeingEditedId = todo.id
         this.editText = todo.title
-        if (this._focused) {
-            this._focused.focus()
-        }
     }
 
-    @action setText({target}: Event) {
+    @action setText({target}: KeyboardEvent) {
         this.editText = (target: any).value.trim()
     }
 
-    setEditInputRef = (el: ?HTMLInputElement) => {
+    @defer setEditInputRef(el: ?HTMLInputElement) {
         if (!el) return
-        this._focused = el
         el.focus()
     }
 
     handleSubmit = (event: Event) => {
+        if (!this.todoBeingEditedId) return
         const val = this.editText.trim()
         const {todo} = this.props
-        if (val && todo.title !== val) {
-            todo.title = val
-            this.editText = ''
-        } else if (!val) {
+        if (val) {
+            if (todo.title !== val) {
+                todo.title = val
+                this.editText = ''
+            }
+        } else {
             this.handleDestroy()
         }
         this.todoBeingEditedId = null
@@ -205,7 +204,7 @@ class TodoItemTheme {
 }
 
 export default function TodoItemView(
-    {todo}: ITodoProps,
+    {todo, id}: ITodoProps,
     {itemStore, theme, service}: {
         service: TodoService;
         theme: TodoItemTheme;
@@ -213,7 +212,6 @@ export default function TodoItemView(
     }
 ) {
 
-    const info = service.todoExtInfo(todo.id)
     const css = theme.css
     return itemStore.todoBeingEditedId === todo.id
         ? <li class={css.editing}>
@@ -238,8 +236,8 @@ export default function TodoItemView(
             <label
                 id="beginEdit"
                 class={theme.label(todo.completed)}
-                title={info.description}
-                onDblClick={itemStore.beginEdit}>
+                onDblClick={itemStore.beginEdit}
+            >
                 {todo.title}
             </label>
             <button

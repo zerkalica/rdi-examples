@@ -42,10 +42,6 @@ function _inheritsLoose(subClass, superClass) {
   subClass.__proto__ = superClass;
 }
 
-function _objectDestructuringEmpty(obj) {
-  if (obj == null) throw new TypeError("Cannot destructure undefined");
-}
-
 var global$1 = typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {};
 
 function _defineProperties$1(target, props) {
@@ -126,6 +122,11 @@ function setFunctionName(fn, name) {
 
 setFunctionName._r = [2];
 setFunctionName.displayName = "setFunctionName";
+var scheduleNative = typeof requestAnimationFrame === 'function' ? function (handler) {
+  return requestAnimationFrame(handler);
+} : function (handler) {
+  return setTimeout(handler, 16);
+};
 var handlers = new Map([[Array, function arrayHandler(target, source, stack) {
   var equal = target.length === source.length;
 
@@ -364,7 +365,7 @@ function () {
 
     this.status = ATOM_STATUS_ACTUAL;
     var prev = this.current;
-    var next = nextRaw instanceof Error ? new Proxy(nextRaw, throwOnAccess) : conform(nextRaw, prev, this.isComponent);
+    var next = nextRaw instanceof Error ? nextRaw[origId] ? nextRaw : new Proxy(nextRaw, throwOnAccess) : conform(nextRaw, prev, this.isComponent);
 
     if (prev !== next) {
       this.current = next;
@@ -459,11 +460,6 @@ function () {
 
   return Atom;
 }(), _class$1.deepReset = undefined, _temp$1);
-var scheduleNative = typeof requestAnimationFrame === 'function' ? function (handler) {
-  return requestAnimationFrame(handler);
-} : function (handler) {
-  return setTimeout(handler, 16);
-};
 
 function reap(atom, key, reaping) {
   reaping.delete(atom);
@@ -751,11 +747,11 @@ function actionMethod(proto, name, descr, context) {
     configurable: descr.configurable,
     get: function get() {
       if (definingProperty) {
-        return this[hk];
+        return this[hk].bind(this);
       }
 
-      definingProperty = true;
       var actionFn = createActionMethod(this, hk, context);
+      definingProperty = true;
       Object.defineProperty(this, name, {
         configurable: true,
         value: actionFn
@@ -982,12 +978,52 @@ Object.defineProperties(mem, {
   },
   key: {
     value: memkey
-  },
-  Wait: {
-    value: AtomWait // toAtom: {value: toAtom }
-
   }
 });
+
+function defer(proto, name, descr) {
+  var origFn = descr.value;
+  if (!origFn) throw new Error('Not a method');
+  var definingProperty = false;
+
+  function value() {
+    var _this = this;
+
+    if (definingProperty) {
+      return origFn.bind(this);
+    }
+
+    var fn = function fn() {
+      for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
+        args[_key] = arguments[_key];
+      }
+
+      scheduleNative(function () {
+        return origFn.apply(_this, args);
+      });
+    };
+
+    fn._r = [2];
+    fn.displayName = "fn";
+    fn.displayName = name + "#defer";
+    definingProperty = true;
+    Object.defineProperty(this, name, {
+      configurable: true,
+      value: fn
+    });
+    definingProperty = false;
+    return fn;
+  }
+
+  return {
+    enumerable: descr.enumerable,
+    configurable: descr.configurable,
+    get: value
+  };
+}
+
+defer._r = [2];
+defer.displayName = "defer";
 
 function stringToColor(str) {
   var hash = 0;
@@ -1202,6 +1238,8 @@ var Injector =
 /*#__PURE__*/
 function () {
   function Injector(items, sheetProcessor, state, displayName, instance, cache) {
+    this.id = '';
+    this.rendered = '';
     this._resolved = false;
     this._listeners = undefined;
     this._state = state;
@@ -1537,10 +1575,12 @@ function createReactWrapper(BaseComponent, ErrorComponent, detached, rootInjecto
         _this._keys = Object.keys(props);
         if (_this._keys.length === 0) _this._keys = undefined;
         if (props.__lom_ctx !== undefined) injector = props.__lom_ctx;
+        if (props.id) name = props.id;
       }
 
       _this._render = cns.render;
-      _this._injector = injector.copy(name, cns.instance, _this._render.aliases);
+      _this._injector = injector.copy(cns.displayName, cns.instance, _this._render.aliases);
+      _this._injector.id = name;
       cns.instance++;
       return _this;
     }
@@ -1594,17 +1634,18 @@ function createReactWrapper(BaseComponent, ErrorComponent, detached, rootInjecto
       var data;
       var render = this._render;
       var prevContext = Injector.parentContext;
-      Injector.parentContext = this._injector;
+      var injector = Injector.parentContext = this._injector;
 
       try {
-        data = this._injector.invokeWithProps(render, this.props, this._propsChanged);
+        data = injector.invokeWithProps(render, this.props, this._propsChanged);
       } catch (error) {
-        data = this._injector.invokeWithProps(render.onError || ErrorComponent, {
+        data = injector.invokeWithProps(render.onError || ErrorComponent, {
           error: error
         });
         error[rdiRendered] = true;
       }
 
+      injector.rendered = '';
       Injector.parentContext = prevContext;
 
       if (!this._propsChanged) {
@@ -1651,8 +1692,6 @@ createReactWrapper._r = [2];
 createReactWrapper.displayName = "createReactWrapper";
 
 function createCreateElement(atomize, createElement, compositeId) {
-  var parentId = '';
-
   function lomCreateElement() {
     var args = arguments;
     var attrs = args[1];
@@ -1661,23 +1700,22 @@ function createCreateElement(atomize, createElement, compositeId) {
     var isAtomic = typeof el === 'function' && el.constructor.render === undefined;
     var id = attrs ? attrs._id || attrs.id : undefined;
     var parentContext = Injector.parentContext;
-    var oldParentId = parentId;
 
     if (compositeId === true) {
       if (!attrs) attrs = {};
-      attrs.id = parentContext.toString();
-      if (id) attrs.id += '.' + id;
-      parentId = attrs.id;
+
+      if (!attrs.id) {
+        if (parentContext.rendered) throw new Error(parentContext.rendered + " need id");
+        attrs.id = parentContext.id;
+        parentContext.rendered = parentContext.displayName + '.' + el;
+      } else if (parentContext.id) attrs.id = parentContext.id + '.' + attrs.id;
+
+      if (!attrs.key) attrs.key = attrs.id;
     }
 
     if (isAtomic) {
       newEl = parentContext.alias(el, id);
-
-      if (newEl === null) {
-        parentId = oldParentId;
-        return null;
-      }
-
+      if (newEl === null) return null;
       if (newEl !== undefined) el = newEl;
 
       if (!attrs) {
@@ -1696,56 +1734,41 @@ function createCreateElement(atomize, createElement, compositeId) {
     } else {
       if (id) {
         newEl = parentContext.alias(el, id);
-
-        if (newEl === null) {
-          parentId = oldParentId;
-          return null;
-        }
-
+        if (newEl === null) return null;
         if (newEl !== undefined) el = newEl;
       }
 
       newEl = el;
     }
 
-    var result;
-
     switch (args.length) {
       case 2:
-        result = createElement(newEl, attrs);
-        break;
+        return createElement(newEl, attrs);
 
       case 3:
-        result = createElement(newEl, attrs, args[2]);
-        break;
+        return createElement(newEl, attrs, args[2]);
 
       case 4:
-        result = createElement(newEl, attrs, args[2], args[3]);
-        break;
+        return createElement(newEl, attrs, args[2], args[3]);
 
       case 5:
-        result = createElement(newEl, attrs, args[2], args[3], args[4]);
-        break;
+        return createElement(newEl, attrs, args[2], args[3], args[4]);
 
       case 6:
-        result = createElement(newEl, attrs, args[2], args[3], args[4], args[5]);
-        break;
+        return createElement(newEl, attrs, args[2], args[3], args[4], args[5]);
 
       case 7:
-        result = createElement(newEl, attrs, args[2], args[3], args[4], args[5], args[6]);
-        break;
+        return createElement(newEl, attrs, args[2], args[3], args[4], args[5], args[6]);
 
       case 8:
-        result = createElement(newEl, attrs, args[2], args[3], args[4], args[5], args[6], args[7]);
-        break;
+        return createElement(newEl, attrs, args[2], args[3], args[4], args[5], args[6], args[7]);
 
       case 9:
-        result = createElement(newEl, attrs, args[2], args[3], args[4], args[5], args[6], args[7], args[8]);
-        break;
+        return createElement(newEl, attrs, args[2], args[3], args[4], args[5], args[6], args[7], args[8]);
 
       default:
         if (isAtomic === false) {
-          result = createElement.apply(null, args);
+          return createElement.apply(null, args);
         } else {
           var newArgs = [newEl, attrs];
 
@@ -1753,13 +1776,10 @@ function createCreateElement(atomize, createElement, compositeId) {
             newArgs.push(args[i]);
           }
 
-          result = createElement.apply(null, newArgs);
+          return createElement.apply(null, newArgs);
         }
 
     }
-
-    parentId = oldParentId;
-    return result;
   }
 
   return lomCreateElement;
@@ -1953,7 +1973,7 @@ function extend(obj, props) {
 
 extend._r = [2];
 extend.displayName = "extend";
-var defer = typeof Promise == 'function' ? Promise.resolve().then.bind(Promise.resolve()) : setTimeout;
+var defer$1 = typeof Promise == 'function' ? Promise.resolve().then.bind(Promise.resolve()) : setTimeout;
 
 function cloneElement(vnode, props) {
   return h(vnode.nodeName, extend(extend({}, vnode.attributes), props), arguments.length > 2 ? [].slice.call(arguments, 2) : vnode.children);
@@ -1969,7 +1989,7 @@ var items = [];
 
 function enqueueRender(component) {
   if (!component._dirty && (component._dirty = true) && items.push(component) == 1) {
-    (options.debounceRendering || defer)(rerender);
+    (options.debounceRendering || defer$1)(rerender);
   }
 }
 
@@ -6933,11 +6953,15 @@ var BrowserLocationStore = (_dec = mem.key.manual, _class$2 =
 function (_AbstractLocationStor) {
   _inheritsLoose(BrowserLocationStore, _AbstractLocationStor);
 
-  function BrowserLocationStore(location, history) {
+  function BrowserLocationStore(location, history, ns) {
     var _this;
 
+    if (ns === void 0) {
+      ns = 'rdi_demos';
+    }
+
     _this = _AbstractLocationStor.call(this) || this;
-    _this._ns = 'lom_app';
+    _this._ns = ns;
     _this._location = location;
     _this._history = history;
     return _this;
@@ -6964,451 +6988,6 @@ function (_AbstractLocationStor) {
 }(AbstractLocationStore), _applyDecoratedDescriptor$2(_class$2.prototype, "location", [_dec], Object.getOwnPropertyDescriptor(_class$2.prototype, "location"), _class$2.prototype), _class$2);
 BrowserLocationStore._r = [0, [Location, History]];
 BrowserLocationStore.displayName = "BrowserLocationStore";
-
-var _class$3;
-var _dec$1;
-var _class2$1;
-
-function _applyDecoratedDescriptor$3(target, property, decorators, descriptor, context) {
-  var desc = {};
-  Object['ke' + 'ys'](descriptor).forEach(function (key) {
-    desc[key] = descriptor[key];
-  });
-  desc.enumerable = !!desc.enumerable;
-  desc.configurable = !!desc.configurable;
-
-  if ('value' in desc || desc.initializer) {
-    desc.writable = true;
-  }
-
-  desc = decorators.slice().reverse().reduce(function (desc, decorator) {
-    return decorator(target, property, desc) || desc;
-  }, desc);
-
-  if (context && desc.initializer !== void 0) {
-    desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
-    desc.initializer = undefined;
-  }
-
-  if (desc.initializer === void 0) {
-    Object['define' + 'Property'](target, property, desc);
-    desc = null;
-  }
-
-  return desc;
-}
-
-var HttpError =
-/*#__PURE__*/
-function (_Error) {
-  _inheritsLoose(HttpError, _Error);
-
-  function HttpError(statusCode, message, errorCode, localizedMessage, params) {
-    var _this;
-
-    _this = _Error.call(this, message) || this // $FlowFixMe new.target
-    ;
-    _this['__proto__'] = new.target.prototype;
-    _this.params = params || null;
-    _this.statusCode = statusCode;
-    _this.errorCode = errorCode || null;
-    _this.localizedMessage = localizedMessage || null;
-    return _this;
-  }
-
-  return HttpError;
-}(Error);
-HttpError._r = [0, [Number, String, "IErrorParams"]];
-HttpError.displayName = "HttpError";
-
-function timeoutPromise(promise, timeout, params) {
-  if (!timeout) return promise;
-  var tm = timeout;
-  return Promise.race([promise, new Promise(function (resolve, reject) {
-    setTimeout(function () {
-      return reject(new HttpError(408, 'Request timeout client emulation: ' + tm / 1000 + 's', null, null, params));
-    }, tm);
-  })]);
-}
-
-timeoutPromise._r = [2, [null, "IErrorParams"]];
-timeoutPromise.displayName = "timeoutPromise";
-var FetcherResponse = (_class$3 =
-/*#__PURE__*/
-function () {
-  function FetcherResponse(url, fetcher) {
-    this.url = url;
-    this._fetcher = fetcher;
-    this._getOpts = {
-      method: 'GET'
-    };
-    this._postOpts = {
-      method: 'PUT'
-    };
-  }
-
-  var _proto = FetcherResponse.prototype;
-
-  _proto._getState = function _getState() {
-    var state = this._fetcher.state,
-        url = this.url;
-
-    if (state !== undefined) {
-      var apiData = state[url];
-      state[url] = undefined;
-      return apiData;
-    }
-  };
-
-  _proto.getOptions = function getOptions(getOpts) {
-    this._getOpts = getOpts;
-    return this;
-  };
-
-  _proto.postOptions = function postOptions(postOpts) {
-    this._postOpts = postOpts;
-    return this;
-  };
-
-  _proto._request = function _request(url, init) {
-    return fetch(url, init);
-  };
-
-  _proto.text = function text(next) {
-    var _this2 = this;
-
-    var state = this._getState();
-
-    if (state !== undefined) {
-      if (typeof state !== 'string') throw new Error("fetch.text " + this.url + ", string expected");
-      return state;
-    }
-
-    if (next instanceof Error) throw new Error('Need a string');
-    var fetcher = this._fetcher;
-    var renderer = fetcher.renderer;
-    var url = fetcher.baseUrl + this.url;
-    var opts = fetcher.mergeOptions(_extends({}, next === undefined ? this._getOpts : this._postOpts, {
-      body: next === undefined ? undefined : next
-    }));
-    var params = {
-      url: url,
-      method: opts.method || 'GET',
-      body: opts.body || ''
-    };
-    if (renderer) renderer.beginFetch();
-    timeoutPromise(this._request(url, opts), opts ? opts.timeout : null, params).then(function (r) {
-      return r.status === 204 ? '' : r.text();
-    }).then(function (data) {
-      mem.cache(_this2.text(data));
-      if (renderer) renderer.endFetch(data, url);
-    }).catch(function (e) {
-      var err = e instanceof HttpError ? e : new HttpError(e.statusCode || 500, e.message, null, null, params);
-      err.stack = e.stack;
-      mem.cache(_this2.text(err));
-      if (renderer) renderer.endFetch(err, url);
-    });
-    throw new mem.Wait(params.method + " " + params.url);
-  };
-
-  _proto.json = function json(next) {
-    var state = this._getState();
-
-    if (state !== undefined) {
-      if (typeof state !== 'object') throw new Error(this.url + " state need an object");
-      return state;
-    }
-
-    var text = this.text(next === undefined ? undefined : JSON.stringify(next, null, '\t'));
-    return JSON.parse(text.valueOf());
-  };
-
-  return FetcherResponse;
-}(), _applyDecoratedDescriptor$3(_class$3.prototype, "text", [mem], Object.getOwnPropertyDescriptor(_class$3.prototype, "text"), _class$3.prototype), _class$3);
-FetcherResponse._r = [0, [String, {
-  baseUrl: String,
-  mergeOptions: Function
-}]];
-FetcherResponse.displayName = "FetcherResponse";
-var Fetcher = (_dec$1 = mem.key, _class2$1 =
-/*#__PURE__*/
-function () {
-  function Fetcher(opts) {
-    if (opts === void 0) {
-      opts = {};
-    }
-
-    this.baseUrl = opts.baseUrl || '';
-    this.state = opts.state;
-    this._init = opts.init;
-    this.renderer = opts.renderer;
-  }
-
-  var _proto2 = Fetcher.prototype;
-
-  _proto2.mergeOptions = function mergeOptions(init) {
-    return _extends({}, this._init || {}, init || {});
-  };
-
-  _proto2.request = function request(url) {
-    return new FetcherResponse(url, this);
-  };
-
-  return Fetcher;
-}(), _applyDecoratedDescriptor$3(_class2$1.prototype, "request", [_dec$1], Object.getOwnPropertyDescriptor(_class2$1.prototype, "request"), _class2$1.prototype), _class2$1);
-Fetcher.displayName = "Fetcher";
-
-defaultContext.setLogger(new ConsoleLogger());
-
-function ErrorableView(_ref) {
-  var error = _ref.error;
-  return lom_h("div", null, error instanceof mem.Wait ? lom_h("div", null, "Loading...") : lom_h("div", null, lom_h("h3", null, "Fatal error !"), lom_h("div", null, error.message), lom_h("pre", null, error.stack.toString())));
-}
-
-ErrorableView._r = [1];
-ErrorableView.displayName = "ErrorableView";
-var jss = lib_1({
-  plugins: [jssNested(), jssCamel(), jssGlobal()]
-});
-var injector = new Injector([[Fetcher, new Fetcher({
-  baseUrl: '/api'
-})], [AbstractLocationStore, new BrowserLocationStore(location, history)]], jss);
-var lomCreateElement = createCreateElement(createReactWrapper(Component, ErrorableView, detached, injector), h, true);
-global$1['lom_h'] = lomCreateElement;
-
-var _class$4;
-
-function _applyDecoratedDescriptor$4(target, property, decorators, descriptor, context) {
-  var desc = {};
-  Object['ke' + 'ys'](descriptor).forEach(function (key) {
-    desc[key] = descriptor[key];
-  });
-  desc.enumerable = !!desc.enumerable;
-  desc.configurable = !!desc.configurable;
-
-  if ('value' in desc || desc.initializer) {
-    desc.writable = true;
-  }
-
-  desc = decorators.slice().reverse().reduce(function (desc, decorator) {
-    return decorator(target, property, desc) || desc;
-  }, desc);
-
-  if (context && desc.initializer !== void 0) {
-    desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
-    desc.initializer = undefined;
-  }
-
-  if (desc.initializer === void 0) {
-    Object['define' + 'Property'](target, property, desc);
-    desc = null;
-  }
-
-  return desc;
-}
-
-var FirstCounterService = (_class$4 =
-/*#__PURE__*/
-function () {
-  function FirstCounterService() {
-    this.lang = {
-      add: 'Add',
-      error: 'Gen error'
-    };
-  }
-
-  _createClass(FirstCounterService, [{
-    key: "value",
-    get: function get() {
-      var _this = this;
-
-      setTimeout(function () {
-        mem.cache(_this.value = 1); // this.value = new Error('loading error')
-      }, 500);
-      throw new mem.Wait();
-    },
-    set: function set(v) {
-      if (typeof v === 'string') {
-        throw new TypeError('Test error');
-      }
-    }
-  }]);
-  return FirstCounterService;
-}(), _applyDecoratedDescriptor$4(_class$4.prototype, "value", [mem], Object.getOwnPropertyDescriptor(_class$4.prototype, "value"), _class$4.prototype), _applyDecoratedDescriptor$4(_class$4.prototype, "value", [mem], Object.getOwnPropertyDescriptor(_class$4.prototype, "value"), _class$4.prototype), _class$4);
-FirstCounterService.displayName = "FirstCounterService";
-
-function CounterMessageView(_ref) {
-  var value = _ref.value;
-  return lom_h("div", null, "Count: ", value);
-}
-
-CounterMessageView._r = [1];
-CounterMessageView.displayName = "CounterMessageView";
-
-function FirstCounterView(_, counter) {
-  return lom_h("div", null, lom_h(CounterMessageView, {
-    id: "message",
-    value: counter.value
-  }), lom_h("button", {
-    id: "add",
-    onClick: function onClick() {
-      counter.value++;
-    }
-  }, counter.lang.add), lom_h("button", {
-    id: "error",
-    onClick: function onClick() {
-      counter.value = 'someStr';
-    }
-  }, counter.lang.error));
-}
-
-FirstCounterView._r = [1, [FirstCounterService]];
-FirstCounterView.displayName = "FirstCounterView";
-
-var SecondCounterService =
-/*#__PURE__*/
-function (_FirstCounterService) {
-  _inheritsLoose(SecondCounterService, _FirstCounterService);
-
-  function SecondCounterService() {
-    var _temp, _this2;
-
-    for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
-      args[_key] = arguments[_key];
-    }
-
-    return (_temp = _this2 = _FirstCounterService.call.apply(_FirstCounterService, [this].concat(args)) || this, _this2.lang = {
-      add: 'cloned Add',
-      error: 'cloned Gen error'
-    }, _temp) || _this2;
-  }
-
-  return SecondCounterService;
-}(FirstCounterService);
-
-SecondCounterService.displayName = "SecondCounterService";
-
-function SecondCounterMessageView(_ref2) {
-  var value = _ref2.value;
-  return lom_h("div", null, "SecondCounter Count: ", value);
-}
-
-SecondCounterMessageView._r = [1];
-SecondCounterMessageView.displayName = "SecondCounterMessageView";
-
-function SecondCounterAddButtonView(_ref3) {
-  var onClick = _ref3.onClick,
-      children = _ref3.children;
-  return lom_h("button", {
-    id: "SecondCounterAddButton",
-    onClick: onClick
-  }, "SecondCounterAddButton: ", children);
-}
-
-SecondCounterAddButtonView._r = [1];
-SecondCounterAddButtonView.displayName = "SecondCounterAddButtonView";
-var SecondCounterView = cloneComponent(FirstCounterView, [[FirstCounterService, SecondCounterService], [CounterMessageView, SecondCounterMessageView], ['add', SecondCounterAddButtonView], ['error', null]], 'SecondCounterView');
-
-function ThirdCounterAddButtonView(_ref4) {
-  var onClick = _ref4.onClick,
-      children = _ref4.children;
-  return lom_h("button", {
-    id: "ThirdCounterAddButton",
-    onClick: onClick
-  }, "ThirdCounterAddButton: ", children);
-}
-
-ThirdCounterAddButtonView._r = [1];
-ThirdCounterAddButtonView.displayName = "ThirdCounterAddButtonView";
-var ThirdCounterView = cloneComponent(SecondCounterView, [['add', ThirdCounterAddButtonView]], 'ThirdCounterView');
-function CounterView() {
-  return lom_h("ul", null, lom_h("li", null, "FirstCounter: ", lom_h(FirstCounterView, null)), lom_h("li", null, "SecondCounter extends FirstCounter: ", lom_h(SecondCounterView, null)), lom_h("li", null, "ThirdCounter extends SecondCounter: ", lom_h(ThirdCounterView, null)));
-}
-CounterView._r = [1];
-CounterView.displayName = "CounterView";
-
-var _class$5;
-var _descriptor$1;
-
-function _initDefineProp$1(target, property, descriptor, context) {
-  if (!descriptor) return;
-  Object.defineProperty(target, property, {
-    enumerable: descriptor.enumerable,
-    configurable: descriptor.configurable,
-    writable: descriptor.writable,
-    value: descriptor.initializer ? descriptor.initializer.call(context) : void 0
-  });
-}
-
-function _applyDecoratedDescriptor$5(target, property, decorators, descriptor, context) {
-  var desc = {};
-  Object['ke' + 'ys'](descriptor).forEach(function (key) {
-    desc[key] = descriptor[key];
-  });
-  desc.enumerable = !!desc.enumerable;
-  desc.configurable = !!desc.configurable;
-
-  if ('value' in desc || desc.initializer) {
-    desc.writable = true;
-  }
-
-  desc = decorators.slice().reverse().reduce(function (desc, decorator) {
-    return decorator(target, property, desc) || desc;
-  }, desc);
-
-  if (context && desc.initializer !== void 0) {
-    desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
-    desc.initializer = undefined;
-  }
-
-  if (desc.initializer === void 0) {
-    Object['define' + 'Property'](target, property, desc);
-    desc = null;
-  }
-
-  return desc;
-}
-
-var HelloContext = (_class$5 =
-/*#__PURE__*/
-function () {
-  function HelloContext() {
-    _initDefineProp$1(this, "name", _descriptor$1, this);
-  }
-
-  _createClass(HelloContext, [{
-    key: "props",
-    set: function set(_ref) {
-      var name = _ref.name;
-      this.name = name;
-    }
-  }, {
-    key: "greet",
-    get: function get() {
-      return 'Hello, ' + this.name;
-    }
-  }]);
-  return HelloContext;
-}(), _descriptor$1 = _applyDecoratedDescriptor$5(_class$5.prototype, "name", [mem], {
-  enumerable: true,
-  initializer: null
-}), _applyDecoratedDescriptor$5(_class$5.prototype, "props", [props], Object.getOwnPropertyDescriptor(_class$5.prototype, "props"), _class$5.prototype), _applyDecoratedDescriptor$5(_class$5.prototype, "greet", [mem], Object.getOwnPropertyDescriptor(_class$5.prototype, "greet"), _class$5.prototype), _class$5);
-HelloContext.displayName = "HelloContext";
-function HelloView(_, _ref2) {
-  var context = _ref2.context;
-  return lom_h("div", null, context.greet, lom_h("br", null), lom_h("input", {
-    id: "input",
-    value: context.name,
-    onInput: function onInput(_ref3) {
-      var target = _ref3.target;
-      context.name = target.value;
-    }
-  }));
-}
-HelloView._r = [1, [{
-  context: HelloContext
-}]];
-HelloView.displayName = "HelloView";
 
 var globToRegexp = function globToRegexp(glob, opts) {
   if (typeof glob !== 'string') {
@@ -8777,10 +8356,11 @@ fetchMock$1.setImplementations({
 });
 var client = new fetchMock$1();
 
-var _class$6;
-var _class2$2;
+var _class$3;
+var _class2$1;
+var _class3;
 
-function _applyDecoratedDescriptor$6(target, property, decorators, descriptor, context) {
+function _applyDecoratedDescriptor$3(target, property, decorators, descriptor, context) {
   var desc = {};
   Object['ke' + 'ys'](descriptor).forEach(function (key) {
     desc[key] = descriptor[key];
@@ -8809,7 +8389,7 @@ function _applyDecoratedDescriptor$6(target, property, decorators, descriptor, c
   return desc;
 }
 
-var KeyValueTheme = (_class$6 =
+var KeyValueTheme = (_class$3 =
 /*#__PURE__*/
 function () {
   function KeyValueTheme() {}
@@ -8831,7 +8411,7 @@ function () {
     }
   }]);
   return KeyValueTheme;
-}(), _applyDecoratedDescriptor$6(_class$6.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class$6.prototype, "css"), _class$6.prototype), _class$6);
+}(), _applyDecoratedDescriptor$3(_class$3.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class$3.prototype, "css"), _class$3.prototype), _class$3);
 KeyValueTheme.displayName = "KeyValueTheme";
 
 function KeyView(_ref, _ref2) {
@@ -8872,7 +8452,63 @@ ItemView._r = [1, [{
 ItemView.displayName = "ItemView";
 ItemView.Key = KeyView;
 ItemView.Value = ValueView;
-var Locale = (_class2$2 =
+var SpinnerTheme = (_class2$1 =
+/*#__PURE__*/
+function () {
+  function SpinnerTheme() {}
+
+  _createClass(SpinnerTheme, [{
+    key: "css",
+    get: function get() {
+      return {
+        '@keyframes spinner': {
+          to: {
+            transform: 'rotate(360deg)'
+          }
+        },
+        spinner: {
+          position: 'absolute',
+          zIndex: '5',
+          left: 0,
+          top: 0,
+          width: '100%',
+          height: '100%',
+          overflow: 'auto',
+          backgroundColor: 'rgba(0, 0, 0, 0.07)',
+          '&:before': {
+            content: '\'\'',
+            boxSizing: 'border-box',
+            position: 'absolute',
+            zIndex: '10',
+            top: '50%',
+            left: '50%',
+            width: '40px',
+            height: '40px',
+            marginTop: '-10px',
+            marginLeft: '-10px',
+            borderRadius: '50%',
+            border: '3px solid #ccc',
+            borderTopColor: '#333',
+            animation: 'spinner .6s linear infinite'
+          }
+        }
+      };
+    }
+  }]);
+  return SpinnerTheme;
+}(), _applyDecoratedDescriptor$3(_class2$1.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class2$1.prototype, "css"), _class2$1.prototype), _class2$1);
+SpinnerTheme.displayName = "SpinnerTheme";
+function SpinnerView(_, _ref7) {
+  var css = _ref7.theme.css;
+  return lom_h("div", {
+    "class": css.spinner
+  });
+}
+SpinnerView._r = [1, [{
+  theme: SpinnerTheme
+}]];
+SpinnerView.displayName = "SpinnerView";
+var Locale = (_class3 =
 /*#__PURE__*/
 function () {
   _createClass(Locale, [{
@@ -8893,7 +8529,7 @@ function () {
   }
 
   return Locale;
-}(), _applyDecoratedDescriptor$6(_class2$2.prototype, "lang", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "lang"), _class2$2.prototype), _applyDecoratedDescriptor$6(_class2$2.prototype, "lang", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "lang"), _class2$2.prototype), _class2$2);
+}(), _applyDecoratedDescriptor$3(_class3.prototype, "lang", [mem], Object.getOwnPropertyDescriptor(_class3.prototype, "lang"), _class3.prototype), _applyDecoratedDescriptor$3(_class3.prototype, "lang", [mem], Object.getOwnPropertyDescriptor(_class3.prototype, "lang"), _class3.prototype), _class3);
 Locale._r = [0, [String]];
 Locale.displayName = "Locale";
 var BrowserLocalStorage =
@@ -8956,6 +8592,489 @@ function mockFetch(storage, delay, mocks) {
 }
 mockFetch._r = [2, [Storage]];
 mockFetch.displayName = "mockFetch";
+
+var _class$4;
+var _dec$1;
+var _class2$2;
+
+function _applyDecoratedDescriptor$4(target, property, decorators, descriptor, context) {
+  var desc = {};
+  Object['ke' + 'ys'](descriptor).forEach(function (key) {
+    desc[key] = descriptor[key];
+  });
+  desc.enumerable = !!desc.enumerable;
+  desc.configurable = !!desc.configurable;
+
+  if ('value' in desc || desc.initializer) {
+    desc.writable = true;
+  }
+
+  desc = decorators.slice().reverse().reduce(function (desc, decorator) {
+    return decorator(target, property, desc) || desc;
+  }, desc);
+
+  if (context && desc.initializer !== void 0) {
+    desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
+    desc.initializer = undefined;
+  }
+
+  if (desc.initializer === void 0) {
+    Object['define' + 'Property'](target, property, desc);
+    desc = null;
+  }
+
+  return desc;
+}
+
+var HttpError =
+/*#__PURE__*/
+function (_Error) {
+  _inheritsLoose(HttpError, _Error);
+
+  function HttpError(statusCode, message, errorCode, localizedMessage, params) {
+    var _this;
+
+    _this = _Error.call(this, message) || this // $FlowFixMe new.target
+    ;
+    _this['__proto__'] = new.target.prototype;
+    _this.params = params || null;
+    _this.statusCode = statusCode;
+    _this.errorCode = errorCode || null;
+    _this.localizedMessage = localizedMessage || null;
+    return _this;
+  }
+
+  return HttpError;
+}(Error);
+HttpError._r = [0, [Number, String, "IErrorParams"]];
+HttpError.displayName = "HttpError";
+
+function timeoutPromise(promise, timeout, params) {
+  if (!timeout) return promise;
+  var tm = timeout;
+  return Promise.race([promise, new Promise(function (resolve, reject) {
+    setTimeout(function () {
+      return reject(new HttpError(408, 'Request timeout client emulation: ' + tm / 1000 + 's', null, null, params));
+    }, tm);
+  })]);
+}
+
+timeoutPromise._r = [2, [null, "IErrorParams"]];
+timeoutPromise.displayName = "timeoutPromise";
+var FetcherResponse = (_class$4 =
+/*#__PURE__*/
+function () {
+  function FetcherResponse(url, fetcher) {
+    this.url = url;
+    this._fetcher = fetcher;
+    this._getOpts = {
+      method: 'GET'
+    };
+    this._postOpts = {
+      method: 'PUT'
+    };
+  }
+
+  var _proto = FetcherResponse.prototype;
+
+  _proto._getState = function _getState() {
+    var state = this._fetcher.state,
+        url = this.url;
+
+    if (state !== undefined) {
+      var apiData = state[url];
+      state[url] = undefined;
+      return apiData;
+    }
+  };
+
+  _proto.getOptions = function getOptions(getOpts) {
+    this._getOpts = getOpts;
+    return this;
+  };
+
+  _proto.postOptions = function postOptions(postOpts) {
+    this._postOpts = postOpts;
+    return this;
+  };
+
+  _proto._request = function _request(url, init) {
+    return fetch(url, init);
+  };
+
+  _proto.text = function text(next) {
+    var _this2 = this;
+
+    var state = this._getState();
+
+    if (state !== undefined) {
+      if (typeof state !== 'string') throw new Error("fetch.text " + this.url + ", string expected");
+      return state;
+    }
+
+    if (next instanceof Error) throw new Error('Need a string');
+    var fetcher = this._fetcher;
+    var renderer = fetcher.renderer;
+    var url = fetcher.baseUrl + this.url;
+    var opts = fetcher.mergeOptions(_extends({}, next === undefined ? this._getOpts : this._postOpts, {
+      body: next === undefined ? undefined : next
+    }));
+    var params = {
+      url: url,
+      method: opts.method || 'GET',
+      body: opts.body || ''
+    };
+    if (renderer) renderer.beginFetch();
+    timeoutPromise(this._request(url, opts), opts ? opts.timeout : null, params).then(function (r) {
+      return r.status === 204 ? '' : r.text();
+    }).then(function (data) {
+      mem.cache(_this2.text(data));
+      if (renderer) renderer.endFetch(data, url);
+    }).catch(function (e) {
+      var err = e instanceof HttpError ? e : new HttpError(e.statusCode || 500, e.message, null, null, params);
+      err.stack = e.stack;
+      mem.cache(_this2.text(err));
+      if (renderer) renderer.endFetch(err, url);
+    });
+    throw new AtomWait(params.method + " " + params.url);
+  };
+
+  _proto.json = function json(next) {
+    var state = this._getState();
+
+    if (state !== undefined) {
+      if (typeof state !== 'object') throw new Error(this.url + " state need an object");
+      return state;
+    }
+
+    var text = this.text(next === undefined ? undefined : JSON.stringify(next, null, '\t'));
+    return JSON.parse(text.valueOf());
+  };
+
+  return FetcherResponse;
+}(), _applyDecoratedDescriptor$4(_class$4.prototype, "text", [mem], Object.getOwnPropertyDescriptor(_class$4.prototype, "text"), _class$4.prototype), _class$4);
+FetcherResponse._r = [0, [String, {
+  baseUrl: String,
+  mergeOptions: Function
+}]];
+FetcherResponse.displayName = "FetcherResponse";
+var Fetcher = (_dec$1 = mem.key, _class2$2 =
+/*#__PURE__*/
+function () {
+  function Fetcher(opts) {
+    if (opts === void 0) {
+      opts = {};
+    }
+
+    this.baseUrl = opts.baseUrl || '';
+    this.state = opts.state;
+    this._init = opts.init;
+    this.renderer = opts.renderer;
+  }
+
+  var _proto2 = Fetcher.prototype;
+
+  _proto2.mergeOptions = function mergeOptions(init) {
+    return _extends({}, this._init || {}, init || {});
+  };
+
+  _proto2.request = function request(url) {
+    return new FetcherResponse(url, this);
+  };
+
+  return Fetcher;
+}(), _applyDecoratedDescriptor$4(_class2$2.prototype, "request", [_dec$1], Object.getOwnPropertyDescriptor(_class2$2.prototype, "request"), _class2$2.prototype), _class2$2);
+Fetcher.displayName = "Fetcher";
+
+defaultContext.setLogger(new ConsoleLogger());
+
+function ErrorableView(_ref) {
+  var error = _ref.error;
+  return lom_h("div", {
+    id: "errorable"
+  }, error instanceof AtomWait ? lom_h(SpinnerView, {
+    id: "loading"
+  }) : lom_h("div", {
+    id: "error"
+  }, lom_h("h3", {
+    id: "title"
+  }, "Fatal error !"), lom_h("div", {
+    id: "message"
+  }, error.message), lom_h("pre", {
+    id: "stack"
+  }, error.stack.toString())));
+}
+
+ErrorableView._r = [1];
+ErrorableView.displayName = "ErrorableView";
+var jss = lib_1({
+  plugins: [jssNested(), jssCamel(), jssGlobal()]
+});
+var injector = new Injector([[Fetcher, new Fetcher({
+  baseUrl: '/api'
+})], [AbstractLocationStore, new BrowserLocationStore(location, history)]], jss);
+var lomCreateElement = createCreateElement(createReactWrapper(Component, ErrorableView, detached, injector), h, true);
+global$1['lom_h'] = lomCreateElement;
+
+var _class$5;
+
+function _applyDecoratedDescriptor$5(target, property, decorators, descriptor, context) {
+  var desc = {};
+  Object['ke' + 'ys'](descriptor).forEach(function (key) {
+    desc[key] = descriptor[key];
+  });
+  desc.enumerable = !!desc.enumerable;
+  desc.configurable = !!desc.configurable;
+
+  if ('value' in desc || desc.initializer) {
+    desc.writable = true;
+  }
+
+  desc = decorators.slice().reverse().reduce(function (desc, decorator) {
+    return decorator(target, property, desc) || desc;
+  }, desc);
+
+  if (context && desc.initializer !== void 0) {
+    desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
+    desc.initializer = undefined;
+  }
+
+  if (desc.initializer === void 0) {
+    Object['define' + 'Property'](target, property, desc);
+    desc = null;
+  }
+
+  return desc;
+}
+
+var FirstCounterService = (_class$5 =
+/*#__PURE__*/
+function () {
+  function FirstCounterService() {
+    this.lang = {
+      add: 'Add',
+      error: 'Gen error'
+    };
+  }
+
+  _createClass(FirstCounterService, [{
+    key: "value",
+    get: function get() {
+      var _this = this;
+
+      setTimeout(function () {
+        mem.cache(_this.value = 1); // this.value = new Error('loading error')
+      }, 500);
+      throw new AtomWait();
+    },
+    set: function set(v) {
+      if (typeof v === 'string') {
+        throw new TypeError('Test error');
+      }
+    }
+  }]);
+  return FirstCounterService;
+}(), _applyDecoratedDescriptor$5(_class$5.prototype, "value", [mem], Object.getOwnPropertyDescriptor(_class$5.prototype, "value"), _class$5.prototype), _applyDecoratedDescriptor$5(_class$5.prototype, "value", [mem], Object.getOwnPropertyDescriptor(_class$5.prototype, "value"), _class$5.prototype), _class$5);
+FirstCounterService.displayName = "FirstCounterService";
+
+function CounterMessageView(_ref) {
+  var id = _ref.id,
+      value = _ref.value;
+  return lom_h("div", {
+    id: id
+  }, "Count: ", value);
+}
+
+CounterMessageView._r = [1];
+CounterMessageView.displayName = "CounterMessageView";
+
+function FirstCounterView(_ref2, counter) {
+  var id = _ref2.id;
+  return lom_h("div", {
+    id: id
+  }, lom_h(CounterMessageView, {
+    id: "message",
+    value: counter.value
+  }), lom_h("button", {
+    id: "add",
+    onClick: function onClick() {
+      counter.value++;
+    }
+  }, counter.lang.add), lom_h("button", {
+    id: "error",
+    onClick: function onClick() {
+      counter.value = 'someStr';
+    }
+  }, counter.lang.error));
+}
+
+FirstCounterView._r = [1, [FirstCounterService]];
+FirstCounterView.displayName = "FirstCounterView";
+
+var SecondCounterService =
+/*#__PURE__*/
+function (_FirstCounterService) {
+  _inheritsLoose(SecondCounterService, _FirstCounterService);
+
+  function SecondCounterService() {
+    var _temp, _this2;
+
+    for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
+      args[_key] = arguments[_key];
+    }
+
+    return (_temp = _this2 = _FirstCounterService.call.apply(_FirstCounterService, [this].concat(args)) || this, _this2.lang = {
+      add: 'cloned Add',
+      error: 'cloned Gen error'
+    }, _temp) || _this2;
+  }
+
+  return SecondCounterService;
+}(FirstCounterService);
+
+SecondCounterService.displayName = "SecondCounterService";
+
+function SecondCounterMessageView(_ref3) {
+  var value = _ref3.value,
+      id = _ref3.id;
+  return lom_h("div", {
+    id: id
+  }, "SecondCounter Count: ", value);
+}
+
+SecondCounterMessageView._r = [1];
+SecondCounterMessageView.displayName = "SecondCounterMessageView";
+
+function SecondCounterAddButtonView(_ref4) {
+  var id = _ref4.id,
+      onClick = _ref4.onClick,
+      children = _ref4.children;
+  return lom_h("button", {
+    id: id,
+    onClick: onClick
+  }, "SecondCounterAddButton: ", children);
+}
+
+SecondCounterAddButtonView._r = [1];
+SecondCounterAddButtonView.displayName = "SecondCounterAddButtonView";
+var SecondCounterView = cloneComponent(FirstCounterView, [[FirstCounterService, SecondCounterService], [CounterMessageView, SecondCounterMessageView], ['add', SecondCounterAddButtonView], ['error', null]], 'SecondCounterView');
+
+function ThirdCounterAddButtonView(_ref5) {
+  var id = _ref5.id,
+      onClick = _ref5.onClick,
+      children = _ref5.children;
+  return lom_h("button", {
+    id: id,
+    onClick: onClick
+  }, "ThirdCounterAddButton: ", children);
+}
+
+ThirdCounterAddButtonView._r = [1];
+ThirdCounterAddButtonView.displayName = "ThirdCounterAddButtonView";
+var ThirdCounterView = cloneComponent(SecondCounterView, [['add', ThirdCounterAddButtonView]], 'ThirdCounterView');
+function CounterView() {
+  return lom_h("ul", null, lom_h("li", {
+    id: "list(first)"
+  }, "FirstCounter: ", lom_h(FirstCounterView, {
+    id: "first"
+  })), lom_h("li", {
+    id: "list(second)"
+  }, "SecondCounter extends FirstCounter: ", lom_h(SecondCounterView, {
+    id: "second"
+  })), lom_h("li", {
+    id: "list(third)"
+  }, "ThirdCounter extends SecondCounter: ", lom_h(ThirdCounterView, {
+    id: "third"
+  })));
+}
+CounterView._r = [1];
+CounterView.displayName = "CounterView";
+
+var _class$6;
+var _descriptor$1;
+
+function _initDefineProp$1(target, property, descriptor, context) {
+  if (!descriptor) return;
+  Object.defineProperty(target, property, {
+    enumerable: descriptor.enumerable,
+    configurable: descriptor.configurable,
+    writable: descriptor.writable,
+    value: descriptor.initializer ? descriptor.initializer.call(context) : void 0
+  });
+}
+
+function _applyDecoratedDescriptor$6(target, property, decorators, descriptor, context) {
+  var desc = {};
+  Object['ke' + 'ys'](descriptor).forEach(function (key) {
+    desc[key] = descriptor[key];
+  });
+  desc.enumerable = !!desc.enumerable;
+  desc.configurable = !!desc.configurable;
+
+  if ('value' in desc || desc.initializer) {
+    desc.writable = true;
+  }
+
+  desc = decorators.slice().reverse().reduce(function (desc, decorator) {
+    return decorator(target, property, desc) || desc;
+  }, desc);
+
+  if (context && desc.initializer !== void 0) {
+    desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
+    desc.initializer = undefined;
+  }
+
+  if (desc.initializer === void 0) {
+    Object['define' + 'Property'](target, property, desc);
+    desc = null;
+  }
+
+  return desc;
+}
+
+var HelloContext = (_class$6 =
+/*#__PURE__*/
+function () {
+  function HelloContext() {
+    _initDefineProp$1(this, "name", _descriptor$1, this);
+  }
+
+  _createClass(HelloContext, [{
+    key: "props",
+    set: function set(_ref) {
+      var name = _ref.name;
+      this.name = name;
+    }
+  }, {
+    key: "greet",
+    get: function get() {
+      return 'Hello, ' + this.name;
+    }
+  }]);
+  return HelloContext;
+}(), _descriptor$1 = _applyDecoratedDescriptor$6(_class$6.prototype, "name", [mem], {
+  enumerable: true,
+  initializer: null
+}), _applyDecoratedDescriptor$6(_class$6.prototype, "props", [props], Object.getOwnPropertyDescriptor(_class$6.prototype, "props"), _class$6.prototype), _applyDecoratedDescriptor$6(_class$6.prototype, "greet", [mem], Object.getOwnPropertyDescriptor(_class$6.prototype, "greet"), _class$6.prototype), _class$6);
+HelloContext.displayName = "HelloContext";
+function HelloView(_ref2, _ref3) {
+  var id = _ref2.id;
+  var context = _ref3.context;
+  return lom_h("div", {
+    id: id
+  }, context.greet, lom_h("br", null), lom_h("input", {
+    id: "input",
+    value: context.name,
+    onInput: function onInput(_ref4) {
+      var target = _ref4.target;
+      context.name = target.value;
+    }
+  }));
+}
+HelloView._r = [1, [{
+  context: HelloContext
+}]];
+HelloView.displayName = "HelloView";
 
 function getBody(body) {
   return typeof body === 'string' ? JSON.parse(body) : body || {};
@@ -9116,7 +9235,6 @@ function todoMocks(rawStorage) {
 todoMocks._r = [2, [Storage]];
 todoMocks.displayName = "todoMocks";
 
-var _dec$2;
 var _class$8;
 
 function _applyDecoratedDescriptor$8(target, property, decorators, descriptor, context) {
@@ -9147,13 +9265,6 @@ function _applyDecoratedDescriptor$8(target, property, decorators, descriptor, c
 
   return desc;
 }
-
-function toJson(r) {
-  return r.json();
-}
-
-toJson._r = [2, [Response]];
-toJson.displayName = "toJson";
 
 var TodoModel =
 /*#__PURE__*/
@@ -9210,7 +9321,7 @@ function () {
 
 TodoModel._r = [0, [TodoService]];
 TodoModel.displayName = "TodoModel";
-var TodoService = (_dec$2 = mem.key, _class$8 =
+var TodoService = (_class$8 =
 /*#__PURE__*/
 function () {
   function TodoService(fetcher) {
@@ -9219,53 +9330,24 @@ function () {
 
   var _proto2 = TodoService.prototype;
 
-  _proto2.todoExtInfo = function todoExtInfo(id, info) {
-    var _this = this;
-
-    if (info !== undefined && !(info instanceof Error)) return info;
-    fetch("/api/todo/" + id + "/info").then(toJson).then(function (data) {
-      mem.cache(_this.todoExtInfo(id, data));
-    }).catch(function (e) {
-      mem.cache(_this.todoExtInfo(id, e));
-    });
-    throw new mem.Wait();
-  };
-
   _proto2.addTodo = function addTodo(title) {
-    var todo = new TodoModel({
+    this.adding = new TodoModel({
       title: title
     }, this);
-    this.todos = this.todos.concat([todo]);
-    this.adding = todo;
   };
 
   _proto2.saveTodo = function saveTodo(todoData) {
     var todo = new TodoModel(todoData, this);
-    this.todos = this.todos.map(function (t) {
-      return t.id === todo.id ? todo : t;
-    });
     this.saving = todo;
   };
 
   _proto2.remove = function remove(todo) {
-    this.todos = this.todos.filter(function (t) {
-      return t.id !== todo.id;
-    });
     this.removing = todo;
   };
 
   _proto2.toggleAll = function toggleAll() {
-    var _this2 = this;
-
     var completed = !!this.todos.find(function (todo) {
       return !todo.completed;
-    });
-    this.todos = this.todos.map(function (todo) {
-      return new TodoModel({
-        title: todo.title,
-        id: todo.id,
-        completed: completed
-      }, _this2);
     });
     var patches = this.todos.map(function (todo) {
       return [todo.id, {
@@ -9276,31 +9358,16 @@ function () {
   };
 
   _proto2.clearCompleted = function clearCompleted() {
-    var newTodos = [];
-    var delIds = [];
-    var todos = this.todos;
-
-    for (var i = 0; i < todos.length; i++) {
-      var todo = todos[i];
-
-      if (todo.completed) {
-        delIds.push(todo.id);
-      } else {
-        newTodos.push(todo);
-      }
-    }
-
-    this.todos = newTodos;
-    this.clearing = delIds;
+    this.clearing = this.todos;
   };
 
   _createClass(TodoService, [{
     key: "todos",
     get: function get() {
-      var _this3 = this;
+      var _this = this;
 
       return this._fetcher.request('/todos').json().map(function (todo) {
-        return new TodoModel(todo, _this3);
+        return new TodoModel(todo, _this);
       });
     },
     set: function set(todos) {}
@@ -9324,6 +9391,7 @@ function () {
     set: function set(next) {
       this._fetcher.request('/todo').json(next).valueOf();
 
+      this.todos = this.todos.concat([next]);
       mem.cache(this.adding = null);
     }
   }, {
@@ -9336,6 +9404,9 @@ function () {
         method: 'POST'
       }).json(next).valueOf();
 
+      this.todos = this.todos.map(function (t) {
+        return t.id === next.id ? next : t;
+      });
       mem.cache(this.saving = null);
     }
   }, {
@@ -9348,6 +9419,9 @@ function () {
         method: 'DELETE'
       }).json().valueOf();
 
+      this.todos = this.todos.filter(function (t) {
+        return t.id !== next.id;
+      });
       mem.cache(this.removing = null);
     }
   }, {
@@ -9356,10 +9430,20 @@ function () {
       return null;
     },
     set: function set(patches) {
+      var _this2 = this;
+
       this._fetcher.request("/todos").postOptions({
         method: 'PUT'
       }).json(patches).valueOf();
 
+      var map = new Map(patches);
+      this.todos = this.todos.map(function (todo) {
+        return new TodoModel({
+          title: todo.title,
+          id: todo.id,
+          completed: map.has(todo.id) ? todo.completed : map.get(todo.id).completed
+        }, _this2);
+      });
       mem.cache(this.patching = null);
     }
   }, {
@@ -9367,11 +9451,25 @@ function () {
     get: function get() {
       return null;
     },
-    set: function set(delIds) {
+    set: function set(todos) {
+      var delIds = [];
+      var newTodos = [];
+
+      for (var i = 0; i < todos.length; i++) {
+        var todo = todos[i];
+
+        if (todo.completed) {
+          delIds.push(todo.id);
+        } else {
+          newTodos.push(todo);
+        }
+      }
+
       this._fetcher.request("/todos").postOptions({
         method: 'DELETE'
       }).json(delIds).valueOf();
 
+      this.todos = newTodos;
       mem.cache(this.clearing = null);
     }
   }, {
@@ -9387,7 +9485,7 @@ function () {
     }
   }]);
   return TodoService;
-}(), _applyDecoratedDescriptor$8(_class$8.prototype, "todoExtInfo", [_dec$2], Object.getOwnPropertyDescriptor(_class$8.prototype, "todoExtInfo"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "todos"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "todos"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "activeTodoCount", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "activeTodoCount"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "adding", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "adding"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "adding", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "adding"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "saving", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "saving"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "saving", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "saving"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "removing", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "removing"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "removing", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "removing"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "patching", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "patching"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "patching", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "patching"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "toggleAll", [action], Object.getOwnPropertyDescriptor(_class$8.prototype, "toggleAll"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "clearing", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "clearing"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "clearing", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "clearing"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "isOperationRunning", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "isOperationRunning"), _class$8.prototype), _class$8);
+}(), _applyDecoratedDescriptor$8(_class$8.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "todos"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "todos"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "activeTodoCount", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "activeTodoCount"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "adding", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "adding"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "adding", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "adding"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "saving", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "saving"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "saving", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "saving"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "removing", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "removing"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "removing", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "removing"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "patching", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "patching"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "patching", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "patching"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "toggleAll", [action], Object.getOwnPropertyDescriptor(_class$8.prototype, "toggleAll"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "clearing", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "clearing"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "clearing", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "clearing"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "isOperationRunning", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "isOperationRunning"), _class$8.prototype), _class$8);
 TodoService._r = [0, [Fetcher]];
 TodoService.displayName = "TodoService";
 
@@ -9474,7 +9572,7 @@ TodoFilterService.displayName = "TodoFilterService";
 
 var _class$10;
 var _descriptor$2;
-var _class3;
+var _class3$1;
 
 function _initDefineProp$2(target, property, descriptor, context) {
   if (!descriptor) return;
@@ -9518,7 +9616,7 @@ function _applyDecoratedDescriptor$10(target, property, decorators, descriptor, 
 var TodoToAdd = (_class$10 =
 /*#__PURE__*/
 function () {
-  function TodoToAdd() {
+  function TodoToAdd(todoService) {
     var _this = this;
 
     _initDefineProp$2(this, "title", _descriptor$2, this);
@@ -9530,6 +9628,8 @@ function () {
         _this.title = '';
       }
     };
+
+    this._todoService = todoService;
   }
 
   var _proto = TodoToAdd.prototype;
@@ -9539,22 +9639,16 @@ function () {
     this.title = target.value;
   };
 
-  _createClass(TodoToAdd, [{
-    key: "props",
-    set: function set(_ref2) {
-      var todoService = _ref2.todoService;
-      this._todoService = todoService;
-    }
-  }]);
   return TodoToAdd;
 }(), _descriptor$2 = _applyDecoratedDescriptor$10(_class$10.prototype, "title", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return '';
   }
-}), _applyDecoratedDescriptor$10(_class$10.prototype, "props", [props], Object.getOwnPropertyDescriptor(_class$10.prototype, "props"), _class$10.prototype), _applyDecoratedDescriptor$10(_class$10.prototype, "onInput", [action], Object.getOwnPropertyDescriptor(_class$10.prototype, "onInput"), _class$10.prototype), _class$10);
+}), _applyDecoratedDescriptor$10(_class$10.prototype, "onInput", [action], Object.getOwnPropertyDescriptor(_class$10.prototype, "onInput"), _class$10.prototype), _class$10);
+TodoToAdd._r = [0, [TodoService]];
 TodoToAdd.displayName = "TodoToAdd";
-var TodoHeaderTheme = (_class3 =
+var TodoHeaderTheme = (_class3$1 =
 /*#__PURE__*/
 function () {
   function TodoHeaderTheme() {}
@@ -9581,14 +9675,12 @@ function () {
     }
   }]);
   return TodoHeaderTheme;
-}(), _applyDecoratedDescriptor$10(_class3.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class3.prototype, "css"), _class3.prototype), _class3);
+}(), _applyDecoratedDescriptor$10(_class3$1.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class3$1.prototype, "css"), _class3$1.prototype), _class3$1);
 TodoHeaderTheme.displayName = "TodoHeaderTheme";
-function TodoHeaderView(_, _ref3) {
-  var todoToAdd = _ref3.todoToAdd,
-      css = _ref3.theme.css;
-  return lom_h("header", {
-    id: "main"
-  }, lom_h("input", {
+function TodoHeaderView(_, _ref2) {
+  var todoToAdd = _ref2.todoToAdd,
+      css = _ref2.theme.css;
+  return lom_h("header", null, lom_h("input", {
     id: "input",
     "class": css.newTodo,
     placeholder: "What needs to be done?",
@@ -9608,7 +9700,7 @@ var _class$12;
 var _descriptor$3;
 var _descriptor2;
 var _descriptor3;
-var _class3$1;
+var _class3$2;
 
 function _initDefineProp$3(target, property, descriptor, context) {
   if (!descriptor) return;
@@ -9663,33 +9755,25 @@ function () {
 
     _initDefineProp$3(this, "props", _descriptor3, this);
 
-    this._focused = null;
-
     this.beginEdit = function () {
       var todo = _this.props.todo;
       _this.todoBeingEditedId = todo.id;
       _this.editText = todo.title;
-
-      if (_this._focused) {
-        _this._focused.focus();
-      }
-    };
-
-    this.setEditInputRef = function (el) {
-      if (!el) return;
-      _this._focused = el;
-      el.focus();
     };
 
     this.handleSubmit = function (event) {
+      if (!_this.todoBeingEditedId) return;
+
       var val = _this.editText.trim();
 
       var todo = _this.props.todo;
 
-      if (val && todo.title !== val) {
-        todo.title = val;
-        _this.editText = '';
-      } else if (!val) {
+      if (val) {
+        if (todo.title !== val) {
+          todo.title = val;
+          _this.editText = '';
+        }
+      } else {
         _this.handleDestroy();
       }
 
@@ -9733,6 +9817,11 @@ function () {
     this.editText = target.value.trim();
   };
 
+  _proto.setEditInputRef = function setEditInputRef(el) {
+    if (!el) return;
+    el.focus();
+  };
+
   return TodoItemStore;
 }(), _descriptor$3 = _applyDecoratedDescriptor$12(_class$12.prototype, "todoBeingEditedId", [mem], {
   enumerable: true,
@@ -9747,9 +9836,9 @@ function () {
 }), _descriptor3 = _applyDecoratedDescriptor$12(_class$12.prototype, "props", [props], {
   enumerable: true,
   initializer: null
-}), _applyDecoratedDescriptor$12(_class$12.prototype, "setText", [action], Object.getOwnPropertyDescriptor(_class$12.prototype, "setText"), _class$12.prototype), _class$12);
+}), _applyDecoratedDescriptor$12(_class$12.prototype, "setText", [action], Object.getOwnPropertyDescriptor(_class$12.prototype, "setText"), _class$12.prototype), _applyDecoratedDescriptor$12(_class$12.prototype, "setEditInputRef", [defer], Object.getOwnPropertyDescriptor(_class$12.prototype, "setEditInputRef"), _class$12.prototype), _class$12);
 TodoItemStore.displayName = "TodoItemStore";
-var TodoItemTheme = (_class3$1 =
+var TodoItemTheme = (_class3$2 =
 /*#__PURE__*/
 function () {
   function TodoItemTheme() {}
@@ -9871,14 +9960,14 @@ function () {
     }
   }]);
   return TodoItemTheme;
-}(), _applyDecoratedDescriptor$12(_class3$1.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class3$1.prototype, "css"), _class3$1.prototype), _class3$1);
+}(), _applyDecoratedDescriptor$12(_class3$2.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class3$2.prototype, "css"), _class3$2.prototype), _class3$2);
 TodoItemTheme.displayName = "TodoItemTheme";
 function TodoItemView(_ref2, _ref3) {
-  var todo = _ref2.todo;
+  var todo = _ref2.todo,
+      id = _ref2.id;
   var itemStore = _ref3.itemStore,
       theme$$1 = _ref3.theme,
       service = _ref3.service;
-  var info = service.todoExtInfo(todo.id);
   var css = theme$$1.css;
   return itemStore.todoBeingEditedId === todo.id ? lom_h("li", {
     "class": css.editing
@@ -9901,7 +9990,6 @@ function TodoItemView(_ref2, _ref3) {
   }), lom_h("label", {
     id: "beginEdit",
     "class": theme$$1.label(todo.completed),
-    title: info.description,
     onDblClick: itemStore.beginEdit
   }, todo.title), lom_h("button", {
     id: "destroy",
@@ -9984,6 +10072,7 @@ function () {
         },
         toggleAll: _extends({}, toggleAll),
         todoList: {
+          minHeight: '4em',
           margin: 0,
           padding: 0,
           listStyle: 'none'
@@ -10006,10 +10095,10 @@ function () {
   return TodoMainTheme;
 }(), _applyDecoratedDescriptor$11(_class$11.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class$11.prototype, "css"), _class$11.prototype), _class$11);
 TodoMainTheme.displayName = "TodoMainTheme";
-function TodoMainView(_ref, _ref2) {
+function TodoMainView(_, _ref) {
   var todoService = _ref.todoService,
-      todoFilterService = _ref.todoFilterService;
-  var css = _ref2.theme.css;
+      filteredTodos = _ref.todoFilterService.filteredTodos,
+      css = _ref.theme.css;
 
   if (!todoService.todos.length) {
     return null;
@@ -10026,14 +10115,17 @@ function TodoMainView(_ref, _ref2) {
   }), lom_h("ul", {
     "class": css.todoList,
     id: "items"
-  }, todoFilterService.filteredTodos.map(function (todo) {
+  }, filteredTodos.map(function (todo) {
     return lom_h(TodoItemView, {
+      id: "todo(" + todo.id + ")",
       key: todo.id,
       todo: todo
     });
   })));
 }
 TodoMainView._r = [1, [{
+  todoService: TodoService,
+  todoFilterService: TodoFilterService,
   theme: TodoMainTheme
 }]];
 TodoMainView.displayName = "TodoMainView";
@@ -10174,10 +10266,10 @@ function () {
   return TodoFooterTheme;
 }(), _applyDecoratedDescriptor$13(_class$13.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class$13.prototype, "css"), _class$13.prototype), _class$13);
 TodoFooterTheme.displayName = "TodoFooterTheme";
-function TodoFooterView(_ref, _ref2) {
+function TodoFooterView(_, _ref) {
   var todoService = _ref.todoService,
-      todoFilterService = _ref.todoFilterService;
-  var theme$$1 = _ref2.theme;
+      todoFilterService = _ref.todoFilterService,
+      theme$$1 = _ref.theme;
 
   if (!todoService.activeTodoCount && !todoService.completedCount) {
     return null;
@@ -10199,9 +10291,9 @@ function TodoFooterView(_ref, _ref2) {
     return lom_h("li", {
       key: link.id,
       "class": css.filterItem,
-      id: "item-" + link.id
+      id: "link(" + link.id + ")"
     }, lom_h("a", {
-      id: "link-" + link.id,
+      id: "link(" + link.id + ").a",
       "class": theme$$1.link(filter === link.id),
       href: "?todo_filter=" + link.id,
       onClick: createHandler(todoFilterService, link.id)
@@ -10215,6 +10307,8 @@ function TodoFooterView(_ref, _ref2) {
   }, "Clear completed"));
 }
 TodoFooterView._r = [1, [{
+  todoService: TodoService,
+  todoFilterService: TodoFilterService,
   theme: TodoFooterTheme
 }]];
 TodoFooterView.displayName = "TodoFooterView";
@@ -10294,34 +10388,26 @@ function () {
 }(), _applyDecoratedDescriptor$7(_class$7.prototype, "css", [mem, theme], Object.getOwnPropertyDescriptor(_class$7.prototype, "css"), _class$7.prototype), _class$7);
 TodoAppTheme.displayName = "TodoAppTheme";
 function TodoAppView(_ref, _ref2) {
-  _objectDestructuringEmpty(_ref);
-  var todoService = _ref2.todoService,
-      todoFilterService = _ref2.todoFilterService,
+  var id = _ref.id;
+  var isOperationRunning = _ref2.todoService.isOperationRunning,
       css = _ref2.theme.css;
-  return lom_h("div", null, todoService.activeTodoCount > 0 ? null : null, lom_h("div", {
-    id: "status",
-    style: {
-      padding: '0.3em 0.5em'
-    }
-  }, todoService.isOperationRunning ? 'Saving...' : 'Idle'), lom_h("div", {
+  return lom_h("div", {
+    id: id
+  }, lom_h("div", {
     id: "layout",
     "class": css.todoapp
-  }, lom_h(TodoHeaderView, {
-    id: "header",
-    todoService: todoService
+  }, isOperationRunning ? lom_h(SpinnerView, {
+    id: "status"
+  }) : null, lom_h(TodoHeaderView, {
+    id: "header"
   }), lom_h(TodoMainView, {
-    id: "main",
-    todoService: todoService,
-    todoFilterService: todoFilterService
+    id: "main"
   }), lom_h(TodoFooterView, {
-    id: "footer",
-    todoService: todoService,
-    todoFilterService: todoFilterService
+    id: "footer"
   })));
 }
 TodoAppView._r = [1, [{
   todoService: TodoService,
-  todoFilterService: TodoFilterService,
   theme: TodoAppTheme
 }]];
 TodoAppView.displayName = "TodoAppView";
@@ -10424,7 +10510,7 @@ function () {
           mem.cache(_this2.searchResults = e);
         });
       }, 500);
-      throw new mem.Wait();
+      throw new AtomWait();
     },
     set: function set(searchResults) {}
   }]);
@@ -10447,20 +10533,24 @@ function AutocompleteResultsView(_ref2) {
   return lom_h("ul", null, searchResults.map(function (result, i) {
     return lom_h("li", {
       key: result + i,
-      id: "list"
+      id: "list(" + i + ")"
     }, result);
   }));
 }
 
 AutocompleteResultsView._r = [1];
 AutocompleteResultsView.displayName = "AutocompleteResultsView";
-function AutocompleteView(_, service) {
+function AutocompleteView(_ref3, service) {
+  var id = _ref3.id;
   var results = service.searchResults;
   var name = service.nameToSearch;
-  return lom_h("div", null, lom_h("div", {
+  return lom_h("div", {
+    id: id
+  }, lom_h("div", {
     id: "filter"
   }, "Filter:", lom_h("input", {
     value: name,
+    id: "value",
     onInput: service.setValue
   })), "Values:", lom_h(AutocompleteResultsView, {
     id: "results",
@@ -10489,8 +10579,8 @@ autocompleteMocks.displayName = "autocompleteMocks";
 
 var _class$14;
 var _descriptor$5;
-var _dec$3;
-var _class3$2;
+var _dec$2;
+var _class3$3;
 
 function _initDefineProp$5(target, property, descriptor, context) {
   if (!descriptor) return;
@@ -10540,7 +10630,7 @@ var Store$1 = (_class$14 = function Store() {
   }
 }), _class$14);
 Store$1.displayName = "Store";
-var CssChangeTheme = (_dec$3 = theme.self, _class3$2 =
+var CssChangeTheme = (_dec$2 = theme.self, _class3$3 =
 /*#__PURE__*/
 function () {
   function CssChangeTheme(store) {
@@ -10559,21 +10649,24 @@ function () {
     }
   }]);
   return CssChangeTheme;
-}(), _applyDecoratedDescriptor$15(_class3$2.prototype, "css", [mem, _dec$3], Object.getOwnPropertyDescriptor(_class3$2.prototype, "css"), _class3$2.prototype), _class3$2);
+}(), _applyDecoratedDescriptor$15(_class3$3.prototype, "css", [mem, _dec$2], Object.getOwnPropertyDescriptor(_class3$3.prototype, "css"), _class3$3.prototype), _class3$3);
 CssChangeTheme._r = [0, [Store$1]];
 CssChangeTheme.displayName = "CssChangeTheme";
-function CssChangeView(_, _ref) {
-  var store = _ref.store,
-      css = _ref.theme.css;
+function CssChangeView(_ref, _ref2) {
+  var id = _ref.id;
+  var store = _ref2.store,
+      css = _ref2.theme.css;
   return lom_h("div", {
-    className: css.wrapper
+    className: css.wrapper,
+    id: id
   }, "color via css ", store.red, ": ", lom_h("input", {
+    id: "range",
     type: "range",
     min: "0",
     max: "255",
     value: store.red,
-    onInput: function onInput(_ref2) {
-      var target = _ref2.target;
+    onInput: function onInput(_ref3) {
+      var target = _ref3.target;
       store.red = Number(target.value);
     }
   }));
@@ -10660,44 +10753,56 @@ Store._r = [0, [AbstractLocationStore]];
 Store.displayName = "Store";
 
 function AppView(_ref, _ref2) {
-  var lang = _ref.lang;
+  var lang = _ref.lang,
+      id = _ref.id;
   var store = _ref2.store;
   var page;
 
   switch (store.page) {
     case 'hello':
       page = lom_h(HelloView, {
+        id: "hello_app",
         name: store.name
       });
       break;
 
     case 'counter':
-      page = lom_h(CounterView, null);
+      page = lom_h(CounterView, {
+        id: "counter_app"
+      });
       break;
 
     case 'autocomplete':
       page = lom_h(AutocompleteView, {
+        id: "autocomplete_app",
         initialValue: store.name
       });
       break;
 
     case 'todomvc':
-      page = lom_h(TodoAppView, null);
+      page = lom_h(TodoAppView, {
+        id: "todo_app"
+      });
       break;
 
     case 'css-change':
-      page = lom_h(CssChangeView, null);
+      page = lom_h(CssChangeView, {
+        id: "css_change_app"
+      });
       break;
 
     default:
-      page = lom_h("div", null, "Unknown page");
+      page = lom_h("div", {
+        id: "unknown"
+      }, "Unknown page");
   }
 
   return lom_h("div", {
     style: {
       dislay: 'flex',
       justifyContent: 'center'
-    }
+    },
+    id: id
   }, lom_h("div", {
     id: "menu",
     style: {
@@ -10709,7 +10814,7 @@ function AppView(_ref, _ref2) {
       style: {
         margin: '0.3em'
       },
-      id: link,
+      id: "button(" + link + ")",
       onClick: function onClick() {
         return store.page = link;
       }
@@ -10746,6 +10851,7 @@ AppView.displayName = "AppView";
 var el = document.getElementById('app');
 if (!el) throw new Error('Document has no #app container');
 render(lom_h(AppView, {
+  id: "demos",
   lang: "ru"
 }), el);
 

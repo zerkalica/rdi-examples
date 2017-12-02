@@ -1,6 +1,6 @@
 // @flow
 
-import {mem} from 'lom_atom'
+import {mem, AtomWait} from 'lom_atom'
 
 type IRequestOptions = RequestOptions & {timeout?: number}
 
@@ -155,7 +155,7 @@ class FetcherResponse<V> implements FetcherApi<V> {
                 if (renderer) renderer.endFetch(err, url)
             })
 
-        throw new mem.Wait(`${params.method} ${params.url}`)
+        throw new AtomWait(`${params.method} ${params.url}`)
     }
 
     json(next?: V): V {

@@ -39,12 +39,11 @@ class Store {
     @mem name = 'John'
 }
 
-interface AppProps {
-    lang: string;
-}
-
 function AppView(
-    {lang}: AppProps,
+    {lang, id}: {
+        lang: string;
+        id: string;
+    },
     {store}: {
         store: Store;
     }
@@ -52,36 +51,36 @@ function AppView(
     let page
     switch (store.page) {
         case 'hello':
-            page = <HelloView name={store.name} />
+            page = <HelloView id="hello_app" name={store.name} />
             break
 
         case 'counter':
-            page = <CounterView />
+            page = <CounterView id="counter_app" />
             break
 
         case 'autocomplete':
-            page = <AutocompleteView initialValue={store.name} />
+            page = <AutocompleteView id="autocomplete_app" initialValue={store.name} />
             break
 
         case 'todomvc':
-            page = <TodoAppView />
+            page = <TodoAppView id="todo_app" />
             break
 
         case 'css-change':
-            page = <CssChangeView/>
+            page = <CssChangeView id="css_change_app" />
             break
 
         default:
-            page = <div>Unknown page</div>
+            page = <div id="unknown">Unknown page</div>
     }
 
-    return <div style={{dislay: 'flex', justifyContent: 'center'}}>
+    return <div style={{dislay: 'flex', justifyContent: 'center'}} id={id}>
         <div id="menu" style={{padding: '1em'}}>
             {store.pages.map((link: string) =>
                 <button
                     key={link}
                     style={{margin: '0.3em'}}
-                    id={link}
+                    id={`button(${link})`}
                     onClick={() => store.page = link }
                 >{link}</button>
             )}
@@ -93,9 +92,13 @@ function AppView(
 
         <ItemView id="inital">
             <ItemView.Key id="key">Some initial value:</ItemView.Key>
-            <ItemView.Value id="value"><input id="value-input" value={store.name} onInput={({target}: Event) => {
-                store.name = (target: any).value
-            }} /></ItemView.Value>
+            <ItemView.Value id="value">
+                <input
+                    id="value-input"
+                    value={store.name}
+                    onInput={({target}: Event) => { store.name = (target: any).value }}
+                />
+            </ItemView.Value>
         </ItemView>
 
     </div>
@@ -103,4 +106,4 @@ function AppView(
 const el = document.getElementById('app')
 if (!el) throw new Error('Document has no #app container')
 
-render(<AppView lang="ru" />, el)
+render(<AppView id="demos" lang="ru" />, el)

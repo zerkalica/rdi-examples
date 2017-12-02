@@ -42,6 +42,53 @@ export function ItemView(
 ItemView.Key = KeyView
 ItemView.Value = ValueView
 
+
+class SpinnerTheme {
+    @theme get css() {
+        return {
+            '@keyframes spinner': {
+                to: {
+                    transform: 'rotate(360deg)'
+                }
+            },
+            spinner: {
+                position: 'absolute',
+                zIndex: '5',
+                left: 0,
+                top: 0,
+                width: '100%',
+                height: '100%',
+                overflow: 'auto',
+                backgroundColor: 'rgba(0, 0, 0, 0.07)',
+
+                '&:before': {
+                    content: '\'\'',
+                    boxSizing: 'border-box',
+                    position: 'absolute',
+                    zIndex: '10',
+                    top: '50%',
+                    left: '50%',
+                    width: '40px',
+                    height: '40px',
+                    marginTop: '-10px',
+                    marginLeft: '-10px',
+                    borderRadius: '50%',
+                    border: '3px solid #ccc',
+                    borderTopColor: '#333',
+                    animation: 'spinner .6s linear infinite'
+                }
+            }
+        }
+    }
+}
+
+export function SpinnerView(
+    _: {},
+    {theme: {css}}: {theme: SpinnerTheme}
+) {
+    return <div class={css.spinner}/>
+}
+
 export class Locale {
     _defaultLang: string
 
