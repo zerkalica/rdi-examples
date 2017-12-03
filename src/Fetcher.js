@@ -68,8 +68,7 @@ interface IFetcher {
 
 export interface FetcherApi<V> {
     url: string;
-    getOptions(getOpts?: IRequestOptions): FetcherApi<V>;
-    postOptions(postOpts?: IRequestOptions): FetcherApi<V>;
+    options(opts: $Shape<IRequestOptions>): FetcherApi<V>;
     text(next?: string): string;
     json(data?: V): V;
 }
@@ -77,18 +76,12 @@ export interface FetcherApi<V> {
 class FetcherResponse<V> implements FetcherApi<V> {
     _fetcher: IFetcher
     url: string
-    _getOpts: IRequestOptions | void
-    _postOpts: IRequestOptions | void
+    _options: IRequestOptions
 
-    constructor(url: string, fetcher: IFetcher) {
+    constructor(method: string, url: string, fetcher: IFetcher) {
         this.url = url
+        this._options = {method}
         this._fetcher = fetcher
-        this._getOpts = {
-            method: 'GET'
-        }
-        this._postOpts = {
-            method: 'PUT'
-        }
     }
 
     _getState<V>(): V | void {
@@ -100,14 +93,8 @@ class FetcherResponse<V> implements FetcherApi<V> {
         }
     }
 
-    getOptions(getOpts?: IRequestOptions): this {
-        this._getOpts = getOpts
-        return this
-    }
-
-    postOptions(postOpts?: IRequestOptions): this {
-        this._postOpts = postOpts
-
+    options(opts: $Shape<IRequestOptions>): this {
+        Object.assign((this._options: Object), opts)
         return this
     }
 
@@ -128,7 +115,7 @@ class FetcherResponse<V> implements FetcherApi<V> {
         const url = fetcher.baseUrl + this.url
         const opts: IRequestOptions = fetcher.mergeOptions(
             ({
-                ...(next === undefined ? this._getOpts : this._postOpts),
+                ...this._options,
                 body: next === undefined ? undefined : next
             }: IRequestOptions)
         )
@@ -201,8 +188,28 @@ export default class Fetcher implements IFetcher {
         }
     }
 
-    @mem.key request<V>(url: string): FetcherApi<V> {
-        return new FetcherResponse(url, this)
+    @mem.key _request<V>([method, url]: [string, string]): FetcherApi<V> {
+        return new FetcherResponse(method, url, this)
+    }
+
+    post<V>(url: string): FetcherApi<V> {
+        return this._request(['POST', url])
+    }
+
+    get<V>(url: string): FetcherApi<V> {
+        return this._request(['GET', url])
+    }
+
+    put<V>(url: string): FetcherApi<V> {
+        return this._request(['PUT', url])
+    }
+
+    delete<V>(url: string): FetcherApi<V> {
+        return this._request(['DELETE', url])
+    }
+
+    patch<V>(url: string): FetcherApi<V> {
+        return this._request(['PATCH', url])
     }
 }
 

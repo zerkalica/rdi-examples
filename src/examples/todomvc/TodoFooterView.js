@@ -128,15 +128,19 @@ export default function TodoFooterView(
         theme: TodoFooterTheme;
     }
 ) {
-    if (todoService.activeTodoCount === 0 && todoService.completedCount === 0) {
+    const completedCount = todoService.completedCount
+    // const completedCount = 0
+    const activeTodoCount = todoService.activeTodoCount
+    if (activeTodoCount === 0 && completedCount === 0) {
         return null
     }
     const filter = todoFilterService.filter
     const css = theme.css
 
+
     return <footer class={css.footer}>
         <span class={css.todoCount} id="count">
-            <strong id="number">{todoService.activeTodoCount}</strong> item(s) left
+            <strong id="number">{activeTodoCount}</strong> item(s) left
         </span>
         <ul class={css.filters} id="filters">
             {links.map((link) =>
@@ -152,7 +156,7 @@ export default function TodoFooterView(
                 >{link.title}</a></li>
             )}
         </ul>
-        {todoService.completedCount === 0
+        {completedCount === 0
             ? null
             : <button
                 id="clear"

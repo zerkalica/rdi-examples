@@ -65,7 +65,7 @@ export default function TodoMainView(
     _: {},
     {
         todoService,
-        todoFilterService: {filteredTodos},
+        todoFilterService,
         theme: {css}
     }: {
         todoService: TodoService;
@@ -86,7 +86,7 @@ export default function TodoMainView(
             checked={todoService.activeTodoCount === 0}
         />
         <ul class={css.todoList} id="items">
-            {filteredTodos.map((todo: ITodo) =>
+            {todoFilterService.filteredTodos.map((todo: ITodo) =>
                 <TodoItemView
                     id={`todo(${todo.id})`}
                     key={todo.id}

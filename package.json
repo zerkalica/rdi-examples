@@ -70,7 +70,7 @@
     "rollup-plugin-visualizer": "^0.3.1",
     "rollup-watch": "^4.3.1",
     "standard-version": "^4.2.0",
-    "uglify-es": "^3.2.0"
+    "uglify-es": "^3.2.1"
   },
   "dependencies": {
     "fetch-mock": "^5.13.1",
@@ -78,9 +78,9 @@
     "jss-camel-case": "^6.0.0",
     "jss-global": "^3.0.0",
     "jss-nested": "^6.0.1",
-    "lom_atom": "^3.0.9",
+    "lom_atom": "^3.0.10",
     "preact": "^8.2.6",
-    "reactive-di": "^6.0.4",
+    "reactive-di": "^6.0.5",
     "todomvc-common": "^1.0.4"
   }
 }

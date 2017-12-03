@@ -1,3 +1,4 @@
+
 // @flow
 import Fetcher from '../../Fetcher'
 import type {FetcherApi} from '../../Fetcher'
@@ -80,7 +81,7 @@ export default class TodoService {
     }
 
     @mem get todos(): ITodo[] {
-        return this._fetcher.request('/todos').json()
+        return this._fetcher.get('/todos').json()
             .map((todo: ITodoData) => new TodoModel(todo, this))
     }
 
@@ -103,7 +104,7 @@ export default class TodoService {
 
     @mem set adding(next: ITodo) {
         this._fetcher
-            .request('/todo')
+            .put('/todo')
             .json(next)
             .valueOf()
         this.todos = [...this.todos, next]
@@ -120,8 +121,7 @@ export default class TodoService {
 
     @mem set saving(next: ITodo) {
         this._fetcher
-            .request(`/todo/${next.id}`)
-            .postOptions({method: 'POST'})
+            .post(`/todo/${next.id}`)
             .json(next)
             .valueOf()
 
@@ -143,8 +143,7 @@ export default class TodoService {
     }
     @mem set removing(next: ITodo) {
         this._fetcher
-            .request(`/todo/${next.id}`)
-            .getOptions({method: 'DELETE'})
+            .delete(`/todo/${next.id}`)
             .json()
             .valueOf()
         this.todos = this.todos.filter((t: ITodo) => t.id !== next.id)
@@ -165,12 +164,13 @@ export default class TodoService {
             (todo: ITodo) => new TodoModel({
                 title: todo.title,
                 id: todo.id,
-                completed: map.has(todo.id) ? todo.completed : (map.get(todo.id): any).completed
+                completed: map.has(todo.id)
+                    ? (map.get(todo.id): any).completed
+                    : todo.completed
             }, this)
         )
         this._fetcher
-            .request(`/todos`)
-            .postOptions({method: 'PUT'})
+            .put(`/todos`)
             .json(patches)
             .valueOf()
 
@@ -178,7 +178,7 @@ export default class TodoService {
         mem.cache(this.patching = (null: any))
     }
 
-    @action toggleAll() {
+    toggleAll = () => {
         const completed = !!this.todos.find((todo) => !todo.completed)
         this.patching = this.todos.map(
             (todo: ITodo) => ([todo.id, {completed}])
@@ -201,8 +201,7 @@ export default class TodoService {
         }
 
         this._fetcher
-            .request(`/todos`)
-            .postOptions({method: 'DELETE'})
+            .delete(`/todos`)
             .json(delIds)
             .valueOf()
         this.todos = newTodos
@@ -214,7 +213,6 @@ export default class TodoService {
     }
 
     @mem get isOperationRunning(): boolean {
-        return false
         let count = 0
         if (this.adding) count++
         if (this.saving) count++
