@@ -49,7 +49,7 @@ class TodoAppTheme {
 }
 
 export default function TodoAppView(
-    {id}: {id: string},
+    _: {},
     {
         todoService,
         theme: {css}
@@ -58,7 +58,7 @@ export default function TodoAppView(
         theme: TodoAppTheme;
     }
 ) {
-    return <div id={id}>
+    return <div>
         {/* Loading fix: access data in TodoApp first to throw exception, if no todos loaded */}
         {/* {activeTodoCount > 0 ? null : null} */}
         <div id="layout" class={css.todoapp}>

@@ -8604,7 +8604,7 @@ mockFetch.displayName = "mockFetch";
 
 var _class$4;
 var _dec$1;
-var _class2$2;
+var _class3$1;
 
 function _applyDecoratedDescriptor$4(target, property, decorators, descriptor, context) {
   var desc = {};
@@ -8674,6 +8674,7 @@ var FetcherResponse = (_class$4 =
 /*#__PURE__*/
 function () {
   function FetcherResponse(method, url, fetcher) {
+    this._disposed = false;
     this.url = url;
     this._options = {
       method: method
@@ -8726,18 +8727,25 @@ function () {
       body: opts.body || ''
     };
     if (renderer) renderer.beginFetch();
+    this._disposed = false;
     timeoutPromise(this._request(url, opts), opts ? opts.timeout : null, params).then(function (r) {
       return r.status === 204 ? '' : r.text();
     }).then(function (data) {
-      mem.cache(_this2.text(data));
       if (renderer) renderer.endFetch(data, url);
+      if (_this2._disposed) return;
+      mem.cache(_this2.text(data));
     }).catch(function (e) {
       var err = e instanceof HttpError ? e : new HttpError(e.statusCode || 500, e.message, null, null, params);
       err.stack = e.stack;
+      if (renderer) renderer.endFetch(e, url);
+      if (_this2._disposed) return;
       mem.cache(_this2.text(err));
-      if (renderer) renderer.endFetch(err, url);
     });
     throw new AtomWait(params.method + " " + params.url);
+  };
+
+  _proto.destructor = function destructor() {
+    this._disposed = true;
   };
 
   _proto.json = function json(next) {
@@ -8759,7 +8767,7 @@ FetcherResponse._r = [0, [String, String, {
   mergeOptions: Function
 }]];
 FetcherResponse.displayName = "FetcherResponse";
-var Fetcher = (_dec$1 = mem.key, _class2$2 =
+var Fetcher = (_dec$1 = mem.key, _class3$1 =
 /*#__PURE__*/
 function () {
   function Fetcher(opts) {
@@ -8806,7 +8814,7 @@ function () {
   };
 
   return Fetcher;
-}(), _applyDecoratedDescriptor$4(_class2$2.prototype, "_request", [_dec$1], Object.getOwnPropertyDescriptor(_class2$2.prototype, "_request"), _class2$2.prototype), _class2$2);
+}(), _applyDecoratedDescriptor$4(_class3$1.prototype, "_request", [_dec$1], Object.getOwnPropertyDescriptor(_class3$1.prototype, "_request"), _class3$1.prototype), _class3$1);
 Fetcher.displayName = "Fetcher";
 
 defaultContext.setLogger(new ConsoleLogger());
@@ -8901,21 +8909,15 @@ function () {
 FirstCounterService.displayName = "FirstCounterService";
 
 function CounterMessageView(_ref) {
-  var id = _ref.id,
-      value = _ref.value;
-  return lom_h("div", {
-    id: id
-  }, "Count: ", value);
+  var value = _ref.value;
+  return lom_h("div", null, "Count: ", value);
 }
 
 CounterMessageView._r = [1];
 CounterMessageView.displayName = "CounterMessageView";
 
-function FirstCounterView(_ref2, counter) {
-  var id = _ref2.id;
-  return lom_h("div", {
-    id: id
-  }, lom_h(CounterMessageView, {
+function FirstCounterView(_, counter) {
+  return lom_h("div", null, lom_h(CounterMessageView, {
     id: "message",
     value: counter.value
   }), lom_h("button", {
@@ -8957,21 +8959,18 @@ function (_FirstCounterService) {
 
 SecondCounterService.displayName = "SecondCounterService";
 
-function SecondCounterMessageView(_ref3) {
-  var value = _ref3.value,
-      id = _ref3.id;
-  return lom_h("div", {
-    id: id
-  }, "SecondCounter Count: ", value);
+function SecondCounterMessageView(_ref2) {
+  var value = _ref2.value;
+  return lom_h("div", null, "SecondCounter Count: ", value);
 }
 
 SecondCounterMessageView._r = [1];
 SecondCounterMessageView.displayName = "SecondCounterMessageView";
 
-function SecondCounterAddButtonView(_ref4) {
-  var id = _ref4.id,
-      onClick = _ref4.onClick,
-      children = _ref4.children;
+function SecondCounterAddButtonView(_ref3) {
+  var onClick = _ref3.onClick,
+      children = _ref3.children,
+      id = _ref3.id;
   return lom_h("button", {
     id: id,
     onClick: onClick
@@ -8982,10 +8981,10 @@ SecondCounterAddButtonView._r = [1];
 SecondCounterAddButtonView.displayName = "SecondCounterAddButtonView";
 var SecondCounterView = cloneComponent(FirstCounterView, [[FirstCounterService, SecondCounterService], [CounterMessageView, SecondCounterMessageView], ['add', SecondCounterAddButtonView], ['error', null]], 'SecondCounterView');
 
-function ThirdCounterAddButtonView(_ref5) {
-  var id = _ref5.id,
-      onClick = _ref5.onClick,
-      children = _ref5.children;
+function ThirdCounterAddButtonView(_ref4) {
+  var onClick = _ref4.onClick,
+      children = _ref4.children,
+      id = _ref4.id;
   return lom_h("button", {
     id: id,
     onClick: onClick
@@ -9080,16 +9079,15 @@ function () {
   initializer: null
 }), _applyDecoratedDescriptor$6(_class$6.prototype, "props", [props], Object.getOwnPropertyDescriptor(_class$6.prototype, "props"), _class$6.prototype), _applyDecoratedDescriptor$6(_class$6.prototype, "greet", [mem], Object.getOwnPropertyDescriptor(_class$6.prototype, "greet"), _class$6.prototype), _class$6);
 HelloContext.displayName = "HelloContext";
-function HelloView(_ref2, _ref3) {
-  var id = _ref2.id;
-  var context = _ref3.context;
-  return lom_h("div", {
-    id: id
-  }, context.greet, lom_h("br", null), lom_h("input", {
+function HelloView(_, _ref2) {
+  var context = _ref2.context;
+  return lom_h("div", null, context.greet, lom_h("br", {
+    id: "br"
+  }), lom_h("input", {
     id: "input",
     value: context.name,
-    onInput: function onInput(_ref4) {
-      var target = _ref4.target;
+    onInput: function onInput(_ref3) {
+      var target = _ref3.target;
       context.name = target.value;
     }
   }));
@@ -9589,7 +9587,7 @@ TodoFilterService.displayName = "TodoFilterService";
 
 var _class$10;
 var _descriptor$2;
-var _class3$1;
+var _class3$2;
 
 function _initDefineProp$2(target, property, descriptor, context) {
   if (!descriptor) return;
@@ -9665,7 +9663,7 @@ function () {
 }), _applyDecoratedDescriptor$10(_class$10.prototype, "onInput", [action], Object.getOwnPropertyDescriptor(_class$10.prototype, "onInput"), _class$10.prototype), _class$10);
 TodoToAdd._r = [0, [TodoService]];
 TodoToAdd.displayName = "TodoToAdd";
-var TodoHeaderTheme = (_class3$1 =
+var TodoHeaderTheme = (_class3$2 =
 /*#__PURE__*/
 function () {
   function TodoHeaderTheme() {}
@@ -9692,7 +9690,7 @@ function () {
     }
   }]);
   return TodoHeaderTheme;
-}(), _applyDecoratedDescriptor$10(_class3$1.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class3$1.prototype, "css"), _class3$1.prototype), _class3$1);
+}(), _applyDecoratedDescriptor$10(_class3$2.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class3$2.prototype, "css"), _class3$2.prototype), _class3$2);
 TodoHeaderTheme.displayName = "TodoHeaderTheme";
 function TodoHeaderView(_, _ref2) {
   var todoToAdd = _ref2.todoToAdd,
@@ -9717,7 +9715,7 @@ var _class$12;
 var _descriptor$3;
 var _descriptor2;
 var _descriptor3;
-var _class3$2;
+var _class3$3;
 
 function _initDefineProp$3(target, property, descriptor, context) {
   if (!descriptor) return;
@@ -9855,7 +9853,7 @@ function () {
   initializer: null
 }), _applyDecoratedDescriptor$12(_class$12.prototype, "setText", [action], Object.getOwnPropertyDescriptor(_class$12.prototype, "setText"), _class$12.prototype), _applyDecoratedDescriptor$12(_class$12.prototype, "setEditInputRef", [defer], Object.getOwnPropertyDescriptor(_class$12.prototype, "setEditInputRef"), _class$12.prototype), _class$12);
 TodoItemStore.displayName = "TodoItemStore";
-var TodoItemTheme = (_class3$2 =
+var TodoItemTheme = (_class3$3 =
 /*#__PURE__*/
 function () {
   function TodoItemTheme() {}
@@ -9977,7 +9975,7 @@ function () {
     }
   }]);
   return TodoItemTheme;
-}(), _applyDecoratedDescriptor$12(_class3$2.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class3$2.prototype, "css"), _class3$2.prototype), _class3$2);
+}(), _applyDecoratedDescriptor$12(_class3$3.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class3$3.prototype, "css"), _class3$3.prototype), _class3$3);
 TodoItemTheme.displayName = "TodoItemTheme";
 function TodoItemView(_ref2, _ref3) {
   var todo = _ref2.todo,
@@ -10407,13 +10405,10 @@ function () {
   return TodoAppTheme;
 }(), _applyDecoratedDescriptor$7(_class$7.prototype, "css", [mem, theme], Object.getOwnPropertyDescriptor(_class$7.prototype, "css"), _class$7.prototype), _class$7);
 TodoAppTheme.displayName = "TodoAppTheme";
-function TodoAppView(_ref, _ref2) {
-  var id = _ref.id;
-  var todoService = _ref2.todoService,
-      css = _ref2.theme.css;
-  return lom_h("div", {
-    id: id
-  }, lom_h("div", {
+function TodoAppView(_, _ref) {
+  var todoService = _ref.todoService,
+      css = _ref.theme.css;
+  return lom_h("div", null, lom_h("div", {
     id: "layout",
     "class": css.todoapp
   }, todoService.isOperationRunning ? lom_h(SpinnerView, {
@@ -10432,7 +10427,7 @@ TodoAppView._r = [1, [{
 }]];
 TodoAppView.displayName = "TodoAppView";
 
-var _class2$3;
+var _class2$2;
 var _descriptor$4;
 var _descriptor2$1;
 
@@ -10494,7 +10489,7 @@ function () {
 
 TimeoutHandler._r = [0, [Function, Number]];
 TimeoutHandler.displayName = "TimeoutHandler";
-var AutocompleteService = (_class2$3 =
+var AutocompleteService = (_class2$2 =
 /*#__PURE__*/
 function () {
   function AutocompleteService() {
@@ -10505,7 +10500,7 @@ function () {
     _initDefineProp$4(this, "_handler", _descriptor2$1, this);
 
     this.setValue = function (e) {
-      mem.cache(_this.nameToSearch = e.target.value);
+      _this.nameToSearch = e.target.value;
     };
   }
 
@@ -10535,17 +10530,17 @@ function () {
     set: function set(searchResults) {}
   }]);
   return AutocompleteService;
-}(), _descriptor$4 = _applyDecoratedDescriptor$14(_class2$3.prototype, "nameToSearch", [mem], {
+}(), _descriptor$4 = _applyDecoratedDescriptor$14(_class2$2.prototype, "nameToSearch", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return '';
   }
-}), _applyDecoratedDescriptor$14(_class2$3.prototype, "props", [props], Object.getOwnPropertyDescriptor(_class2$3.prototype, "props"), _class2$3.prototype), _descriptor2$1 = _applyDecoratedDescriptor$14(_class2$3.prototype, "_handler", [mem], {
+}), _applyDecoratedDescriptor$14(_class2$2.prototype, "props", [props], Object.getOwnPropertyDescriptor(_class2$2.prototype, "props"), _class2$2.prototype), _descriptor2$1 = _applyDecoratedDescriptor$14(_class2$2.prototype, "_handler", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return null;
   }
-}), _applyDecoratedDescriptor$14(_class2$3.prototype, "searchResults", [mem], Object.getOwnPropertyDescriptor(_class2$3.prototype, "searchResults"), _class2$3.prototype), _applyDecoratedDescriptor$14(_class2$3.prototype, "searchResults", [mem], Object.getOwnPropertyDescriptor(_class2$3.prototype, "searchResults"), _class2$3.prototype), _class2$3);
+}), _applyDecoratedDescriptor$14(_class2$2.prototype, "searchResults", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "searchResults"), _class2$2.prototype), _applyDecoratedDescriptor$14(_class2$2.prototype, "searchResults", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "searchResults"), _class2$2.prototype), _class2$2);
 AutocompleteService.displayName = "AutocompleteService";
 
 function AutocompleteResultsView(_ref2) {
@@ -10560,13 +10555,10 @@ function AutocompleteResultsView(_ref2) {
 
 AutocompleteResultsView._r = [1];
 AutocompleteResultsView.displayName = "AutocompleteResultsView";
-function AutocompleteView(_ref3, service) {
-  var id = _ref3.id;
+function AutocompleteView(_, service) {
   var results = service.searchResults;
   var name = service.nameToSearch;
-  return lom_h("div", {
-    id: id
-  }, lom_h("div", {
+  return lom_h("div", null, lom_h("div", {
     id: "filter"
   }, "Filter:", lom_h("input", {
     value: name,
@@ -10600,7 +10592,7 @@ autocompleteMocks.displayName = "autocompleteMocks";
 var _class$14;
 var _descriptor$5;
 var _dec$2;
-var _class3$3;
+var _class3$4;
 
 function _initDefineProp$5(target, property, descriptor, context) {
   if (!descriptor) return;
@@ -10650,7 +10642,7 @@ var Store$1 = (_class$14 = function Store() {
   }
 }), _class$14);
 Store$1.displayName = "Store";
-var CssChangeTheme = (_dec$2 = theme.self, _class3$3 =
+var CssChangeTheme = (_dec$2 = theme.self, _class3$4 =
 /*#__PURE__*/
 function () {
   function CssChangeTheme(store) {
@@ -10669,24 +10661,22 @@ function () {
     }
   }]);
   return CssChangeTheme;
-}(), _applyDecoratedDescriptor$15(_class3$3.prototype, "css", [mem, _dec$2], Object.getOwnPropertyDescriptor(_class3$3.prototype, "css"), _class3$3.prototype), _class3$3);
+}(), _applyDecoratedDescriptor$15(_class3$4.prototype, "css", [mem, _dec$2], Object.getOwnPropertyDescriptor(_class3$4.prototype, "css"), _class3$4.prototype), _class3$4);
 CssChangeTheme._r = [0, [Store$1]];
 CssChangeTheme.displayName = "CssChangeTheme";
-function CssChangeView(_ref, _ref2) {
-  var id = _ref.id;
-  var store = _ref2.store,
-      css = _ref2.theme.css;
+function CssChangeView(_, _ref) {
+  var store = _ref.store,
+      css = _ref.theme.css;
   return lom_h("div", {
-    className: css.wrapper,
-    id: id
+    className: css.wrapper
   }, "color via css ", store.red, ": ", lom_h("input", {
     id: "range",
     type: "range",
     min: "0",
     max: "255",
     value: store.red,
-    onInput: function onInput(_ref3) {
-      var target = _ref3.target;
+    onInput: function onInput(_ref2) {
+      var target = _ref2.target;
       store.red = Number(target.value);
     }
   }));

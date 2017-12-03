@@ -24,10 +24,10 @@ class CssChangeTheme {
 }
 
 export function CssChangeView(
-    {id}: {id: string},
+    _: {},
     {store, theme: {css}}: { theme: CssChangeTheme, store: Store}
 ) {
-    return <div className={css.wrapper} id={id}>
+    return <div className={css.wrapper}>
         color via css {store.red}: <input
             id="range"
             type="range"

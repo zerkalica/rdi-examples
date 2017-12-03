@@ -5,7 +5,6 @@ import {props} from 'reactive-di'
 
 interface IHelloProps {
     name: string;
-    id: string;
 }
 
 class HelloContext {
@@ -19,12 +18,12 @@ class HelloContext {
 }
 
 export function HelloView(
-    {id}: IHelloProps,
+    _: IHelloProps,
     {context}: {context: HelloContext}
 ) {
-    return <div id={id}>
+    return <div>
         {context.greet}
-        <br/><input id="input" value={context.name} onInput={({target}) => {
+        <br id="br"/><input id="input" value={context.name} onInput={({target}) => {
             context.name = (target: any).value
         }} />
     </div>

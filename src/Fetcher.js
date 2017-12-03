@@ -102,6 +102,8 @@ class FetcherResponse<V> implements FetcherApi<V> {
         return fetch(url, init)
     }
 
+    _disposed = false
+
     @mem text(next?: string | Error): string {
         const state = this._getState()
         if (state !== undefined) {
@@ -126,23 +128,30 @@ class FetcherResponse<V> implements FetcherApi<V> {
         }
 
         if (renderer) renderer.beginFetch()
-
+        this._disposed = false
         timeoutPromise(this._request(url, opts), opts ? opts.timeout : null, params)
             .then((r: Response) => r.status === 204 ? '' : r.text())
             .then((data: string) => {
-                mem.cache(this.text(data))
                 if (renderer) renderer.endFetch(data, url)
+                if (this._disposed) return
+                mem.cache(this.text(data))
             })
             .catch((e: Error) => {
                 const err = e instanceof HttpError
                     ? e
                     : new HttpError((e: Object).statusCode || 500, e.message, null, null, params)
                 err.stack = e.stack
+
+                if (renderer) renderer.endFetch(e, url)
+                if (this._disposed) return
                 mem.cache(this.text(err))
-                if (renderer) renderer.endFetch(err, url)
             })
 
         throw new AtomWait(`${params.method} ${params.url}`)
+    }
+
+    destructor() {
+        this._disposed = true
     }
 
     json(next?: V): V {

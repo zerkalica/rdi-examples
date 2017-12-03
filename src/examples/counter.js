@@ -25,20 +25,19 @@ class FirstCounterService {
 }
 
 function CounterMessageView(
-    {id, value}: {
-        id: string;
+    {value}: {
         value: number
 }) {
-    return <div id={id}>
+    return <div>
         Count: {value}
     </div>
 }
 
 function FirstCounterView(
-    {id}: {id: string},
+    _: {},
     counter: FirstCounterService
 ) {
-    return <div id={id}>
+    return <div>
         <CounterMessageView id="message" value={counter.value}/>
         <button id="add" onClick={() => { counter.value++ }}>{counter.lang.add}</button>
         <button id="error" onClick={() => { counter.value = ('someStr': any) }}>{counter.lang.error}</button>
@@ -52,14 +51,14 @@ class SecondCounterService extends FirstCounterService {
     }
 }
 
-function SecondCounterMessageView({value, id}: {value: number; id: string}) {
-    return <div id={id}>
+function SecondCounterMessageView({value}: {value: number}) {
+    return <div>
         SecondCounter Count: {value}
     </div>
 }
 
 function SecondCounterAddButtonView(
-    {id, onClick, children}: {
+    {onClick, children, id}: {
         id: string;
         onClick: () => void;
         children: string
@@ -76,7 +75,7 @@ const SecondCounterView = cloneComponent(FirstCounterView, [
 ], 'SecondCounterView')
 
 function ThirdCounterAddButtonView(
-    {id, onClick, children}: {
+    {onClick, children, id}: {
         id: string;
         onClick: () => void;
         children: string

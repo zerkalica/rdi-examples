@@ -47,7 +47,7 @@ class AutocompleteService {
     @mem set searchResults(searchResults: string[] | Error) {}
 
     setValue = (e: Event) => {
-        mem.cache(this.nameToSearch = (e.target: any).value)
+        (this.nameToSearch = (e.target: any).value)
     }
 }
 
@@ -66,12 +66,12 @@ function AutocompleteResultsView(
 }
 
 export function AutocompleteView(
-    {id}: IAutocompleteProps,
+    _: IAutocompleteProps,
     service: AutocompleteService
 ) {
     const results = service.searchResults
     const name = service.nameToSearch
-    return <div id={id}>
+    return <div>
         <div id="filter">
             Filter:
             <input value={name} id="value" onInput={service.setValue}/>
