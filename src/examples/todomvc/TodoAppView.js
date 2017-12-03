@@ -62,7 +62,7 @@ export default function TodoAppView(
         {/* Loading fix: access data in TodoApp first to throw exception, if no todos loaded */}
         {/* {activeTodoCount > 0 ? null : null} */}
         <div id="layout" class={css.todoapp}>
-            {isOperationRunning ? <SpinnerView id="status" /> : null}
+            {/* {isOperationRunning ? <SpinnerView id="status" /> : null} */}
             <TodoHeaderView id="header" />
             <TodoMainView id="main" />
             <TodoFooterView id="footer" />

@@ -40,9 +40,8 @@ class Store {
 }
 
 function AppView(
-    {lang, id}: {
+    {lang}: {
         lang: string;
-        id: string;
     },
     {store}: {
         store: Store;
@@ -74,7 +73,7 @@ function AppView(
             page = <div id="unknown">Unknown page</div>
     }
 
-    return <div style={{dislay: 'flex', justifyContent: 'center'}} id={id}>
+    return <div style={{dislay: 'flex', justifyContent: 'center'}}>
         <div id="menu" style={{padding: '1em'}}>
             {store.pages.map((link: string) =>
                 <button

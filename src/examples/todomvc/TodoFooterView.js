@@ -118,13 +118,17 @@ class TodoFooterTheme {
 
 export default function TodoFooterView(
     _: {},
-    {todoService, todoFilterService, theme}: {
+    {
+        todoService,
+        todoFilterService,
+        theme
+    }: {
         todoService: TodoService;
         todoFilterService: TodoFilterService;
         theme: TodoFooterTheme;
     }
 ) {
-    if (!todoService.activeTodoCount && !todoService.completedCount) {
+    if (todoService.activeTodoCount === 0 && todoService.completedCount === 0) {
         return null
     }
     const filter = todoFilterService.filter

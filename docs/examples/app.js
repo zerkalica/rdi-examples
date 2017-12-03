@@ -1,4 +1,3 @@
-(function(l, i, v, e) { v = l.createElement(i); v.async = 1; v.src = '//' + (location.host || 'localhost').split(':')[0] + ':35729/livereload.js?snipver=1'; e = l.getElementsByTagName(i)[0]; e.parentNode.insertBefore(v, e)})(document, 'script');
 (function () {
 'use strict';
 
@@ -445,8 +444,7 @@ function () {
   _proto.addMaster = function addMaster(master) {
     if (!this._masters) {
       this._masters = new Set();
-    } // if (master.manualReset) this.manualReset = true
-
+    }
 
     this._masters.add(master);
   };
@@ -1631,7 +1629,7 @@ function createReactWrapper(BaseComponent, ErrorComponent, detached, rootInjecto
     };
 
     _proto.r = function r(force) {
-      var data;
+      var data = null;
       var render = this._render;
       var prevContext = Injector.parentContext;
       var injector = Injector.parentContext = this._injector;
@@ -1639,22 +1637,28 @@ function createReactWrapper(BaseComponent, ErrorComponent, detached, rootInjecto
       try {
         data = injector.invokeWithProps(render, this.props, this._propsChanged);
       } catch (error) {
-        data = injector.invokeWithProps(render.onError || ErrorComponent, {
-          error: error
-        });
+        try {
+          data = injector.invokeWithProps(render.onError || ErrorComponent, {
+            error: error
+          });
+        } catch (err) {
+          console.log('!!!!!!!!!!!!!!!!!!!!!!', err);
+        }
+
         error[rdiRendered] = true;
+      } finally {
+        injector.rendered = '';
+        Injector.parentContext = prevContext;
+
+        if (!this._propsChanged) {
+          this._el = data;
+          this.forceUpdate();
+          this._el = undefined;
+        }
+
+        this._propsChanged = false;
       }
 
-      injector.rendered = '';
-      Injector.parentContext = prevContext;
-
-      if (!this._propsChanged) {
-        this._el = data;
-        this.forceUpdate();
-        this._el = undefined;
-      }
-
-      this._propsChanged = false;
       return data;
     };
 
@@ -3374,7 +3378,7 @@ var devtools = createCommonjsModule(function (module, exports) {
     }
 
     initDevTools();
-  }); //# sourceMappingURL=devtools.js.map
+  }); 
 
 });
 
@@ -3545,6 +3549,13 @@ unwrapExports(SheetsRegistry_1);
  * LICENSE file in the root directory of this source tree. An additional grant
  * of patent rights can be found in the PATENTS file in the same directory.
  */
+/**
+ * Similar to invariant but only logs a warning if the condition is not met.
+ * This can be used to log issues in development environments in critical
+ * paths. Removing the logging code for production environments will keep the
+ * same logic and follow the same code paths.
+ */
+
 var warning = function warning() {};
 
 warning._r = [2];
@@ -7127,6 +7138,10 @@ var isarray = Array.isArray || function (arr) {
   return Object.prototype.toString.call(arr) == '[object Array]';
 };
 
+/**
+ * Expose `pathToRegexp`.
+ */
+
 var pathToRegexp_1 = pathToRegexp;
 var parse_1 = parse;
 var compile_1 = compile;
@@ -8498,16 +8513,7 @@ function () {
   return SpinnerTheme;
 }(), _applyDecoratedDescriptor$3(_class2$1.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class2$1.prototype, "css"), _class2$1.prototype), _class2$1);
 SpinnerTheme.displayName = "SpinnerTheme";
-function SpinnerView(_, _ref7) {
-  var css = _ref7.theme.css;
-  return lom_h("div", {
-    "class": css.spinner
-  });
-}
-SpinnerView._r = [1, [{
-  theme: SpinnerTheme
-}]];
-SpinnerView.displayName = "SpinnerView";
+
 var Locale = (_class3 =
 /*#__PURE__*/
 function () {
@@ -8792,9 +8798,9 @@ function ErrorableView(_ref) {
   var error = _ref.error;
   return lom_h("div", {
     id: "errorable"
-  }, error instanceof AtomWait ? lom_h(SpinnerView, {
+  }, error instanceof AtomWait ? lom_h("div", {
     id: "loading"
-  }) : lom_h("div", {
+  }, "Loading...") : lom_h("div", {
     id: "error"
   }, lom_h("h3", {
     id: "title"
@@ -9337,8 +9343,7 @@ function () {
   };
 
   _proto2.saveTodo = function saveTodo(todoData) {
-    var todo = new TodoModel(todoData, this);
-    this.saving = todo;
+    this.saving = new TodoModel(todoData, this);
   };
 
   _proto2.remove = function remove(todo) {
@@ -9349,12 +9354,11 @@ function () {
     var completed = !!this.todos.find(function (todo) {
       return !todo.completed;
     });
-    var patches = this.todos.map(function (todo) {
+    this.patching = this.todos.map(function (todo) {
       return [todo.id, {
         completed: completed
       }];
     });
-    this.patching = patches;
   };
 
   _proto2.clearCompleted = function clearCompleted() {
@@ -9432,18 +9436,20 @@ function () {
     set: function set(patches) {
       var _this2 = this;
 
-      this._fetcher.request("/todos").postOptions({
-        method: 'PUT'
-      }).json(patches).valueOf();
-
       var map = new Map(patches);
-      this.todos = this.todos.map(function (todo) {
+      var newTodos = this.todos.map(function (todo) {
         return new TodoModel({
           title: todo.title,
           id: todo.id,
           completed: map.has(todo.id) ? todo.completed : map.get(todo.id).completed
         }, _this2);
       });
+
+      this._fetcher.request("/todos").postOptions({
+        method: 'PUT'
+      }).json(patches).valueOf();
+
+      this.todos = newTodos;
       mem.cache(this.patching = null);
     }
   }, {
@@ -9475,6 +9481,7 @@ function () {
   }, {
     key: "isOperationRunning",
     get: function get() {
+      return false;
       var count = 0;
       if (this.adding) count++;
       if (this.saving) count++;
@@ -10271,7 +10278,7 @@ function TodoFooterView(_, _ref) {
       todoFilterService = _ref.todoFilterService,
       theme$$1 = _ref.theme;
 
-  if (!todoService.activeTodoCount && !todoService.completedCount) {
+  if (todoService.activeTodoCount === 0 && todoService.completedCount === 0) {
     return null;
   }
 
@@ -10396,9 +10403,7 @@ function TodoAppView(_ref, _ref2) {
   }, lom_h("div", {
     id: "layout",
     "class": css.todoapp
-  }, isOperationRunning ? lom_h(SpinnerView, {
-    id: "status"
-  }) : null, lom_h(TodoHeaderView, {
+  }, lom_h(TodoHeaderView, {
     id: "header"
   }), lom_h(TodoMainView, {
     id: "main"
@@ -10753,8 +10758,7 @@ Store._r = [0, [AbstractLocationStore]];
 Store.displayName = "Store";
 
 function AppView(_ref, _ref2) {
-  var lang = _ref.lang,
-      id = _ref.id;
+  var lang = _ref.lang;
   var store = _ref2.store;
   var page;
 
@@ -10801,8 +10805,7 @@ function AppView(_ref, _ref2) {
     style: {
       dislay: 'flex',
       justifyContent: 'center'
-    },
-    id: id
+    }
   }, lom_h("div", {
     id: "menu",
     style: {

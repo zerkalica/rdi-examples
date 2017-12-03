@@ -23,7 +23,7 @@ function ErrorableView({
 }) {
     return <div id="errorable">
         {error instanceof AtomWait
-            ? <SpinnerView id="loading"/>
+            ? <div id="loading">Loading...</div>
             : <div id="error">
                 <h3 id="title">Fatal error !</h3>
                 <div id="message">{error.message}</div>

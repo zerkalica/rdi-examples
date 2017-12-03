@@ -135,8 +135,7 @@ export default class TodoService {
     }
 
     saveTodo(todoData: ITodoData) {
-        const todo = new TodoModel(todoData, this)
-        this.saving = todo
+        this.saving = new TodoModel(todoData, this)
     }
 
     @mem get removing(): ?ITodo {
@@ -161,29 +160,29 @@ export default class TodoService {
     }
 
     @mem set patching(patches: ITogglePatch[]) {
-        this._fetcher
-            .request(`/todos`)
-            .postOptions({method: 'PUT'})
-            .json(patches)
-            .valueOf()
         const map = new Map(patches)
-        this.todos = this.todos.map(
+        const newTodos = this.todos.map(
             (todo: ITodo) => new TodoModel({
                 title: todo.title,
                 id: todo.id,
                 completed: map.has(todo.id) ? todo.completed : (map.get(todo.id): any).completed
             }, this)
         )
+        this._fetcher
+            .request(`/todos`)
+            .postOptions({method: 'PUT'})
+            .json(patches)
+            .valueOf()
+
+        this.todos = newTodos
         mem.cache(this.patching = (null: any))
     }
 
     @action toggleAll() {
         const completed = !!this.todos.find((todo) => !todo.completed)
-        const patches: ITogglePatch[] = this.todos.map(
+        this.patching = this.todos.map(
             (todo: ITodo) => ([todo.id, {completed}])
         )
-
-        this.patching = patches
     }
 
     @mem get clearing(): ?ITodo[] {
@@ -215,6 +214,7 @@ export default class TodoService {
     }
 
     @mem get isOperationRunning(): boolean {
+        return false
         let count = 0
         if (this.adding) count++
         if (this.saving) count++
