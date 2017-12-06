@@ -38,7 +38,6 @@ class TodoMainTheme {
                 ...toggleAll
             },
             todoList: {
-                minHeight: '4em',
                 margin: 0,
                 padding: 0,
                 listStyle: 'none'
@@ -84,13 +83,11 @@ export default function TodoMainView(
             checked={activeTodoCount === 0}
         />
         <ul class={css.todoList} id="items">
-            {filteredTodos.map((todo: Todo) =>
-                <TodoItemView
-                    id={`todo(${todo.id})`}
-                    key={todo.id}
-                    todo={todo}
-                />
-            )}
+            {filteredTodos.map(todo => <TodoItemView
+                id={`todo(${todo.id})`}
+                key={todo.id}
+                todo={todo}
+            />)}
         </ul>
     </section>
 }

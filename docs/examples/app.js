@@ -1,3 +1,4 @@
+(function(l, i, v, e) { v = l.createElement(i); v.async = 1; v.src = '//' + (location.host || 'localhost').split(':')[0] + ':35729/livereload.js?snipver=1'; e = l.getElementsByTagName(i)[0]; e.parentNode.insertBefore(v, e)})(document, 'script');
 (function () {
 'use strict';
 
@@ -3400,7 +3401,7 @@ var devtools = createCommonjsModule(function (module, exports) {
     }
 
     initDevTools();
-  }); 
+  }); //# sourceMappingURL=devtools.js.map
 
 });
 
@@ -3571,13 +3572,6 @@ unwrapExports(SheetsRegistry_1);
  * LICENSE file in the root directory of this source tree. An additional grant
  * of patent rights can be found in the PATENTS file in the same directory.
  */
-/**
- * Similar to invariant but only logs a warning if the condition is not met.
- * This can be used to log issues in development environments in critical
- * paths. Removing the logging code for production environments will keep the
- * same logic and follow the same code paths.
- */
-
 var warning = function warning() {};
 
 warning._r = [2];
@@ -7160,10 +7154,6 @@ var isarray = Array.isArray || function (arr) {
   return Object.prototype.toString.call(arr) == '[object Array]';
 };
 
-/**
- * Expose `pathToRegexp`.
- */
-
 var pathToRegexp_1 = pathToRegexp;
 var parse_1 = parse;
 var compile_1 = compile;
@@ -9327,6 +9317,10 @@ function () {
 
   var _proto = Todo.prototype;
 
+  _proto.copy = function copy(data) {
+    return data ? new Todo(_extends({}, this.toJSON(), data), this._store) : this;
+  };
+
   _proto.toggle = function toggle() {
     this.saving = new Todo(_extends({}, this.toJSON(), {
       completed: !this.completed
@@ -9352,10 +9346,11 @@ function () {
     },
     set: function set(t) {
       if (this._title === t) return;
-      this._title = t;
-      this.saving = new Todo(_extends({}, this.toJSON(), {
+      this._title = t; // Prevent throwing Unhandlered AtomWait exception
+
+      mem.async(this.saving = new Todo(_extends({}, this.toJSON(), {
         title: t
-      }), this._store);
+      }), this._store));
     }
   }, {
     key: "saving",
@@ -9448,10 +9443,11 @@ function () {
   };
 
   _proto.toggleAll = function toggleAll() {
-    var completed = !!this.todos.find(function (todo) {
+    var todos = this.todos;
+    var completed = !!todos.find(function (todo) {
       return !todo.completed;
     });
-    this.patching = this.todos.map(function (todo) {
+    this.patching = todos.map(function (todo) {
       return [todo.id, {
         completed: completed
       }];
@@ -9501,20 +9497,12 @@ function () {
       return null;
     },
     set: function set(patches) {
-      var _this2 = this;
-
-      var map = new Map(patches);
-      var newTodos = this.todos.map(function (todo) {
-        return new Todo({
-          title: todo.title,
-          id: todo.id,
-          completed: map.has(todo.id) ? map.get(todo.id).completed : todo.completed
-        }, _this2);
-      });
-
       this._fetcher.put("/todos").json(patches);
 
-      this.todos = newTodos;
+      var patchMap = new Map(patches);
+      this.todos = this.todos.map(function (todo) {
+        return todo.copy(patchMap.get(todo.id));
+      });
       mem.cache(this.patching = null);
     }
   }, {
@@ -9625,26 +9613,29 @@ var TodoToAdd = (_class$10 =
 /*#__PURE__*/
 function () {
   function TodoToAdd(todoRepository) {
-    var _this = this;
-
     _initDefineProp$2(this, "title", _descriptor$2, this);
-
-    this.onKeyDown = function (e) {
-      if (e.keyCode === 13 && _this.title) {
-        _this._todoRepository.addTodo(_this.title);
-
-        _this.title = '';
-      }
-    };
 
     this._todoRepository = todoRepository;
   }
 
   var _proto = TodoToAdd.prototype;
 
+  _proto.setRef = function setRef(ref) {
+    if (!ref) return;
+    ref.focus();
+  };
+
   _proto.onInput = function onInput(_ref) {
     var target = _ref.target;
     this.title = target.value;
+  };
+
+  _proto.onKeyDown = function onKeyDown(e) {
+    if (e.keyCode === 13 && this.title) {
+      this._todoRepository.addTodo(this.title);
+
+      this.title = '';
+    }
   };
 
   _createClass(TodoToAdd, [{
@@ -9659,7 +9650,7 @@ function () {
   initializer: function initializer() {
     return '';
   }
-}), _applyDecoratedDescriptor$10(_class$10.prototype, "onInput", [action], Object.getOwnPropertyDescriptor(_class$10.prototype, "onInput"), _class$10.prototype), _class$10);
+}), _applyDecoratedDescriptor$10(_class$10.prototype, "setRef", [defer], Object.getOwnPropertyDescriptor(_class$10.prototype, "setRef"), _class$10.prototype), _applyDecoratedDescriptor$10(_class$10.prototype, "onInput", [action], Object.getOwnPropertyDescriptor(_class$10.prototype, "onInput"), _class$10.prototype), _applyDecoratedDescriptor$10(_class$10.prototype, "onKeyDown", [action], Object.getOwnPropertyDescriptor(_class$10.prototype, "onKeyDown"), _class$10.prototype), _class$10);
 TodoToAdd._r = [0, [TodoRepository]];
 TodoToAdd.displayName = "TodoToAdd";
 var TodoHeaderTheme = (_class3$2 =
@@ -9700,9 +9691,9 @@ function TodoHeaderView(_, _ref2) {
     placeholder: "What needs to be done?",
     disabled: todoToAdd.adding,
     onInput: todoToAdd.onInput,
+    ref: todoToAdd.setRef,
     value: todoToAdd.title,
-    onKeyDown: todoToAdd.onKeyDown,
-    autoFocus: true
+    onKeyDown: todoToAdd.onKeyDown
   }));
 }
 TodoHeaderView._r = [1, [{
@@ -10094,7 +10085,6 @@ function () {
         },
         toggleAll: _extends({}, toggleAll),
         todoList: {
-          minHeight: '4em',
           margin: 0,
           padding: 0,
           listStyle: 'none'
@@ -10157,6 +10147,7 @@ TodoMainView._r = [1, [{
 TodoMainView.displayName = "TodoMainView";
 
 var _class$13;
+var _class3$4;
 
 function _applyDecoratedDescriptor$13(target, property, decorators, descriptor, context) {
   var desc = {};
@@ -10187,34 +10178,42 @@ function _applyDecoratedDescriptor$13(target, property, decorators, descriptor, 
   return desc;
 }
 
-var links = [{
-  id: TODO_FILTER.ALL,
-  title: 'All'
-}, {
-  id: TODO_FILTER.ACTIVE,
-  title: 'Active'
-}, {
-  id: TODO_FILTER.COMPLETE,
-  title: 'Completed'
-}];
+var TodoFooterService = (_class$13 =
+/*#__PURE__*/
+function () {
+  function TodoFooterService(repository) {
+    this.links = [{
+      id: TODO_FILTER.ALL,
+      title: 'All'
+    }, {
+      id: TODO_FILTER.ACTIVE,
+      title: 'Active'
+    }, {
+      id: TODO_FILTER.COMPLETE,
+      title: 'Completed'
+    }];
+    this._repository = repository;
+  }
 
-function createHandler(rep, id) {
-  return function handler(e) {
+  var _proto = TodoFooterService.prototype;
+
+  _proto.clickLink = function clickLink(e) {
     e.preventDefault();
-    rep.filter = id;
+    this._repository.filter = e.target.dataset.linkid;
   };
-}
 
-createHandler._r = [2, [TodoRepository, "V"]];
-createHandler.displayName = "createHandler";
-var TodoFooterTheme = (_class$13 =
+  return TodoFooterService;
+}(), _applyDecoratedDescriptor$13(_class$13.prototype, "clickLink", [action], Object.getOwnPropertyDescriptor(_class$13.prototype, "clickLink"), _class$13.prototype), _class$13);
+TodoFooterService._r = [0, [TodoRepository]];
+TodoFooterService.displayName = "TodoFooterService";
+var TodoFooterTheme = (_class3$4 =
 /*#__PURE__*/
 function () {
   function TodoFooterTheme() {}
 
-  var _proto = TodoFooterTheme.prototype;
+  var _proto2 = TodoFooterTheme.prototype;
 
-  _proto.link = function link(isSelected) {
+  _proto2.link = function link(isSelected) {
     return isSelected ? this.css.linkSelected : this.css.linkRegular;
   };
 
@@ -10290,14 +10289,19 @@ function () {
     }
   }]);
   return TodoFooterTheme;
-}(), _applyDecoratedDescriptor$13(_class$13.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class$13.prototype, "css"), _class$13.prototype), _class$13);
+}(), _applyDecoratedDescriptor$13(_class3$4.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class3$4.prototype, "css"), _class3$4.prototype), _class3$4);
 TodoFooterTheme.displayName = "TodoFooterTheme";
 function TodoFooterView(_, _ref) {
-  var todoRepository = _ref.todoRepository,
+  var _ref$todoRepository = _ref.todoRepository,
+      completedCount = _ref$todoRepository.completedCount,
+      activeTodoCount = _ref$todoRepository.activeTodoCount,
+      filter = _ref$todoRepository.filter,
+      clearing = _ref$todoRepository.clearing,
+      clearCompleted = _ref$todoRepository.clearCompleted,
+      _ref$todoFooterServic = _ref.todoFooterService,
+      links = _ref$todoFooterServic.links,
+      clickLink = _ref$todoFooterServic.clickLink,
       theme$$1 = _ref.theme;
-  var completedCount = todoRepository.completedCount,
-      activeTodoCount = todoRepository.activeTodoCount,
-      filter = todoRepository.filter;
   var css = theme$$1.css;
 
   if (activeTodoCount === 0 && completedCount === 0) {
@@ -10323,17 +10327,19 @@ function TodoFooterView(_, _ref) {
       id: "link(" + link.id + ").a",
       "class": theme$$1.link(filter === link.id),
       href: "?todo_filter=" + link.id,
-      onClick: createHandler(todoRepository, link.id)
+      "data-linkid": link.id,
+      onClick: clickLink
     }, link.title));
   })), completedCount === 0 ? null : lom_h("button", {
     id: "clear",
     "class": css.clearCompleted,
-    disabled: todoRepository.clearing,
-    onClick: todoRepository.clearCompleted
+    disabled: clearing,
+    onClick: clearCompleted
   }, "Clear completed"));
 }
 TodoFooterView._r = [1, [{
   todoRepository: TodoRepository,
+  todoFooterService: TodoFooterService,
   theme: TodoFooterTheme
 }]];
 TodoFooterView.displayName = "TodoFooterView";
@@ -10410,7 +10416,7 @@ function () {
     }
   }]);
   return TodoAppTheme;
-}(), _applyDecoratedDescriptor$7(_class$7.prototype, "css", [mem, theme], Object.getOwnPropertyDescriptor(_class$7.prototype, "css"), _class$7.prototype), _class$7);
+}(), _applyDecoratedDescriptor$7(_class$7.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class$7.prototype, "css"), _class$7.prototype), _class$7);
 TodoAppTheme.displayName = "TodoAppTheme";
 function TodoAppView(_, _ref) {
   var css = _ref.theme.css;
@@ -10595,7 +10601,7 @@ autocompleteMocks.displayName = "autocompleteMocks";
 var _class$14;
 var _descriptor$5;
 var _dec$2;
-var _class3$4;
+var _class3$5;
 
 function _initDefineProp$5(target, property, descriptor, context) {
   if (!descriptor) return;
@@ -10645,7 +10651,7 @@ var Store$1 = (_class$14 = function Store() {
   }
 }), _class$14);
 Store$1.displayName = "Store";
-var CssChangeTheme = (_dec$2 = theme.self, _class3$4 =
+var CssChangeTheme = (_dec$2 = theme.self, _class3$5 =
 /*#__PURE__*/
 function () {
   function CssChangeTheme(store) {
@@ -10664,7 +10670,7 @@ function () {
     }
   }]);
   return CssChangeTheme;
-}(), _applyDecoratedDescriptor$15(_class3$4.prototype, "css", [mem, _dec$2], Object.getOwnPropertyDescriptor(_class3$4.prototype, "css"), _class3$4.prototype), _class3$4);
+}(), _applyDecoratedDescriptor$15(_class3$5.prototype, "css", [mem, _dec$2], Object.getOwnPropertyDescriptor(_class3$5.prototype, "css"), _class3$5.prototype), _class3$5);
 CssChangeTheme._r = [0, [Store$1]];
 CssChangeTheme.displayName = "CssChangeTheme";
 function CssChangeView(_, _ref) {

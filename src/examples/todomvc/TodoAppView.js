@@ -12,7 +12,7 @@ import TodoMainView from './TodoMainView'
 import TodoFooterView from './TodoFooterView'
 
 class TodoAppTheme {
-    @mem @theme get css() {
+    @theme get css() {
         return {
             todoapp: {
                 background: '#fff',
@@ -52,6 +52,8 @@ export default function TodoAppView(
     {
         theme: {css}
     }: {
+        // One instance per TodoHeaderView, TodoMainView, TodoFooterView
+        // Without it, all views receives separate instance of TodoRepository
         repository: TodoRepository;
         theme: TodoAppTheme;
     }

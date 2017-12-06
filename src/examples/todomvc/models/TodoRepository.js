@@ -4,9 +4,9 @@ import {action, mem, AtomWait} from 'lom_atom'
 import Fetcher from '../../../Fetcher'
 import {AbstractLocationStore} from '../../common-todomvc'
 import Todo from './Todo'
-import type {ITodoRepository} from './Todo'
+import type {ITodoRepository, ITodoData} from './Todo'
 
-type ITogglePatch = [string, $Shape<Todo>]
+type ITogglePatch = [string, $Shape<ITodoData>]
 
 export const TODO_FILTER = {
     ALL: 'all',
@@ -60,28 +60,17 @@ export default class TodoRepository implements ITodoRepository {
         return null
     }
 
-    @mem set patching(patches: ITogglePatch[]) {
-        const map = new Map(patches)
-        const newTodos = this.todos.map(
-            (todo: Todo) => new Todo({
-                title: todo.title,
-                id: todo.id,
-                completed: map.has(todo.id)
-                    ? (map.get(todo.id): any).completed
-                    : todo.completed
-            }, this)
-        )
+    @mem set patching(patches: ?ITogglePatch[]) {
         this._fetcher.put(`/todos`).json(patches)
-
-        this.todos = newTodos
-        mem.cache(this.patching = (null: any))
+        const patchMap = new Map(patches)
+        this.todos = this.todos.map(todo => todo.copy(patchMap.get(todo.id)))
+        mem.cache(this.patching = null)
     }
 
     @action toggleAll() {
-        const completed = !!this.todos.find((todo) => !todo.completed)
-        this.patching = this.todos.map(
-            (todo: Todo) => ([todo.id, {completed}])
-        )
+        const todos = this.todos
+        const completed = !!todos.find(todo => !todo.completed)
+        this.patching = todos.map(todo => ([todo.id, {completed}]))
     }
 
     @mem get clearing(): ?Todo[] {

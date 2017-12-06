@@ -1,27 +1,32 @@
 // @flow
-
+import {action} from 'lom_atom'
 import {theme} from 'reactive-di'
 import TodoRepository, {TODO_FILTER} from './models/TodoRepository'
 
-const links = [
-    {
-        id: TODO_FILTER.ALL,
-        title: 'All'
-    },
-    {
-        id: TODO_FILTER.ACTIVE,
-        title: 'Active'
-    },
-    {
-        id: TODO_FILTER.COMPLETE,
-        title: 'Completed'
-    }
-]
+class TodoFooterService {
+    _repository: TodoRepository
+    links = [
+        {
+            id: TODO_FILTER.ALL,
+            title: 'All'
+        },
+        {
+            id: TODO_FILTER.ACTIVE,
+            title: 'Active'
+        },
+        {
+            id: TODO_FILTER.COMPLETE,
+            title: 'Completed'
+        }
+    ]
 
-function createHandler<V: string>(rep: TodoRepository, id: V): (e: Event) => void {
-    return function handler(e: Event) {
+    constructor(repository: TodoRepository) {
+        this._repository = repository
+    }
+
+    @action clickLink(e: Event) {
         e.preventDefault()
-        rep.filter = id
+        this._repository.filter = (e.target: any).dataset.linkid
     }
 }
 
@@ -38,6 +43,7 @@ class TodoFooterTheme {
                 borderColor: 'rgba(175, 47, 47, 0.1)'
             }
         }
+
         return {
             footer: {
                 color: '#777',
@@ -118,14 +124,15 @@ class TodoFooterTheme {
 export default function TodoFooterView(
     _: {},
     {
-        todoRepository,
+        todoRepository: {completedCount, activeTodoCount, filter, clearing, clearCompleted},
+        todoFooterService: {links, clickLink},
         theme
     }: {
         todoRepository: TodoRepository;
+        todoFooterService: TodoFooterService;
         theme: TodoFooterTheme;
     }
 ) {
-    const {completedCount, activeTodoCount, filter} = todoRepository
     const css = theme.css
     if (activeTodoCount === 0 && completedCount === 0) {
         return null
@@ -136,8 +143,7 @@ export default function TodoFooterView(
             <strong id="number">{activeTodoCount}</strong> item(s) left
         </span>
         <ul class={css.filters} id="filters">
-            {links.map((link) =>
-                <li
+            {links.map(link => <li
                     key={link.id}
                     class={css.filterItem}
                     id={`link(${link.id})`}
@@ -145,17 +151,18 @@ export default function TodoFooterView(
                     id={`link(${link.id}).a`}
                     class={theme.link(filter === link.id)}
                     href={`?todo_filter=${link.id}`}
-                    onClick={createHandler(todoRepository, link.id)}
-                >{link.title}</a></li>
-            )}
+                    data-linkid={link.id}
+                    onClick={clickLink}
+                >{link.title}</a>
+            </li>)}
         </ul>
         {completedCount === 0
             ? null
             : <button
                 id="clear"
                 class={css.clearCompleted}
-                disabled={todoRepository.clearing}
-                onClick={todoRepository.clearCompleted}>
+                disabled={clearing}
+                onClick={clearCompleted}>
                 Clear completed
             </button>
         }

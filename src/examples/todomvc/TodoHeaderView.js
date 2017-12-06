@@ -1,5 +1,5 @@
 // @flow
-import {action, mem} from 'lom_atom'
+import {defer, action, mem} from 'lom_atom'
 import {props, theme} from 'reactive-di'
 
 import TodoRepository from './models/TodoRepository'
@@ -16,11 +16,16 @@ class TodoToAdd {
         return !!this._todoRepository.adding
     }
 
+    @defer setRef(ref: ?HTMLInputElement) {
+        if (!ref) return
+        ref.focus()
+    }
+
     @action onInput({target}: Event) {
         this.title = (target: any).value
     }
 
-    onKeyDown = (e: Event) => {
+    @action onKeyDown(e: Event) {
         if (e.keyCode === 13 && this.title) {
             this._todoRepository.addTodo(this.title)
             this.title = ''
@@ -67,9 +72,9 @@ export default function TodoHeaderView(
             placeholder="What needs to be done?"
             disabled={todoToAdd.adding}
             onInput={todoToAdd.onInput}
+            ref={todoToAdd.setRef}
             value={todoToAdd.title}
             onKeyDown={todoToAdd.onKeyDown}
-            autoFocus
         />
     </header>
 }

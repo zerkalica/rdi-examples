@@ -31,6 +31,12 @@ export default class Todo implements ITodoData {
         this._fetcher = store._fetcher
     }
 
+    copy(data?: ?$Shape<ITodoData>): Todo {
+        return data
+            ? new Todo({...this.toJSON(), ...data}, this._store)
+            : this
+    }
+
     get title(): string {
         return this._title
     }
@@ -38,11 +44,13 @@ export default class Todo implements ITodoData {
     set title(t: string) {
         if (this._title === t) return
         this._title = t
-
-        this.saving = new Todo({
-            ...this.toJSON(),
-            title: t
-        }, this._store)
+        // Prevent throwing Unhandlered AtomWait exception
+        mem.async(
+            this.saving = new Todo({
+                ...this.toJSON(),
+                title: t
+            }, this._store)
+        )
     }
 
     @mem get saving(): ?Todo {
