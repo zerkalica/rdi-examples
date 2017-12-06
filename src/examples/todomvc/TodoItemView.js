@@ -2,18 +2,16 @@
 
 import {props, theme} from 'reactive-di'
 import {action, defer, mem, AtomWait} from 'lom_atom'
-import type {ITodo} from './TodoService'
-import TodoService from './TodoService'
+import Todo from './models/Todo'
 
 const ESCAPE_KEY = 27
 const ENTER_KEY = 13
 
 interface ITodoProps {
-    +todo: ITodo;
-    id: string;
+    +todo: Todo;
 }
 
-class TodoItemStore {
+class TodoItemEdit {
     @mem todoBeingEditedId: ?string = null
     @mem editText = ''
 
@@ -116,6 +114,7 @@ class TodoItemTheme {
             edit: {
                 backgroundColor: '#F2FFAB',
                 display: 'block',
+                zIndex: '0',
                 border: 0,
                 position: 'relative',
                 fontSize: '24px',
@@ -204,46 +203,50 @@ class TodoItemTheme {
 }
 
 export default function TodoItemView(
-    {todo, id}: ITodoProps,
-    {itemStore, theme, service}: {
-        service: TodoService;
+    {todo}: ITodoProps,
+    {todoItemEdit, theme}: {
         theme: TodoItemTheme;
-        itemStore: TodoItemStore;
+        todoItemEdit: TodoItemEdit;
     }
 ) {
-
     const css = theme.css
-    return itemStore.todoBeingEditedId === todo.id
-        ? <li class={css.editing}>
+    if (todoItemEdit.todoBeingEditedId === todo.id) {
+        return <li class={css.editing}>
             <input
                 id="editing"
-                ref={itemStore.setEditInputRef}
+                ref={todoItemEdit.setEditInputRef}
                 class={css.edit}
-                value={itemStore.editText}
-                onBlur={itemStore.handleSubmit}
-                onInput={itemStore.setText}
-                onKeyDown={itemStore.handleKeyDown}
+                disabled={todo.saving}
+                value={todoItemEdit.editText}
+                onBlur={todoItemEdit.handleSubmit}
+                onInput={todoItemEdit.setText}
+                onKeyDown={todoItemEdit.handleKeyDown}
             />
         </li>
-        : <li class={theme.editable(todo.completed)}>
-            <input
-                id="toggle"
-                class={css.toggle}
-                type="checkbox"
-                checked={todo.completed}
-                onChange={itemStore.toggle}
-            />
-            <label
-                id="beginEdit"
-                class={theme.label(todo.completed)}
-                onDblClick={itemStore.beginEdit}
-            >
-                {todo.title}
-            </label>
-            <button
-                id="destroy"
-                class={css.destroy}
-                onClick={itemStore.handleDestroy}
-            />
-        </li>
+    }
+
+    return <li class={theme.editable(todo.completed)}>
+        <input
+            id="toggle"
+            class={css.toggle}
+            type="checkbox"
+            disabled={todo.saving}
+            checked={todo.completed}
+            onChange={todoItemEdit.toggle}
+        />
+        <label
+            id="beginEdit"
+            class={theme.label(todo.completed)}
+            disabled={todo.saving}
+            onDblClick={todoItemEdit.beginEdit}
+        >
+            {todo.title}
+        </label>
+        <button
+            id="destroy"
+            class={css.destroy}
+            disabled={todo.removing}
+            onClick={todoItemEdit.handleDestroy}
+        />
+    </li>
 }

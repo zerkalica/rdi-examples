@@ -2,28 +2,27 @@
 import {action, mem} from 'lom_atom'
 import {props, theme} from 'reactive-di'
 
-import TodoService from './TodoService'
-
-interface IStore {
-    addTodo(title: string): void;
-}
+import TodoRepository from './models/TodoRepository'
 
 class TodoToAdd {
     @mem title: string = ''
-    _todoService: IStore
+    _todoRepository: TodoRepository
 
-    constructor(todoService: TodoService) {
-        this._todoService = todoService
+    constructor(todoRepository: TodoRepository) {
+        this._todoRepository = todoRepository
     }
 
-    @action
-    onInput({target}: Event) {
+    get adding(): boolean {
+        return !!this._todoRepository.adding
+    }
+
+    @action onInput({target}: Event) {
         this.title = (target: any).value
     }
 
     onKeyDown = (e: Event) => {
         if (e.keyCode === 13 && this.title) {
-            this._todoService.addTodo(this.title)
+            this._todoRepository.addTodo(this.title)
             this.title = ''
         }
     }
@@ -66,10 +65,11 @@ export default function TodoHeaderView(
             id="input"
             class={css.newTodo}
             placeholder="What needs to be done?"
+            disabled={todoToAdd.adding}
             onInput={todoToAdd.onInput}
             value={todoToAdd.title}
             onKeyDown={todoToAdd.onKeyDown}
-            autoFocus={true}
+            autoFocus
         />
     </header>
 }

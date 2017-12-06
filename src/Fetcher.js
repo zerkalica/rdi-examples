@@ -163,7 +163,7 @@ class FetcherResponse<V> implements FetcherApi<V> {
 
         const text = this.text(next === undefined ? undefined : JSON.stringify(next, null, '\t'))
 
-        return JSON.parse(text.valueOf())
+        return JSON.parse(text)
     }
 }
 

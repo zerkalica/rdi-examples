@@ -80,7 +80,8 @@ var ATOM_STATUS_PULLING = 3;
 var ATOM_STATUS_ACTUAL = 4;
 var ATOM_STATUS_DEEP_RESET = 5;
 var catchedId = Symbol('lom_atom_catched');
-var origId = Symbol('orig_error');
+var ATOM_FORCE_CACHE = 1;
+var ATOM_FORCE_ASYNC = 2;
 
 var AtomWait =
 /*#__PURE__*/
@@ -126,6 +127,23 @@ var scheduleNative = typeof requestAnimationFrame === 'function' ? function (han
 } : function (handler) {
   return setTimeout(handler, 16);
 };
+var origId = Symbol('orig_error');
+var throwOnAccess = {
+  get: function get(target, key) {
+    if (key === origId) return target.valueOf();
+    throw target.valueOf();
+  },
+  ownKeys: function ownKeys(target) {
+    throw target.valueOf();
+  }
+};
+
+function proxify(v) {
+  return new Proxy(v, throwOnAccess);
+}
+
+proxify._r = [2];
+proxify.displayName = "proxify";
 var handlers = new Map([[Array, function arrayHandler(target, source, stack) {
   var equal = target.length === source.length;
 
@@ -180,16 +198,6 @@ conform.displayName = "conform";
 var _class$1;
 
 var _temp$1;
-
-var throwOnAccess = {
-  get: function get(target, key) {
-    if (key === origId) return target.valueOf();
-    throw target.valueOf();
-  },
-  ownKeys: function ownKeys(target) {
-    throw target.valueOf();
-  }
-};
 
 function checkSlave(slave) {
   slave.check();
@@ -286,7 +294,7 @@ function () {
   _proto.value = function value(next, forceCache) {
     var context = this._context;
 
-    if (forceCache === true) {
+    if (forceCache === ATOM_FORCE_CACHE) {
       if (next === undefined) {
         this.reset();
 
@@ -321,7 +329,15 @@ function () {
       this.actualize();
     }
 
-    return this.current;
+    var current = this.current;
+
+    if (current instanceof Error) {
+      if (forceCache === ATOM_FORCE_ASYNC) return proxify(current); // return proxify((current: any))
+
+      throw current;
+    }
+
+    return current;
   };
 
   _proto.actualize = function actualize() {
@@ -364,7 +380,7 @@ function () {
 
     this.status = ATOM_STATUS_ACTUAL;
     var prev = this.current;
-    var next = nextRaw instanceof Error ? nextRaw[origId] ? nextRaw : new Proxy(nextRaw, throwOnAccess) : conform(nextRaw, prev, this.isComponent);
+    var next = nextRaw instanceof Error ? nextRaw[origId] || nextRaw : conform(nextRaw, prev, this.isComponent);
 
     if (prev !== next) {
       this.current = next;
@@ -477,8 +493,6 @@ function () {
     var _this = this;
 
     this.current = null;
-    this.isCacheForce = false;
-    this.isDeepReset = false;
     this._logger = undefined;
     this._updating = [];
     this._reaping = new Set();
@@ -539,7 +553,7 @@ function () {
         // if (!this._scheduled && this._logger !== undefined) {
         //     this._logger.beginGroup(this._namespace)
         // }
-        logger.newValue(atom, from instanceof Error && from[origId] ? from[origId] : from, to instanceof Error && to[origId] ? to[origId] : to);
+        logger.newValue(atom, from, to);
       } catch (error) {
         console.error(error);
         logger.error(atom, error);
@@ -666,6 +680,8 @@ function createActionMethod(t, name, context) {
         default:
           result = t[name].apply(t, args);
       }
+    } catch (e) {
+      if (!(e instanceof AtomWait)) throw e;
     } finally {
       context.endTransaction(oldNamespace);
     }
@@ -717,6 +733,8 @@ function createActionFn(fn, rawName, context) {
         default:
           result = fn.apply(null, args);
       }
+    } catch (e) {
+      if (!(e instanceof AtomWait)) throw e;
     } finally {
       context.endTransaction(oldNamespace);
     }
@@ -796,7 +814,7 @@ function detached(proto, name, descr) {
       }
 
       if (force) {
-        atom.status = 5; // atom.reset()
+        atom.status = ATOM_STATUS_OBSOLETE; // atom.reset()
       }
 
       return atom.value();
@@ -829,7 +847,7 @@ function createValueHandler(initializer) {
 
 createValueHandler._r = [2];
 createValueHandler.displayName = "createValueHandler";
-var isForceCache = false;
+var isForceCache = 0;
 
 function mem(proto, name, descr, deepReset) {
   var handlerKey = name + "$";
@@ -958,7 +976,7 @@ memkeyManual.displayName = "memkeyManual";
 memkey.manual = memkeyManual;
 
 function cache(data) {
-  isForceCache = false;
+  isForceCache = 0;
   return data;
 }
 
@@ -967,7 +985,13 @@ cache.displayName = "cache";
 Object.defineProperties(mem, {
   cache: {
     get: function get() {
-      isForceCache = true;
+      isForceCache = 1;
+      return cache;
+    }
+  },
+  async: {
+    get: function get() {
+      isForceCache = 2;
       return cache;
     }
   },
@@ -1564,6 +1588,7 @@ function createReactWrapper(BaseComponent, ErrorComponent, detached, rootInjecto
       _this = _BaseComponent.call(this, props, reactContext) || this;
       _this._propsChanged = true;
       _this._el = undefined;
+      _this._lastData = null;
       var injector = rootInjector;
       _this._keys = undefined;
       var cns = _this.constructor;
@@ -1618,6 +1643,7 @@ function createReactWrapper(BaseComponent, ErrorComponent, detached, rootInjecto
       this._el = undefined;
       this._keys = undefined;
       this.props = undefined;
+      this._lastData = null;
 
       if (this._render !== undefined) {
         this.constructor.instance--;
@@ -1636,9 +1662,11 @@ function createReactWrapper(BaseComponent, ErrorComponent, detached, rootInjecto
 
       try {
         data = injector.invokeWithProps(render, this.props, this._propsChanged);
+        this._lastData = data;
       } catch (error) {
         data = injector.invokeWithProps(render.onError || ErrorComponent, {
-          error: error
+          error: error,
+          children: this._lastData
         });
         error[rdiRendered] = true;
       }
@@ -8470,36 +8498,29 @@ function () {
     key: "css",
     get: function get() {
       return {
-        '@keyframes spinner': {
+        '@keyframes rdi_spinner_wait_move': {
+          from: {
+            backgroundPosition: '0 0'
+          },
           to: {
-            transform: 'rotate(360deg)'
+            backgroundPosition: '-28px 0'
           }
         },
         spinner: {
-          position: 'absolute',
-          zIndex: '5',
+          '& *': {
+            opacity: '0.8',
+            background: 'none'
+          },
+          position: 'relative',
+          zIndex: '1000',
           left: 0,
           top: 0,
-          width: '100%',
-          height: '100%',
-          overflow: 'auto',
-          backgroundColor: 'rgba(0, 0, 0, 0.07)',
-          '&:before': {
-            content: '\'\'',
-            boxSizing: 'border-box',
-            position: 'absolute',
-            zIndex: '10',
-            top: '50%',
-            left: '50%',
-            width: '40px',
-            height: '40px',
-            marginTop: '-10px',
-            marginLeft: '-10px',
-            borderRadius: '50%',
-            border: '3px solid #ccc',
-            borderTopColor: '#333',
-            animation: 'spinner .6s linear infinite'
-          }
+          pointerEvents: 'none',
+          backgroundSize: '28px 28px',
+          backgroundImage: "repeating-linear-gradient(45deg, rgba(0,0,0, 0.05), rgba(0,0,0,0.05) 9px, rgba(255,255,255,.015) 10px, rgba(255,255,255,.015) 20px)",
+          animation: 'rdi_spinner_wait_move .25s steps(6) infinite',
+          minWidth: '28px',
+          minHeight: '28px'
         }
       };
     }
@@ -8507,11 +8528,12 @@ function () {
   return SpinnerTheme;
 }(), _applyDecoratedDescriptor$3(_class2$1.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class2$1.prototype, "css"), _class2$1.prototype), _class2$1);
 SpinnerTheme.displayName = "SpinnerTheme";
-function SpinnerView(_, _ref7) {
-  var css = _ref7.theme.css;
+function SpinnerView(_ref7, _ref8) {
+  var children = _ref7.children;
+  var css = _ref8.theme.css;
   return lom_h("div", {
     "class": css.spinner
-  });
+  }, children);
 }
 SpinnerView._r = [1, [{
   theme: SpinnerTheme
@@ -8757,7 +8779,7 @@ function () {
     }
 
     var text = this.text(next === undefined ? undefined : JSON.stringify(next, null, '\t'));
-    return JSON.parse(text.valueOf());
+    return JSON.parse(text);
   };
 
   return FetcherResponse;
@@ -8820,12 +8842,13 @@ Fetcher.displayName = "Fetcher";
 defaultContext.setLogger(new ConsoleLogger());
 
 function ErrorableView(_ref) {
-  var error = _ref.error;
+  var error = _ref.error,
+      children = _ref.children;
   return lom_h("div", {
     id: "errorable"
-  }, error instanceof AtomWait ? lom_h("div", {
+  }, error instanceof AtomWait ? lom_h(SpinnerView, {
     id: "loading"
-  }, "Loading...") : lom_h("div", {
+  }, children) : lom_h("div", {
     id: "error"
   }, lom_h("h3", {
     id: "title"
@@ -9256,9 +9279,9 @@ function todoMocks(rawStorage) {
 todoMocks._r = [2, [Storage]];
 todoMocks.displayName = "todoMocks";
 
-var _class$8;
+var _class$9;
 
-function _applyDecoratedDescriptor$8(target, property, decorators, descriptor, context) {
+function _applyDecoratedDescriptor$9(target, property, decorators, descriptor, context) {
   var desc = {};
   Object['ke' + 'ys'](descriptor).forEach(function (key) {
     desc[key] = descriptor[key];
@@ -9287,10 +9310,10 @@ function _applyDecoratedDescriptor$8(target, property, decorators, descriptor, c
   return desc;
 }
 
-var TodoModel =
+var Todo = (_class$9 =
 /*#__PURE__*/
 function () {
-  function TodoModel(todo, store) {
+  function Todo(todo, store) {
     if (todo === void 0) {
       todo = {};
     }
@@ -9299,22 +9322,19 @@ function () {
     this.id = todo.id || uuid();
     this.completed = todo.completed || false;
     this._store = store;
+    this._fetcher = store._fetcher;
   }
 
-  var _proto = TodoModel.prototype;
-
-  _proto.remove = function remove() {
-    this._store.remove(this);
-  };
+  var _proto = Todo.prototype;
 
   _proto.toggle = function toggle() {
-    this.completed = !this.completed;
-
-    this._store.saveTodo(this.toJSON());
+    this.saving = new Todo(_extends({}, this.toJSON(), {
+      completed: !this.completed
+    }), this._store);
   };
 
-  _proto.update = function update(data) {
-    this._store.saveTodo(data);
+  _proto.remove = function remove() {
+    this.removing = true;
   };
 
   _proto.toJSON = function toJSON() {
@@ -9325,7 +9345,7 @@ function () {
     };
   };
 
-  _createClass(TodoModel, [{
+  _createClass(Todo, [{
     key: "title",
     get: function get() {
       return this._title;
@@ -9333,87 +9353,9 @@ function () {
     set: function set(t) {
       if (this._title === t) return;
       this._title = t;
-
-      this._store.saveTodo(this.toJSON());
-    }
-  }]);
-  return TodoModel;
-}();
-
-TodoModel._r = [0, [TodoService]];
-TodoModel.displayName = "TodoModel";
-var TodoService = (_class$8 =
-/*#__PURE__*/
-function () {
-  function TodoService(fetcher) {
-    var _this = this;
-
-    this.toggleAll = function () {
-      var completed = !!_this.todos.find(function (todo) {
-        return !todo.completed;
-      });
-      _this.patching = _this.todos.map(function (todo) {
-        return [todo.id, {
-          completed: completed
-        }];
-      });
-    };
-
-    this._fetcher = fetcher;
-  }
-
-  var _proto2 = TodoService.prototype;
-
-  _proto2.addTodo = function addTodo(title) {
-    this.adding = new TodoModel({
-      title: title
-    }, this);
-  };
-
-  _proto2.saveTodo = function saveTodo(todoData) {
-    this.saving = new TodoModel(todoData, this);
-  };
-
-  _proto2.remove = function remove(todo) {
-    this.removing = todo;
-  };
-
-  _proto2.clearCompleted = function clearCompleted() {
-    this.clearing = this.todos;
-  };
-
-  _createClass(TodoService, [{
-    key: "todos",
-    get: function get() {
-      var _this2 = this;
-
-      return this._fetcher.get('/todos').json().map(function (todo) {
-        return new TodoModel(todo, _this2);
-      });
-    },
-    set: function set(todos) {}
-  }, {
-    key: "activeTodoCount",
-    get: function get() {
-      return this.todos.reduce(function (sum, todo) {
-        return sum + (todo.completed ? 0 : 1);
-      }, 0);
-    }
-  }, {
-    key: "completedCount",
-    get: function get() {
-      return this.todos.length - this.activeTodoCount;
-    }
-  }, {
-    key: "adding",
-    get: function get() {
-      return null;
-    },
-    set: function set(next) {
-      this._fetcher.put('/todo').json(next).valueOf();
-
-      this.todos = this.todos.concat([next]);
-      mem.cache(this.adding = null);
+      this.saving = new Todo(_extends({}, this.toJSON(), {
+        title: t
+      }), this._store);
     }
   }, {
     key: "saving",
@@ -9421,9 +9363,11 @@ function () {
       return null;
     },
     set: function set(next) {
-      this._fetcher.post("/todo/" + next.id).json(next).valueOf();
+      this._fetcher.post("/todo/" + this.id).json(next);
 
-      this.todos = this.todos.map(function (t) {
+      var store = this._store; // mem.cache(store.todos) // Reload from server
+
+      store.todos = store.todos.map(function (t) {
         return t.id === next.id ? next : t;
       });
       mem.cache(this.saving = null);
@@ -9431,82 +9375,29 @@ function () {
   }, {
     key: "removing",
     get: function get() {
-      return null;
+      return false;
     },
     set: function set(next) {
-      this._fetcher.delete("/todo/" + next.id).json().valueOf();
+      var _this = this;
 
-      this.todos = this.todos.filter(function (t) {
-        return t.id !== next.id;
+      this._fetcher.delete("/todo/" + this.id).json();
+
+      var store = this._store; // mem.cache(store.todos) // Reload from server
+
+      store.todos = store.todos.filter(function (t) {
+        return t.id !== _this.id;
       });
-      mem.cache(this.removing = null);
-    }
-  }, {
-    key: "patching",
-    get: function get() {
-      return null;
-    },
-    set: function set(patches) {
-      var _this3 = this;
-
-      var map = new Map(patches);
-      var newTodos = this.todos.map(function (todo) {
-        return new TodoModel({
-          title: todo.title,
-          id: todo.id,
-          completed: map.has(todo.id) ? map.get(todo.id).completed : todo.completed
-        }, _this3);
-      });
-
-      this._fetcher.put("/todos").json(patches).valueOf();
-
-      this.todos = newTodos;
-      mem.cache(this.patching = null);
-    }
-  }, {
-    key: "clearing",
-    get: function get() {
-      return null;
-    },
-    set: function set(todos) {
-      var delIds = [];
-      var newTodos = [];
-
-      for (var i = 0; i < todos.length; i++) {
-        var todo = todos[i];
-
-        if (todo.completed) {
-          delIds.push(todo.id);
-        } else {
-          newTodos.push(todo);
-        }
-      }
-
-      this._fetcher.delete("/todos").json(delIds).valueOf();
-
-      this.todos = newTodos;
-      mem.cache(this.clearing = null);
-    }
-  }, {
-    key: "isOperationRunning",
-    get: function get() {
-      var count = 0;
-      if (this.adding) count++;
-      if (this.saving) count++;
-      if (this.removing) count++;
-      if (this.patching) count++;
-      if (this.clearing) count++;
-      return count !== 0;
+      mem.cache(this.removing = false);
     }
   }]);
-  return TodoService;
-}(), _applyDecoratedDescriptor$8(_class$8.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "todos"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "todos"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "activeTodoCount", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "activeTodoCount"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "adding", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "adding"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "adding", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "adding"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "saving", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "saving"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "saving", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "saving"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "removing", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "removing"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "removing", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "removing"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "patching", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "patching"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "patching", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "patching"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "clearing", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "clearing"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "clearing", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "clearing"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "isOperationRunning", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "isOperationRunning"), _class$8.prototype), _class$8);
-TodoService._r = [0, [Fetcher]];
-TodoService.displayName = "TodoService";
+  return Todo;
+}(), _applyDecoratedDescriptor$9(_class$9.prototype, "saving", [mem], Object.getOwnPropertyDescriptor(_class$9.prototype, "saving"), _class$9.prototype), _applyDecoratedDescriptor$9(_class$9.prototype, "saving", [mem], Object.getOwnPropertyDescriptor(_class$9.prototype, "saving"), _class$9.prototype), _applyDecoratedDescriptor$9(_class$9.prototype, "toggle", [action], Object.getOwnPropertyDescriptor(_class$9.prototype, "toggle"), _class$9.prototype), _applyDecoratedDescriptor$9(_class$9.prototype, "removing", [mem], Object.getOwnPropertyDescriptor(_class$9.prototype, "removing"), _class$9.prototype), _applyDecoratedDescriptor$9(_class$9.prototype, "removing", [mem], Object.getOwnPropertyDescriptor(_class$9.prototype, "removing"), _class$9.prototype), _applyDecoratedDescriptor$9(_class$9.prototype, "remove", [action], Object.getOwnPropertyDescriptor(_class$9.prototype, "remove"), _class$9.prototype), _class$9);
+Todo._r = [0, ["ITodoRepository"]];
+Todo.displayName = "Todo";
 
-var _class$9;
+var _class$8;
 
-function _applyDecoratedDescriptor$9(target, property, decorators, descriptor, context) {
+function _applyDecoratedDescriptor$8(target, property, decorators, descriptor, context) {
   var desc = {};
   Object['ke' + 'ys'](descriptor).forEach(function (key) {
     desc[key] = descriptor[key];
@@ -9540,26 +9431,128 @@ var TODO_FILTER = {
   COMPLETE: 'complete',
   ACTIVE: 'active'
 };
-var TodoFilterService = (_class$9 =
+var TodoRepository = (_class$8 =
 /*#__PURE__*/
 function () {
-  function TodoFilterService(todoService, locationStore) {
-    this._todoService = todoService;
-    this._locationStore = locationStore;
+  function TodoRepository(fetcher, location) {
+    this._fetcher = fetcher;
+    this._location = location;
   }
 
-  _createClass(TodoFilterService, [{
+  var _proto = TodoRepository.prototype;
+
+  _proto.addTodo = function addTodo(title) {
+    this.adding = new Todo({
+      title: title
+    }, this);
+  };
+
+  _proto.toggleAll = function toggleAll() {
+    var completed = !!this.todos.find(function (todo) {
+      return !todo.completed;
+    });
+    this.patching = this.todos.map(function (todo) {
+      return [todo.id, {
+        completed: completed
+      }];
+    });
+  };
+
+  _proto.clearCompleted = function clearCompleted() {
+    this.clearing = this.todos;
+  };
+
+  _createClass(TodoRepository, [{
+    key: "todos",
+    get: function get() {
+      var _this = this;
+
+      return this._fetcher.get('/todos').json().map(function (todo) {
+        return new Todo(todo, _this);
+      });
+    },
+    set: function set(todos) {}
+  }, {
+    key: "activeTodoCount",
+    get: function get() {
+      return this.todos.reduce(function (sum, todo) {
+        return sum + (todo.completed ? 0 : 1);
+      }, 0);
+    }
+  }, {
+    key: "completedCount",
+    get: function get() {
+      return this.todos.length - this.activeTodoCount;
+    }
+  }, {
+    key: "adding",
+    get: function get() {
+      return null;
+    },
+    set: function set(next) {
+      this._fetcher.put('/todo').json(next);
+
+      this.todos = this.todos.concat([next]);
+      mem.cache(this.adding = null);
+    }
+  }, {
+    key: "patching",
+    get: function get() {
+      return null;
+    },
+    set: function set(patches) {
+      var _this2 = this;
+
+      var map = new Map(patches);
+      var newTodos = this.todos.map(function (todo) {
+        return new Todo({
+          title: todo.title,
+          id: todo.id,
+          completed: map.has(todo.id) ? map.get(todo.id).completed : todo.completed
+        }, _this2);
+      });
+
+      this._fetcher.put("/todos").json(patches);
+
+      this.todos = newTodos;
+      mem.cache(this.patching = null);
+    }
+  }, {
+    key: "clearing",
+    get: function get() {
+      return null;
+    },
+    set: function set(todos) {
+      var delIds = [];
+      var newTodos = [];
+
+      for (var i = 0; i < todos.length; i++) {
+        var todo = todos[i];
+
+        if (todo.completed) {
+          delIds.push(todo.id);
+        } else {
+          newTodos.push(todo);
+        }
+      }
+
+      this._fetcher.delete("/todos").json(delIds);
+
+      this.todos = newTodos;
+      mem.cache(this.clearing = null);
+    }
+  }, {
     key: "filter",
     get: function get() {
-      return this._locationStore.location('todo_filter') || TODO_FILTER.ALL;
+      return this._location.location('todo_filter') || TODO_FILTER.ALL;
     },
     set: function set(filter) {
-      return this._locationStore.location('todo_filter', filter);
+      return this._location.location('todo_filter', filter);
     }
   }, {
     key: "filteredTodos",
     get: function get() {
-      var todos = this._todoService.todos;
+      var todos = this.todos;
 
       switch (this.filter) {
         case TODO_FILTER.ALL:
@@ -9580,10 +9573,10 @@ function () {
       }
     }
   }]);
-  return TodoFilterService;
-}(), _applyDecoratedDescriptor$9(_class$9.prototype, "filteredTodos", [mem], Object.getOwnPropertyDescriptor(_class$9.prototype, "filteredTodos"), _class$9.prototype), _class$9);
-TodoFilterService._r = [0, [TodoService, AbstractLocationStore]];
-TodoFilterService.displayName = "TodoFilterService";
+  return TodoRepository;
+}(), _applyDecoratedDescriptor$8(_class$8.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "todos"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "activeTodoCount", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "activeTodoCount"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "adding", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "adding"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "adding", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "adding"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "addTodo", [action], Object.getOwnPropertyDescriptor(_class$8.prototype, "addTodo"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "patching", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "patching"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "patching", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "patching"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "toggleAll", [action], Object.getOwnPropertyDescriptor(_class$8.prototype, "toggleAll"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "clearing", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "clearing"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "clearing", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "clearing"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "clearCompleted", [action], Object.getOwnPropertyDescriptor(_class$8.prototype, "clearCompleted"), _class$8.prototype), _applyDecoratedDescriptor$8(_class$8.prototype, "filteredTodos", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "filteredTodos"), _class$8.prototype), _class$8);
+TodoRepository._r = [0, [Fetcher, AbstractLocationStore]];
+TodoRepository.displayName = "TodoRepository";
 
 var _class$10;
 var _descriptor$2;
@@ -9631,20 +9624,20 @@ function _applyDecoratedDescriptor$10(target, property, decorators, descriptor, 
 var TodoToAdd = (_class$10 =
 /*#__PURE__*/
 function () {
-  function TodoToAdd(todoService) {
+  function TodoToAdd(todoRepository) {
     var _this = this;
 
     _initDefineProp$2(this, "title", _descriptor$2, this);
 
     this.onKeyDown = function (e) {
       if (e.keyCode === 13 && _this.title) {
-        _this._todoService.addTodo(_this.title);
+        _this._todoRepository.addTodo(_this.title);
 
         _this.title = '';
       }
     };
 
-    this._todoService = todoService;
+    this._todoRepository = todoRepository;
   }
 
   var _proto = TodoToAdd.prototype;
@@ -9654,6 +9647,12 @@ function () {
     this.title = target.value;
   };
 
+  _createClass(TodoToAdd, [{
+    key: "adding",
+    get: function get() {
+      return !!this._todoRepository.adding;
+    }
+  }]);
   return TodoToAdd;
 }(), _descriptor$2 = _applyDecoratedDescriptor$10(_class$10.prototype, "title", [mem], {
   enumerable: true,
@@ -9661,7 +9660,7 @@ function () {
     return '';
   }
 }), _applyDecoratedDescriptor$10(_class$10.prototype, "onInput", [action], Object.getOwnPropertyDescriptor(_class$10.prototype, "onInput"), _class$10.prototype), _class$10);
-TodoToAdd._r = [0, [TodoService]];
+TodoToAdd._r = [0, [TodoRepository]];
 TodoToAdd.displayName = "TodoToAdd";
 var TodoHeaderTheme = (_class3$2 =
 /*#__PURE__*/
@@ -9699,6 +9698,7 @@ function TodoHeaderView(_, _ref2) {
     id: "input",
     "class": css.newTodo,
     placeholder: "What needs to be done?",
+    disabled: todoToAdd.adding,
     onInput: todoToAdd.onInput,
     value: todoToAdd.title,
     onKeyDown: todoToAdd.onKeyDown,
@@ -9758,10 +9758,10 @@ function _applyDecoratedDescriptor$12(target, property, decorators, descriptor, 
 
 var ESCAPE_KEY = 27;
 var ENTER_KEY = 13;
-var TodoItemStore = (_class$12 =
+var TodoItemEdit = (_class$12 =
 /*#__PURE__*/
 function () {
-  function TodoItemStore() {
+  function TodoItemEdit() {
     var _this = this;
 
     _initDefineProp$3(this, "todoBeingEditedId", _descriptor$3, this);
@@ -9825,7 +9825,7 @@ function () {
     };
   }
 
-  var _proto = TodoItemStore.prototype;
+  var _proto = TodoItemEdit.prototype;
 
   _proto.setText = function setText(_ref) {
     var target = _ref.target;
@@ -9837,7 +9837,7 @@ function () {
     el.focus();
   };
 
-  return TodoItemStore;
+  return TodoItemEdit;
 }(), _descriptor$3 = _applyDecoratedDescriptor$12(_class$12.prototype, "todoBeingEditedId", [mem], {
   enumerable: true,
   initializer: function initializer() {
@@ -9852,7 +9852,7 @@ function () {
   enumerable: true,
   initializer: null
 }), _applyDecoratedDescriptor$12(_class$12.prototype, "setText", [action], Object.getOwnPropertyDescriptor(_class$12.prototype, "setText"), _class$12.prototype), _applyDecoratedDescriptor$12(_class$12.prototype, "setEditInputRef", [defer], Object.getOwnPropertyDescriptor(_class$12.prototype, "setEditInputRef"), _class$12.prototype), _class$12);
-TodoItemStore.displayName = "TodoItemStore";
+TodoItemEdit.displayName = "TodoItemEdit";
 var TodoItemTheme = (_class3$3 =
 /*#__PURE__*/
 function () {
@@ -9903,6 +9903,7 @@ function () {
         edit: {
           backgroundColor: '#F2FFAB',
           display: 'block',
+          zIndex: '0',
           border: 0,
           position: 'relative',
           fontSize: '24px',
@@ -9978,44 +9979,50 @@ function () {
 }(), _applyDecoratedDescriptor$12(_class3$3.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class3$3.prototype, "css"), _class3$3.prototype), _class3$3);
 TodoItemTheme.displayName = "TodoItemTheme";
 function TodoItemView(_ref2, _ref3) {
-  var todo = _ref2.todo,
-      id = _ref2.id;
-  var itemStore = _ref3.itemStore,
-      theme$$1 = _ref3.theme,
-      service = _ref3.service;
+  var todo = _ref2.todo;
+  var todoItemEdit = _ref3.todoItemEdit,
+      theme$$1 = _ref3.theme;
   var css = theme$$1.css;
-  return itemStore.todoBeingEditedId === todo.id ? lom_h("li", {
-    "class": css.editing
-  }, lom_h("input", {
-    id: "editing",
-    ref: itemStore.setEditInputRef,
-    "class": css.edit,
-    value: itemStore.editText,
-    onBlur: itemStore.handleSubmit,
-    onInput: itemStore.setText,
-    onKeyDown: itemStore.handleKeyDown
-  })) : lom_h("li", {
+
+  if (todoItemEdit.todoBeingEditedId === todo.id) {
+    return lom_h("li", {
+      "class": css.editing
+    }, lom_h("input", {
+      id: "editing",
+      ref: todoItemEdit.setEditInputRef,
+      "class": css.edit,
+      disabled: todo.saving,
+      value: todoItemEdit.editText,
+      onBlur: todoItemEdit.handleSubmit,
+      onInput: todoItemEdit.setText,
+      onKeyDown: todoItemEdit.handleKeyDown
+    }));
+  }
+
+  return lom_h("li", {
     "class": theme$$1.editable(todo.completed)
   }, lom_h("input", {
     id: "toggle",
     "class": css.toggle,
     type: "checkbox",
+    disabled: todo.saving,
     checked: todo.completed,
-    onChange: itemStore.toggle
+    onChange: todoItemEdit.toggle
   }), lom_h("label", {
     id: "beginEdit",
     "class": theme$$1.label(todo.completed),
-    onDblClick: itemStore.beginEdit
+    disabled: todo.saving,
+    onDblClick: todoItemEdit.beginEdit
   }, todo.title), lom_h("button", {
     id: "destroy",
     "class": css.destroy,
-    onClick: itemStore.handleDestroy
+    disabled: todo.removing,
+    onClick: todoItemEdit.handleDestroy
   }));
 }
 TodoItemView._r = [1, [{
-  service: TodoService,
   theme: TodoItemTheme,
-  itemStore: TodoItemStore
+  todoItemEdit: TodoItemEdit
 }]];
 TodoItemView.displayName = "TodoItemView";
 
@@ -10111,11 +10118,15 @@ function () {
 }(), _applyDecoratedDescriptor$11(_class$11.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class$11.prototype, "css"), _class$11.prototype), _class$11);
 TodoMainTheme.displayName = "TodoMainTheme";
 function TodoMainView(_, _ref) {
-  var todoService = _ref.todoService,
-      todoFilterService = _ref.todoFilterService,
+  var _ref$todoRepository = _ref.todoRepository,
+      todos = _ref$todoRepository.todos,
+      toggleAll = _ref$todoRepository.toggleAll,
+      activeTodoCount = _ref$todoRepository.activeTodoCount,
+      patching = _ref$todoRepository.patching,
+      filteredTodos = _ref$todoRepository.filteredTodos,
       css = _ref.theme.css;
 
-  if (!todoService.todos.length) {
+  if (!todos.length) {
     return null;
   }
 
@@ -10124,13 +10135,14 @@ function TodoMainView(_, _ref) {
   }, lom_h("input", {
     id: "input",
     "class": css.toggleAll,
+    disabled: !!patching,
     type: "checkbox",
-    onChange: todoService.toggleAll,
-    checked: todoService.activeTodoCount === 0
+    onChange: toggleAll,
+    checked: activeTodoCount === 0
   }), lom_h("ul", {
     "class": css.todoList,
     id: "items"
-  }, todoFilterService.filteredTodos.map(function (todo) {
+  }, filteredTodos.map(function (todo) {
     return lom_h(TodoItemView, {
       id: "todo(" + todo.id + ")",
       key: todo.id,
@@ -10139,8 +10151,7 @@ function TodoMainView(_, _ref) {
   })));
 }
 TodoMainView._r = [1, [{
-  todoService: TodoService,
-  todoFilterService: TodoFilterService,
+  todoRepository: TodoRepository,
   theme: TodoMainTheme
 }]];
 TodoMainView.displayName = "TodoMainView";
@@ -10187,14 +10198,14 @@ var links = [{
   title: 'Completed'
 }];
 
-function createHandler(todoFilterService, id) {
+function createHandler(rep, id) {
   return function handler(e) {
     e.preventDefault();
-    todoFilterService.filter = id;
+    rep.filter = id;
   };
 }
 
-createHandler._r = [2, [TodoFilterService, "V"]];
+createHandler._r = [2, [TodoRepository, "V"]];
 createHandler.displayName = "createHandler";
 var TodoFooterTheme = (_class$13 =
 /*#__PURE__*/
@@ -10282,19 +10293,17 @@ function () {
 }(), _applyDecoratedDescriptor$13(_class$13.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class$13.prototype, "css"), _class$13.prototype), _class$13);
 TodoFooterTheme.displayName = "TodoFooterTheme";
 function TodoFooterView(_, _ref) {
-  var todoService = _ref.todoService,
-      todoFilterService = _ref.todoFilterService,
+  var todoRepository = _ref.todoRepository,
       theme$$1 = _ref.theme;
-  var completedCount = todoService.completedCount; // const completedCount = 0
-
-  var activeTodoCount = todoService.activeTodoCount;
+  var completedCount = todoRepository.completedCount,
+      activeTodoCount = todoRepository.activeTodoCount,
+      filter = todoRepository.filter;
+  var css = theme$$1.css;
 
   if (activeTodoCount === 0 && completedCount === 0) {
     return null;
   }
 
-  var filter = todoFilterService.filter;
-  var css = theme$$1.css;
   return lom_h("footer", {
     "class": css.footer
   }, lom_h("span", {
@@ -10314,19 +10323,17 @@ function TodoFooterView(_, _ref) {
       id: "link(" + link.id + ").a",
       "class": theme$$1.link(filter === link.id),
       href: "?todo_filter=" + link.id,
-      onClick: createHandler(todoFilterService, link.id)
+      onClick: createHandler(todoRepository, link.id)
     }, link.title));
   })), completedCount === 0 ? null : lom_h("button", {
     id: "clear",
     "class": css.clearCompleted,
-    onClick: function onClick() {
-      return todoService.clearCompleted();
-    }
+    disabled: todoRepository.clearing,
+    onClick: todoRepository.clearCompleted
   }, "Clear completed"));
 }
 TodoFooterView._r = [1, [{
-  todoService: TodoService,
-  todoFilterService: TodoFilterService,
+  todoRepository: TodoRepository,
   theme: TodoFooterTheme
 }]];
 TodoFooterView.displayName = "TodoFooterView";
@@ -10406,23 +10413,19 @@ function () {
 }(), _applyDecoratedDescriptor$7(_class$7.prototype, "css", [mem, theme], Object.getOwnPropertyDescriptor(_class$7.prototype, "css"), _class$7.prototype), _class$7);
 TodoAppTheme.displayName = "TodoAppTheme";
 function TodoAppView(_, _ref) {
-  var todoService = _ref.todoService,
-      css = _ref.theme.css;
-  return lom_h("div", null, lom_h("div", {
-    id: "layout",
+  var css = _ref.theme.css;
+  return lom_h("div", {
     "class": css.todoapp
-  }, todoService.isOperationRunning ? lom_h(SpinnerView, {
-    id: "status"
-  }) : null, lom_h(TodoHeaderView, {
+  }, lom_h(TodoHeaderView, {
     id: "header"
   }), lom_h(TodoMainView, {
     id: "main"
   }), lom_h(TodoFooterView, {
     id: "footer"
-  })));
+  }));
 }
 TodoAppView._r = [1, [{
-  todoService: TodoService,
+  repository: TodoRepository,
   theme: TodoAppTheme
 }]];
 TodoAppView.displayName = "TodoAppView";

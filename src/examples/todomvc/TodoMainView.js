@@ -1,8 +1,7 @@
 // @flow
 import {theme} from 'reactive-di'
-import TodoService from './TodoService'
-import TodoFilterService from './TodoFilterService'
-import type {ITodo} from './TodoService'
+import Todo from './models/Todo'
+import TodoRepository from './models/TodoRepository'
 
 import TodoItemView from './TodoItemView'
 
@@ -64,16 +63,14 @@ class TodoMainTheme {
 export default function TodoMainView(
     _: {},
     {
-        todoService,
-        todoFilterService,
+        todoRepository: {todos, toggleAll, activeTodoCount, patching, filteredTodos},
         theme: {css}
     }: {
-        todoService: TodoService;
-        todoFilterService: TodoFilterService;
+        todoRepository: TodoRepository;
         theme: TodoMainTheme;
     }
 ) {
-    if (!todoService.todos.length) {
+    if (!todos.length) {
         return null
     }
 
@@ -81,12 +78,13 @@ export default function TodoMainView(
         <input
             id="input"
             class={css.toggleAll}
+            disabled={!!patching}
             type="checkbox"
-            onChange={todoService.toggleAll}
-            checked={todoService.activeTodoCount === 0}
+            onChange={toggleAll}
+            checked={activeTodoCount === 0}
         />
         <ul class={css.todoList} id="items">
-            {todoFilterService.filteredTodos.map((todo: ITodo) =>
+            {filteredTodos.map((todo: Todo) =>
                 <TodoItemView
                     id={`todo(${todo.id})`}
                     key={todo.id}

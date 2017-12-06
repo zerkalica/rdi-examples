@@ -1,8 +1,7 @@
 // @flow
 
 import {theme} from 'reactive-di'
-import TodoService from './TodoService'
-import TodoFilterService, {TODO_FILTER} from './TodoFilterService'
+import TodoRepository, {TODO_FILTER} from './models/TodoRepository'
 
 const links = [
     {
@@ -19,10 +18,10 @@ const links = [
     }
 ]
 
-function createHandler<V: string>(todoFilterService: TodoFilterService, id: V): (e: Event) => void {
+function createHandler<V: string>(rep: TodoRepository, id: V): (e: Event) => void {
     return function handler(e: Event) {
         e.preventDefault()
-        todoFilterService.filter = id
+        rep.filter = id
     }
 }
 
@@ -119,24 +118,18 @@ class TodoFooterTheme {
 export default function TodoFooterView(
     _: {},
     {
-        todoService,
-        todoFilterService,
+        todoRepository,
         theme
     }: {
-        todoService: TodoService;
-        todoFilterService: TodoFilterService;
+        todoRepository: TodoRepository;
         theme: TodoFooterTheme;
     }
 ) {
-    const completedCount = todoService.completedCount
-    // const completedCount = 0
-    const activeTodoCount = todoService.activeTodoCount
+    const {completedCount, activeTodoCount, filter} = todoRepository
+    const css = theme.css
     if (activeTodoCount === 0 && completedCount === 0) {
         return null
     }
-    const filter = todoFilterService.filter
-    const css = theme.css
-
 
     return <footer class={css.footer}>
         <span class={css.todoCount} id="count">
@@ -152,7 +145,7 @@ export default function TodoFooterView(
                     id={`link(${link.id}).a`}
                     class={theme.link(filter === link.id)}
                     href={`?todo_filter=${link.id}`}
-                    onClick={createHandler(todoFilterService, link.id)}
+                    onClick={createHandler(todoRepository, link.id)}
                 >{link.title}</a></li>
             )}
         </ul>
@@ -161,7 +154,8 @@ export default function TodoFooterView(
             : <button
                 id="clear"
                 class={css.clearCompleted}
-                onClick={() => todoService.clearCompleted()}>
+                disabled={todoRepository.clearing}
+                onClick={todoRepository.clearCompleted}>
                 Clear completed
             </button>
         }

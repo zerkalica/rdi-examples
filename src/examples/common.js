@@ -46,47 +46,39 @@ ItemView.Value = ValueView
 class SpinnerTheme {
     @theme get css() {
         return {
-            '@keyframes spinner': {
+            '@keyframes rdi_spinner_wait_move': {
+                from: {
+                    backgroundPosition: '0 0'
+                },
                 to: {
-                    transform: 'rotate(360deg)'
+                    backgroundPosition: '-28px 0'
                 }
             },
             spinner: {
-                position: 'absolute',
-                zIndex: '5',
+                '& *': {
+                    opacity: '0.8',
+                    background: 'none'
+                },
+                position: 'relative',
+                zIndex: '1000',
                 left: 0,
                 top: 0,
-                width: '100%',
-                height: '100%',
-                overflow: 'auto',
-                backgroundColor: 'rgba(0, 0, 0, 0.07)',
-
-                '&:before': {
-                    content: '\'\'',
-                    boxSizing: 'border-box',
-                    position: 'absolute',
-                    zIndex: '10',
-                    top: '50%',
-                    left: '50%',
-                    width: '40px',
-                    height: '40px',
-                    marginTop: '-10px',
-                    marginLeft: '-10px',
-                    borderRadius: '50%',
-                    border: '3px solid #ccc',
-                    borderTopColor: '#333',
-                    animation: 'spinner .6s linear infinite'
-                }
+                pointerEvents: 'none',
+                backgroundSize: '28px 28px',
+                backgroundImage: `repeating-linear-gradient(45deg, rgba(0,0,0, 0.05), rgba(0,0,0,0.05) 9px, rgba(255,255,255,.015) 10px, rgba(255,255,255,.015) 20px)`,
+                animation: 'rdi_spinner_wait_move .25s steps(6) infinite',
+                minWidth: '28px',
+                minHeight: '28px'
             }
         }
     }
 }
 
 export function SpinnerView(
-    _: {},
+    {children}: {children: any},
     {theme: {css}}: {theme: SpinnerTheme}
 ) {
-    return <div class={css.spinner}/>
+    return <div class={css.spinner}>{children}</div>
 }
 
 export class Locale {

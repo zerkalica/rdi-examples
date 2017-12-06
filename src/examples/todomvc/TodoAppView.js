@@ -5,8 +5,7 @@ import {theme} from 'reactive-di'
 
 import {SpinnerView, ItemView} from '../common'
 
-import TodoService from './TodoService'
-import TodoFilterService from './TodoFilterService'
+import TodoRepository from './models/TodoRepository'
 
 import TodoHeaderView from './TodoHeaderView'
 import TodoMainView from './TodoMainView'
@@ -51,21 +50,15 @@ class TodoAppTheme {
 export default function TodoAppView(
     _: {},
     {
-        todoService,
         theme: {css}
     }: {
-        todoService: TodoService;
+        repository: TodoRepository;
         theme: TodoAppTheme;
     }
 ) {
-    return <div>
-        {/* Loading fix: access data in TodoApp first to throw exception, if no todos loaded */}
-        {/* {activeTodoCount > 0 ? null : null} */}
-        <div id="layout" class={css.todoapp}>
-            {todoService.isOperationRunning ? <SpinnerView id="status" /> : null}
-            <TodoHeaderView id="header" />
-            <TodoMainView id="main" />
-            <TodoFooterView id="footer" />
-        </div>
+    return <div class={css.todoapp}>
+        <TodoHeaderView id="header" />
+        <TodoMainView id="main" />
+        <TodoFooterView id="footer" />
     </div>
 }

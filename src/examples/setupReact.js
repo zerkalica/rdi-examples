@@ -17,13 +17,15 @@ import Fetcher from '../Fetcher'
 defaultContext.setLogger(new ConsoleLogger())
 
 function ErrorableView({
-    error
+    error,
+    children
 }: {
+    children: any,
     error: Error
 }) {
     return <div id="errorable">
         {error instanceof AtomWait
-            ? <div id="loading">Loading...</div>
+            ? <SpinnerView id="loading">{children}</SpinnerView>
             : <div id="error">
                 <h3 id="title">Fatal error !</h3>
                 <div id="message">{error.message}</div>
