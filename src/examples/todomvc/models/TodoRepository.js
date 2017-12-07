@@ -27,7 +27,7 @@ export default class TodoRepository implements ITodoRepository {
 
     @mem get todos(): Todo[] {
         return this._fetcher.get('/todos').json()
-            .map(todo => new Todo(todo, this))
+            .map((data: ITodoData) => new Todo(data, this))
     }
     set todos(todos: Todo[]) {}
 
@@ -49,7 +49,7 @@ export default class TodoRepository implements ITodoRepository {
     @mem set adding(next: Todo) {
         this._fetcher.put('/todo').json(next)
         this.todos = [...this.todos, next]
-        mem.cache(this.adding = (null: any))
+        mem.cache(this.adding)
     }
 
     @action addTodo(title: string) {
@@ -64,7 +64,7 @@ export default class TodoRepository implements ITodoRepository {
         this._fetcher.put(`/todos`).json(patches)
         const patchMap = new Map(patches)
         this.todos = this.todos.map(todo => todo.copy(patchMap.get(todo.id)))
-        mem.cache(this.patching = null)
+        mem.cache(this.patching)
     }
 
     @action toggleAll() {
@@ -73,29 +73,19 @@ export default class TodoRepository implements ITodoRepository {
         this.patching = todos.map(todo => ([todo.id, {completed}]))
     }
 
-    @mem get clearing(): ?Todo[] {
+    @mem get clearing(): ?string[] {
         return null
     }
 
-    @mem set clearing(todos: Todo[]) {
-        const delIds: string[] = []
-        const newTodos: Todo[] = []
-        for (let i = 0; i < todos.length; i++) {
-            const todo = todos[i]
-            if (todo.completed) {
-                delIds.push(todo.id)
-            } else {
-                newTodos.push(todo)
-            }
-        }
-
+    @mem set clearing(delIds: string[]) {
         this._fetcher.delete(`/todos`).json(delIds)
-        this.todos = newTodos
-        mem.cache(this.clearing = (null: any))
+        const delSet = new Set(delIds)
+        this.todos = this.todos.filter(todo => !delSet.has(todo.id))
+        mem.cache(this.clearing)
     }
 
     @action clearCompleted() {
-        this.clearing = this.todos
+        this.clearing = this.todos.filter(todo => todo.completed).map(todo => todo.id)
     }
 
     get filter(): IFilter {

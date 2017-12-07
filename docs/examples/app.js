@@ -81,8 +81,8 @@ var ATOM_STATUS_PULLING = 3;
 var ATOM_STATUS_ACTUAL = 4;
 var ATOM_STATUS_DEEP_RESET = 5;
 var catchedId = Symbol('lom_atom_catched');
+var ATOM_FORCE_NONE = 0;
 var ATOM_FORCE_CACHE = 1;
-var ATOM_FORCE_ASYNC = 2;
 
 var AtomWait =
 /*#__PURE__*/
@@ -298,10 +298,7 @@ function () {
     if (forceCache === ATOM_FORCE_CACHE) {
       if (next === undefined) {
         this.reset();
-
-        if (this._slaves) {
-          this._slaves.forEach(obsoleteSlave);
-        }
+        if (this._slaves) this._slaves.forEach(obsoleteSlave);
       } else {
         this._push(next);
       }
@@ -333,8 +330,7 @@ function () {
     var current = this.current;
 
     if (current instanceof Error) {
-      if (forceCache === ATOM_FORCE_ASYNC) return proxify(current); // return proxify((current: any))
-
+      if (forceCache !== ATOM_FORCE_NONE) return proxify(current);
       throw current;
     }
 
@@ -374,6 +370,8 @@ function () {
   };
 
   _proto._push = function _push(nextRaw) {
+    if (nextRaw === undefined) return;
+
     if (!(nextRaw instanceof AtomWait)) {
       this._suggested = this._next;
       this._next = undefined;
@@ -388,9 +386,7 @@ function () {
 
       this._context.newValue(this, prev, next);
 
-      if (this._slaves) {
-        this._slaves.forEach(obsoleteSlave);
-      }
+      if (this._slaves) this._slaves.forEach(obsoleteSlave);
     }
   };
 
@@ -404,9 +400,11 @@ function () {
     var context = this._context;
     var slave = context.current;
     context.current = this;
+    var f = this.field + '$';
+    var next = this._next;
 
     try {
-      newValue = this.key === undefined ? this.owner[this.field + '$'](this._next) : this.owner[this.field + '$'](this.key, this._next);
+      newValue = this.key === undefined ? this.owner[f](next) : this.owner[f](this.key, next);
     } catch (error) {
       if (error[catchedId] === undefined) {
         error[catchedId] = true;
@@ -417,7 +415,8 @@ function () {
     }
 
     context.current = slave;
-    return this.status === ATOM_STATUS_ACTUAL ? this.current : newValue;
+    if (this.status === ATOM_STATUS_DEEP_RESET) return;
+    return newValue;
   };
 
   _proto.dislead = function dislead(slave) {
@@ -9321,10 +9320,14 @@ function () {
     return data ? new Todo(_extends({}, this.toJSON(), data), this._store) : this;
   };
 
+  _proto.update = function update(data) {
+    this.saving = this.copy(data);
+  };
+
   _proto.toggle = function toggle() {
-    this.saving = new Todo(_extends({}, this.toJSON(), {
+    this.update({
       completed: !this.completed
-    }), this._store);
+    });
   };
 
   _proto.remove = function remove() {
@@ -9344,13 +9347,10 @@ function () {
     get: function get() {
       return this._title;
     },
-    set: function set(t) {
-      if (this._title === t) return;
-      this._title = t; // Prevent throwing Unhandlered AtomWait exception
-
-      mem.async(this.saving = new Todo(_extends({}, this.toJSON(), {
-        title: t
-      }), this._store));
+    set: function set(title) {
+      this.update({
+        title: title
+      });
     }
   }, {
     key: "saving",
@@ -9365,7 +9365,7 @@ function () {
       store.todos = store.todos.map(function (t) {
         return t.id === next.id ? next : t;
       });
-      mem.cache(this.saving = null);
+      mem.cache(this.saving);
     }
   }, {
     key: "removing",
@@ -9382,11 +9382,11 @@ function () {
       store.todos = store.todos.filter(function (t) {
         return t.id !== _this.id;
       });
-      mem.cache(this.removing = false);
+      mem.cache(this.removing);
     }
   }]);
   return Todo;
-}(), _applyDecoratedDescriptor$9(_class$9.prototype, "saving", [mem], Object.getOwnPropertyDescriptor(_class$9.prototype, "saving"), _class$9.prototype), _applyDecoratedDescriptor$9(_class$9.prototype, "saving", [mem], Object.getOwnPropertyDescriptor(_class$9.prototype, "saving"), _class$9.prototype), _applyDecoratedDescriptor$9(_class$9.prototype, "toggle", [action], Object.getOwnPropertyDescriptor(_class$9.prototype, "toggle"), _class$9.prototype), _applyDecoratedDescriptor$9(_class$9.prototype, "removing", [mem], Object.getOwnPropertyDescriptor(_class$9.prototype, "removing"), _class$9.prototype), _applyDecoratedDescriptor$9(_class$9.prototype, "removing", [mem], Object.getOwnPropertyDescriptor(_class$9.prototype, "removing"), _class$9.prototype), _applyDecoratedDescriptor$9(_class$9.prototype, "remove", [action], Object.getOwnPropertyDescriptor(_class$9.prototype, "remove"), _class$9.prototype), _class$9);
+}(), _applyDecoratedDescriptor$9(_class$9.prototype, "update", [action], Object.getOwnPropertyDescriptor(_class$9.prototype, "update"), _class$9.prototype), _applyDecoratedDescriptor$9(_class$9.prototype, "saving", [mem], Object.getOwnPropertyDescriptor(_class$9.prototype, "saving"), _class$9.prototype), _applyDecoratedDescriptor$9(_class$9.prototype, "saving", [mem], Object.getOwnPropertyDescriptor(_class$9.prototype, "saving"), _class$9.prototype), _applyDecoratedDescriptor$9(_class$9.prototype, "toggle", [action], Object.getOwnPropertyDescriptor(_class$9.prototype, "toggle"), _class$9.prototype), _applyDecoratedDescriptor$9(_class$9.prototype, "removing", [mem], Object.getOwnPropertyDescriptor(_class$9.prototype, "removing"), _class$9.prototype), _applyDecoratedDescriptor$9(_class$9.prototype, "removing", [mem], Object.getOwnPropertyDescriptor(_class$9.prototype, "removing"), _class$9.prototype), _applyDecoratedDescriptor$9(_class$9.prototype, "remove", [action], Object.getOwnPropertyDescriptor(_class$9.prototype, "remove"), _class$9.prototype), _class$9);
 Todo._r = [0, ["ITodoRepository"]];
 Todo.displayName = "Todo";
 
@@ -9455,7 +9455,11 @@ function () {
   };
 
   _proto.clearCompleted = function clearCompleted() {
-    this.clearing = this.todos;
+    this.clearing = this.todos.filter(function (todo) {
+      return todo.completed;
+    }).map(function (todo) {
+      return todo.id;
+    });
   };
 
   _createClass(TodoRepository, [{
@@ -9463,8 +9467,8 @@ function () {
     get: function get() {
       var _this = this;
 
-      return this._fetcher.get('/todos').json().map(function (todo) {
-        return new Todo(todo, _this);
+      return this._fetcher.get('/todos').json().map(function (data) {
+        return new Todo(data, _this);
       });
     },
     set: function set(todos) {}
@@ -9489,7 +9493,7 @@ function () {
       this._fetcher.put('/todo').json(next);
 
       this.todos = this.todos.concat([next]);
-      mem.cache(this.adding = null);
+      mem.cache(this.adding);
     }
   }, {
     key: "patching",
@@ -9503,31 +9507,21 @@ function () {
       this.todos = this.todos.map(function (todo) {
         return todo.copy(patchMap.get(todo.id));
       });
-      mem.cache(this.patching = null);
+      mem.cache(this.patching);
     }
   }, {
     key: "clearing",
     get: function get() {
       return null;
     },
-    set: function set(todos) {
-      var delIds = [];
-      var newTodos = [];
-
-      for (var i = 0; i < todos.length; i++) {
-        var todo = todos[i];
-
-        if (todo.completed) {
-          delIds.push(todo.id);
-        } else {
-          newTodos.push(todo);
-        }
-      }
-
+    set: function set(delIds) {
       this._fetcher.delete("/todos").json(delIds);
 
-      this.todos = newTodos;
-      mem.cache(this.clearing = null);
+      var delSet = new Set(delIds);
+      this.todos = this.todos.filter(function (todo) {
+        return !delSet.has(todo.id);
+      });
+      mem.cache(this.clearing);
     }
   }, {
     key: "filter",

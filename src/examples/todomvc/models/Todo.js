@@ -41,16 +41,12 @@ export default class Todo implements ITodoData {
         return this._title
     }
 
-    set title(t: string) {
-        if (this._title === t) return
-        this._title = t
-        // Prevent throwing Unhandlered AtomWait exception
-        mem.async(
-            this.saving = new Todo({
-                ...this.toJSON(),
-                title: t
-            }, this._store)
-        )
+    set title(title: string) {
+        this.update({title})
+    }
+
+    @action update(data: $Shape<ITodoData>) {
+        this.saving = this.copy(data)
     }
 
     @mem get saving(): ?Todo {
@@ -64,14 +60,11 @@ export default class Todo implements ITodoData {
         // mem.cache(store.todos) // Reload from server
         store.todos = store.todos.map(t => t.id === next.id ? next : t)
 
-        mem.cache(this.saving = (null: any))
+        mem.cache(this.saving)
     }
 
     @action toggle() {
-        this.saving = new Todo({
-            ...this.toJSON(),
-            completed: !this.completed
-        }, this._store)
+        this.update({completed: !this.completed})
     }
 
     @mem get removing(): boolean {
@@ -84,7 +77,7 @@ export default class Todo implements ITodoData {
         const store = this._store
         // mem.cache(store.todos) // Reload from server
         store.todos = store.todos.filter(t => t.id !== this.id)
-        mem.cache(this.removing = false)
+        mem.cache(this.removing)
     }
 
     @action remove() {
