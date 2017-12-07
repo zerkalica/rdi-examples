@@ -1,5 +1,5 @@
 // @flow
-import {defer, action, mem} from 'lom_atom'
+import {action, mem} from 'lom_atom'
 import {props, theme} from 'reactive-di'
 
 import TodoRepository from './models/TodoRepository'
@@ -16,12 +16,12 @@ class TodoToAdd {
         return !!this._todoRepository.adding
     }
 
-    @defer setRef(ref: ?HTMLInputElement) {
+    @action.defer setRef(ref: ?HTMLInputElement) {
         if (!ref) return
         ref.focus()
     }
 
-    @action onInput({target}: Event) {
+    @action onInput ({target}: Event) {
         this.title = (target: any).value
     }
 

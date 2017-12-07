@@ -62,22 +62,19 @@ class TodoMainTheme {
 export default function TodoMainView(
     _: {},
     {
-        todoRepository: {todos, toggleAll, activeTodoCount, patching, filteredTodos},
+        todoRepository: {toggleAll, activeTodoCount, patching, clearing, filteredTodos},
         theme: {css}
     }: {
         todoRepository: TodoRepository;
         theme: TodoMainTheme;
     }
 ) {
-    if (!todos.length) {
-        return null
-    }
-
+    if (!filteredTodos.length) return null
     return <section class={css.main}>
         <input
             id="input"
             class={css.toggleAll}
-            disabled={!!patching}
+            disabled={patching || clearing}
             type="checkbox"
             onChange={toggleAll}
             checked={activeTodoCount === 0}

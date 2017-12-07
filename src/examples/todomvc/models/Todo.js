@@ -17,14 +17,14 @@ export interface ITodoRepository {
 
 export default class Todo implements ITodoData {
     completed: boolean
-    _title: string
+    title: string
     id: string
 
     _store: ITodoRepository
     _fetcher: Fetcher
 
     constructor(todo?: $Shape<ITodoData> = {}, store: ITodoRepository) {
-        this._title = todo.title || ''
+        this.title = todo.title || ''
         this.id = todo.id || uuid()
         this.completed = todo.completed || false
         this._store = store
@@ -35,14 +35,6 @@ export default class Todo implements ITodoData {
         return data
             ? new Todo({...this.toJSON(), ...data}, this._store)
             : this
-    }
-
-    get title(): string {
-        return this._title
-    }
-
-    set title(title: string) {
-        this.update({title})
     }
 
     @action update(data: $Shape<ITodoData>) {
@@ -87,7 +79,7 @@ export default class Todo implements ITodoData {
     toJSON(): ITodoData {
         return {
             completed: this.completed,
-            title: this._title,
+            title: this.title,
             id: this.id
         }
     }

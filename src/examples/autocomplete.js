@@ -1,7 +1,8 @@
 // @flow
 
-import {mem, AtomWait} from 'lom_atom'
+import {mem, AtomWait, action} from 'lom_atom'
 import {props} from 'reactive-di'
+import Fetcher from '../Fetcher'
 
 interface IAutocompleteProps {
     initialValue: string;
@@ -28,8 +29,20 @@ class AutocompleteService {
 
     @mem _handler: ?TimeoutHandler = null
 
+    _fetcher: Fetcher
+
+    constructor(fetcher: Fetcher) {
+        this._fetcher = fetcher
+    }
+
     @mem get searchResults(): string[] {
         const name = this.nameToSearch
+        // if (this._handler) throw new AtomWait()
+        // this._handler = new TimeoutHandler(() => { this._handler = null }, 500)
+        //
+        // const data: string[] = this._fetcher.get(`/autocomplete?q=${this.nameToSearch}`).json()
+        //
+        // return data
         this._handler = new TimeoutHandler(() => {
             fetch(`/api/autocomplete?q=${name}`)
                 .then((r: Response) => r.json())
@@ -46,7 +59,7 @@ class AutocompleteService {
 
     @mem set searchResults(searchResults: string[] | Error) {}
 
-    setValue = (e: Event) => {
+    @action setValue(e: Event) {
         (this.nameToSearch = (e.target: any).value)
     }
 }
@@ -69,7 +82,7 @@ export function AutocompleteView(
     _: IAutocompleteProps,
     service: AutocompleteService
 ) {
-    const results = service.searchResults
+    const results = mem.async(service.searchResults)
     const name = service.nameToSearch
     return <div>
         <div id="filter">

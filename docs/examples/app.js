@@ -213,12 +213,12 @@ function obsoleteSlave(slave) {
 obsoleteSlave._r = [2];
 obsoleteSlave.displayName = "obsoleteSlave";
 
-function disleadThis(master) {
+function disleadSlaves(master) {
   master.dislead(this);
 }
 
-disleadThis._r = [2];
-disleadThis.displayName = "disleadThis";
+disleadSlaves._r = [2];
+disleadSlaves.displayName = "disleadSlaves";
 
 function actualizeMaster(master) {
   if (this.status === ATOM_STATUS_CHECKING) {
@@ -228,6 +228,13 @@ function actualizeMaster(master) {
 
 actualizeMaster._r = [2];
 actualizeMaster.displayName = "actualizeMaster";
+
+function deleteMasters(slave) {
+  slave.removeMaster(this);
+}
+
+deleteMasters._r = [2];
+deleteMasters.displayName = "deleteMasters";
 var Atom = (_temp$1 = _class$1 =
 /*#__PURE__*/
 function () {
@@ -265,12 +272,17 @@ function () {
     if (this.status === ATOM_STATUS_DESTROYED) return;
 
     if (this._masters) {
-      this._masters.forEach(disleadThis, this);
+      this._masters.forEach(disleadSlaves, this);
 
       this._masters = null;
     }
 
-    this._checkSlaves();
+    if (this._slaves) {
+      this._slaves.forEach(deleteMasters, this);
+
+      this._slaves = null;
+    } // this._checkSlaves()
+
 
     this._hostAtoms.delete(this._keyHash || this.owner);
 
@@ -285,18 +297,14 @@ function () {
     this._keyHash = undefined;
   };
 
-  _proto.reset = function reset() {
-    this._suggested = this._next;
-    this._next = undefined;
-    this.status = ATOM_STATUS_DEEP_RESET;
-  };
-
   _proto.value = function value(next, forceCache) {
     var context = this._context;
 
     if (forceCache === ATOM_FORCE_CACHE) {
       if (next === undefined) {
-        this.reset();
+        this._suggested = this._next;
+        this._next = undefined;
+        this.status = ATOM_STATUS_DEEP_RESET;
         if (this._slaves) this._slaves.forEach(obsoleteSlave);
       } else {
         this._push(next);
@@ -356,21 +364,19 @@ function () {
     if (this.status === ATOM_STATUS_DEEP_RESET && !this.isComponent) {
       Atom.deepReset = deepReset || new Set();
 
-      this._push(this._pull());
+      this._pullPush();
 
       Atom.deepReset = deepReset;
     } else if (deepReset !== undefined && !this.manualReset && !deepReset.has(this)) {
       deepReset.add(this);
 
-      this._push(this._pull());
+      this._pullPush();
     } else if (this.status !== ATOM_STATUS_ACTUAL) {
-      this._push(this._pull());
+      this._pullPush();
     }
   };
 
   _proto._push = function _push(nextRaw) {
-    if (nextRaw === undefined) return;
-
     if (!(nextRaw instanceof AtomWait)) {
       this._suggested = this._next;
       this._next = undefined;
@@ -389,9 +395,9 @@ function () {
     }
   };
 
-  _proto._pull = function _pull() {
+  _proto._pullPush = function _pullPush() {
     if (this._masters) {
-      this._masters.forEach(disleadThis, this);
+      this._masters.forEach(disleadSlaves, this);
     }
 
     var newValue;
@@ -414,8 +420,7 @@ function () {
     }
 
     context.current = slave;
-    if (this.status === ATOM_STATUS_DEEP_RESET) return;
-    return newValue;
+    if (this.status !== ATOM_STATUS_DEEP_RESET) this._push(newValue);
   };
 
   _proto.dislead = function dislead(slave) {
@@ -423,6 +428,7 @@ function () {
 
     if (slaves) {
       slaves.delete(slave);
+      slave.removeMaster(this);
 
       if (slaves.size === 0) {
         this._slaves = null;
@@ -456,6 +462,12 @@ function () {
     }
   };
 
+  _proto.removeMaster = function removeMaster(master) {
+    if (!this._masters) return;
+
+    this._masters.delete(master);
+  };
+
   _proto.addMaster = function addMaster(master) {
     if (!this._masters) {
       this._masters = new Set();
@@ -473,6 +485,94 @@ function () {
 
   return Atom;
 }(), _class$1.deepReset = undefined, _temp$1);
+
+function fastCallMethod(host, methodName, args) {
+  try {
+    switch (args.length) {
+      case 0:
+        return host[methodName]();
+
+      case 1:
+        return host[methodName](args[0]);
+
+      case 2:
+        return host[methodName](args[0], args[1]);
+
+      case 3:
+        return host[methodName](args[0], args[1], args[2]);
+
+      case 4:
+        return host[methodName](args[0], args[1], args[2], args[3]);
+
+      case 5:
+        return host[methodName](args[0], args[1], args[2], args[3], args[4]);
+
+      default:
+        return host[methodName].apply(host, args);
+    }
+  } catch (e) {
+    if (!(e instanceof AtomWait)) throw e;
+  }
+}
+
+fastCallMethod._r = [2];
+fastCallMethod.displayName = "fastCallMethod";
+
+function action(host, name, descr, defer) {
+  var hk = name + "$";
+
+  if (descr.value === undefined) {
+    throw new TypeError(getId(host, name) + " is not an function (next?: V)");
+  }
+
+  host[hk] = descr.value;
+  var definingProperty = false;
+  var actionId = getId(host, name);
+  return {
+    enumerable: descr.enumerable,
+    configurable: descr.configurable,
+    get: function get() {
+      var _this = this;
+
+      if (definingProperty) return this[hk].bind(this);
+      var actionFn = defer ? function () {
+        for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
+          args[_key] = arguments[_key];
+        }
+
+        return scheduleNative(function () {
+          return fastCallMethod(_this, hk, args);
+        });
+      } : function () {
+        for (var _len2 = arguments.length, args = new Array(_len2), _key2 = 0; _key2 < _len2; _key2++) {
+          args[_key2] = arguments[_key2];
+        }
+
+        return fastCallMethod(_this, hk, args);
+      };
+      setFunctionName(actionFn, actionId);
+      definingProperty = true;
+      Object.defineProperty(this, name, {
+        configurable: true,
+        enumerable: false,
+        value: actionFn
+      });
+      definingProperty = false;
+      return actionFn;
+    }
+  };
+}
+
+action._r = [2];
+action.displayName = "action";
+
+function actionDefer(host, name, descr) {
+  return action(host, name, descr, true);
+}
+
+actionDefer._r = [2];
+actionDefer.displayName = "actionDefer";
+action.defer = actionDefer;
 
 function reap(atom, key, reaping) {
   reaping.delete(atom);
@@ -642,157 +742,6 @@ function () {
 
 var defaultContext = new Context();
 
-function createActionMethod(t, name, context) {
-  var longName = getId(t, name);
-
-  function action() {
-    var result;
-    var oldNamespace = context.beginTransaction(longName);
-    var args = arguments;
-
-    try {
-      switch (args.length) {
-        case 0:
-          result = t[name]();
-          break;
-
-        case 1:
-          result = t[name](args[0]);
-          break;
-
-        case 2:
-          result = t[name](args[0], args[1]);
-          break;
-
-        case 3:
-          result = t[name](args[0], args[1], args[2]);
-          break;
-
-        case 4:
-          result = t[name](args[0], args[1], args[2], args[3]);
-          break;
-
-        case 5:
-          result = t[name](args[0], args[1], args[2], args[3], args[4]);
-          break;
-
-        default:
-          result = t[name].apply(t, args);
-      }
-    } catch (e) {
-      if (!(e instanceof AtomWait)) throw e;
-    } finally {
-      context.endTransaction(oldNamespace);
-    }
-
-    return result;
-  }
-
-  setFunctionName(action, longName);
-  return action;
-}
-
-createActionMethod._r = [2];
-createActionMethod.displayName = "createActionMethod";
-
-function createActionFn(fn, rawName, context) {
-  var name = rawName || fn.displayName || fn.name;
-
-  function action() {
-    var result;
-    var oldNamespace = context.beginTransaction(name);
-    var args = arguments;
-
-    try {
-      switch (args.length) {
-        case 0:
-          result = fn();
-          break;
-
-        case 1:
-          result = fn(args[0]);
-          break;
-
-        case 2:
-          result = fn(args[0], args[1]);
-          break;
-
-        case 3:
-          result = fn(args[0], args[1], args[2]);
-          break;
-
-        case 4:
-          result = fn(args[0], args[1], args[2], args[3]);
-          break;
-
-        case 5:
-          result = fn(args[0], args[1], args[2], args[3], args[4]);
-          break;
-
-        default:
-          result = fn.apply(null, args);
-      }
-    } catch (e) {
-      if (!(e instanceof AtomWait)) throw e;
-    } finally {
-      context.endTransaction(oldNamespace);
-    }
-
-    return result;
-  }
-
-  setFunctionName(action, name);
-  return action;
-}
-
-createActionFn._r = [2];
-createActionFn.displayName = "createActionFn";
-
-function actionMethod(proto, name, descr, context) {
-  var hk = name + "$";
-
-  if (descr.value === undefined) {
-    throw new TypeError(getId(proto, name) + " is not an function (next?: V)");
-  }
-
-  proto[hk] = descr.value;
-  var definingProperty = false;
-  return {
-    enumerable: descr.enumerable,
-    configurable: descr.configurable,
-    get: function get() {
-      if (definingProperty) {
-        return this[hk].bind(this);
-      }
-
-      var actionFn = createActionMethod(this, hk, context);
-      definingProperty = true;
-      Object.defineProperty(this, name, {
-        configurable: true,
-        value: actionFn
-      });
-      definingProperty = false;
-      return actionFn;
-    }
-  };
-}
-
-actionMethod._r = [2];
-actionMethod.displayName = "actionMethod";
-
-function action() {
-  var args = arguments;
-
-  if (args.length === 3) {
-    return actionMethod(args[0], args[1], args[2], defaultContext);
-  }
-
-  return createActionFn(args[0], args[1], defaultContext);
-}
-
-action._r = [2];
-action.displayName = "action";
-
 function detached(proto, name, descr) {
   proto[name + "$"] = descr.value;
   var hostAtoms = new WeakMap();
@@ -813,7 +762,7 @@ function detached(proto, name, descr) {
       }
 
       if (force) {
-        atom.status = ATOM_STATUS_OBSOLETE; // atom.reset()
+        atom.status = ATOM_STATUS_OBSOLETE;
       }
 
       return atom.value();
@@ -1001,50 +950,6 @@ Object.defineProperties(mem, {
     value: memkey
   }
 });
-
-function defer(proto, name, descr) {
-  var origFn = descr.value;
-  if (!origFn) throw new Error('Not a method');
-  var definingProperty = false;
-
-  function value() {
-    var _this = this;
-
-    if (definingProperty) {
-      return origFn.bind(this);
-    }
-
-    var fn = function fn() {
-      for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
-        args[_key] = arguments[_key];
-      }
-
-      scheduleNative(function () {
-        return origFn.apply(_this, args);
-      });
-    };
-
-    fn._r = [2];
-    fn.displayName = "fn";
-    fn.displayName = name + "#defer";
-    definingProperty = true;
-    Object.defineProperty(this, name, {
-      configurable: true,
-      value: fn
-    });
-    definingProperty = false;
-    return fn;
-  }
-
-  return {
-    enumerable: descr.enumerable,
-    configurable: descr.configurable,
-    get: value
-  };
-}
-
-defer._r = [2];
-defer.displayName = "defer";
 
 function stringToColor(str) {
   var hash = 0;
@@ -1998,7 +1903,7 @@ function extend(obj, props) {
 
 extend._r = [2];
 extend.displayName = "extend";
-var defer$1 = typeof Promise == 'function' ? Promise.resolve().then.bind(Promise.resolve()) : setTimeout;
+var defer = typeof Promise == 'function' ? Promise.resolve().then.bind(Promise.resolve()) : setTimeout;
 
 function cloneElement(vnode, props) {
   return h(vnode.nodeName, extend(extend({}, vnode.attributes), props), arguments.length > 2 ? [].slice.call(arguments, 2) : vnode.children);
@@ -2014,7 +1919,7 @@ var items = [];
 
 function enqueueRender(component) {
   if (!component._dirty && (component._dirty = true) && items.push(component) == 1) {
-    (options.debounceRendering || defer$1)(rerender);
+    (options.debounceRendering || defer)(rerender);
   }
 }
 
@@ -9317,7 +9222,7 @@ function () {
       todo = {};
     }
 
-    this._title = todo.title || '';
+    this.title = todo.title || '';
     this.id = todo.id || uuid();
     this.completed = todo.completed || false;
     this._store = store;
@@ -9347,22 +9252,12 @@ function () {
   _proto.toJSON = function toJSON() {
     return {
       completed: this.completed,
-      title: this._title,
+      title: this.title,
       id: this.id
     };
   };
 
   _createClass(Todo, [{
-    key: "title",
-    get: function get() {
-      return this._title;
-    },
-    set: function set(title) {
-      this.update({
-        title: title
-      });
-    }
-  }, {
     key: "saving",
     get: function get() {
       return null;
@@ -9570,6 +9465,7 @@ function () {
 TodoRepository._r = [0, [Fetcher, AbstractLocationStore]];
 TodoRepository.displayName = "TodoRepository";
 
+var _dec$2;
 var _class$10;
 var _descriptor$2;
 var _class3$2;
@@ -9613,7 +9509,7 @@ function _applyDecoratedDescriptor$10(target, property, decorators, descriptor, 
   return desc;
 }
 
-var TodoToAdd = (_class$10 =
+var TodoToAdd = (_dec$2 = action.defer, _class$10 =
 /*#__PURE__*/
 function () {
   function TodoToAdd(todoRepository) {
@@ -9654,7 +9550,7 @@ function () {
   initializer: function initializer() {
     return '';
   }
-}), _applyDecoratedDescriptor$10(_class$10.prototype, "setRef", [defer], Object.getOwnPropertyDescriptor(_class$10.prototype, "setRef"), _class$10.prototype), _applyDecoratedDescriptor$10(_class$10.prototype, "onInput", [action], Object.getOwnPropertyDescriptor(_class$10.prototype, "onInput"), _class$10.prototype), _applyDecoratedDescriptor$10(_class$10.prototype, "onKeyDown", [action], Object.getOwnPropertyDescriptor(_class$10.prototype, "onKeyDown"), _class$10.prototype), _class$10);
+}), _applyDecoratedDescriptor$10(_class$10.prototype, "setRef", [_dec$2], Object.getOwnPropertyDescriptor(_class$10.prototype, "setRef"), _class$10.prototype), _applyDecoratedDescriptor$10(_class$10.prototype, "onInput", [action], Object.getOwnPropertyDescriptor(_class$10.prototype, "onInput"), _class$10.prototype), _applyDecoratedDescriptor$10(_class$10.prototype, "onKeyDown", [action], Object.getOwnPropertyDescriptor(_class$10.prototype, "onKeyDown"), _class$10.prototype), _class$10);
 TodoToAdd._r = [0, [TodoRepository]];
 TodoToAdd.displayName = "TodoToAdd";
 var TodoHeaderTheme = (_class3$2 =
@@ -9706,6 +9602,7 @@ TodoHeaderView._r = [1, [{
 }]];
 TodoHeaderView.displayName = "TodoHeaderView";
 
+var _dec$3;
 var _class$12;
 var _descriptor$3;
 var _descriptor2;
@@ -9753,74 +9650,24 @@ function _applyDecoratedDescriptor$12(target, property, decorators, descriptor, 
 
 var ESCAPE_KEY = 27;
 var ENTER_KEY = 13;
-var TodoItemEdit = (_class$12 =
+var TodoItemEdit = (_dec$3 = action.defer, _class$12 =
 /*#__PURE__*/
 function () {
   function TodoItemEdit() {
-    var _this = this;
-
     _initDefineProp$3(this, "todoBeingEditedId", _descriptor$3, this);
 
     _initDefineProp$3(this, "editText", _descriptor2, this);
 
     _initDefineProp$3(this, "props", _descriptor3, this);
-
-    this.beginEdit = function () {
-      var todo = _this.props.todo;
-      _this.todoBeingEditedId = todo.id;
-      _this.editText = todo.title;
-    };
-
-    this.handleSubmit = function (event) {
-      if (!_this.todoBeingEditedId) return;
-
-      var val = _this.editText.trim();
-
-      var todo = _this.props.todo;
-
-      if (val) {
-        if (todo.title !== val) {
-          todo.title = val;
-          _this.editText = '';
-        }
-      } else {
-        _this.handleDestroy();
-      }
-
-      _this.todoBeingEditedId = null;
-    };
-
-    this.handleKeyDown = function (event) {
-      switch (event.which) {
-        case ESCAPE_KEY:
-          _this.editText = _this.props.todo.title;
-          _this.todoBeingEditedId = null;
-          break;
-
-        case ENTER_KEY:
-          _this.handleSubmit(event);
-
-          break;
-
-        default:
-          break;
-      }
-    };
-
-    this.toggle = function () {
-      _this.props.todo.toggle();
-
-      _this.todoBeingEditedId = null;
-    };
-
-    this.handleDestroy = function () {
-      _this.props.todo.remove();
-
-      _this.todoBeingEditedId = null;
-    };
   }
 
   var _proto = TodoItemEdit.prototype;
+
+  _proto.beginEdit = function beginEdit() {
+    var todo = this.props.todo;
+    this.todoBeingEditedId = todo.id;
+    this.editText = todo.title;
+  };
 
   _proto.setText = function setText(_ref) {
     var target = _ref.target;
@@ -9830,6 +9677,51 @@ function () {
   _proto.setEditInputRef = function setEditInputRef(el) {
     if (!el) return;
     el.focus();
+  };
+
+  _proto.submit = function submit(event) {
+    if (!this.todoBeingEditedId) return;
+    var title = this.editText.trim();
+    var todo = this.props.todo;
+
+    if (title) {
+      if (todo.title !== title) {
+        todo.update({
+          title: title
+        });
+        this.editText = '';
+      }
+    } else {
+      this.remove();
+    }
+
+    this.todoBeingEditedId = null;
+  };
+
+  _proto.keyDown = function keyDown(event) {
+    switch (event.which) {
+      case ESCAPE_KEY:
+        this.editText = this.props.todo.title;
+        this.todoBeingEditedId = null;
+        break;
+
+      case ENTER_KEY:
+        this.submit(event);
+        break;
+
+      default:
+        break;
+    }
+  };
+
+  _proto.toggle = function toggle() {
+    this.props.todo.toggle();
+    this.todoBeingEditedId = null;
+  };
+
+  _proto.remove = function remove() {
+    this.props.todo.remove();
+    this.todoBeingEditedId = null;
   };
 
   return TodoItemEdit;
@@ -9846,7 +9738,7 @@ function () {
 }), _descriptor3 = _applyDecoratedDescriptor$12(_class$12.prototype, "props", [props], {
   enumerable: true,
   initializer: null
-}), _applyDecoratedDescriptor$12(_class$12.prototype, "setText", [action], Object.getOwnPropertyDescriptor(_class$12.prototype, "setText"), _class$12.prototype), _applyDecoratedDescriptor$12(_class$12.prototype, "setEditInputRef", [defer], Object.getOwnPropertyDescriptor(_class$12.prototype, "setEditInputRef"), _class$12.prototype), _class$12);
+}), _applyDecoratedDescriptor$12(_class$12.prototype, "beginEdit", [action], Object.getOwnPropertyDescriptor(_class$12.prototype, "beginEdit"), _class$12.prototype), _applyDecoratedDescriptor$12(_class$12.prototype, "setText", [action], Object.getOwnPropertyDescriptor(_class$12.prototype, "setText"), _class$12.prototype), _applyDecoratedDescriptor$12(_class$12.prototype, "setEditInputRef", [_dec$3], Object.getOwnPropertyDescriptor(_class$12.prototype, "setEditInputRef"), _class$12.prototype), _applyDecoratedDescriptor$12(_class$12.prototype, "submit", [action], Object.getOwnPropertyDescriptor(_class$12.prototype, "submit"), _class$12.prototype), _applyDecoratedDescriptor$12(_class$12.prototype, "keyDown", [action], Object.getOwnPropertyDescriptor(_class$12.prototype, "keyDown"), _class$12.prototype), _applyDecoratedDescriptor$12(_class$12.prototype, "toggle", [action], Object.getOwnPropertyDescriptor(_class$12.prototype, "toggle"), _class$12.prototype), _applyDecoratedDescriptor$12(_class$12.prototype, "remove", [action], Object.getOwnPropertyDescriptor(_class$12.prototype, "remove"), _class$12.prototype), _class$12);
 TodoItemEdit.displayName = "TodoItemEdit";
 var TodoItemTheme = (_class3$3 =
 /*#__PURE__*/
@@ -9988,9 +9880,9 @@ function TodoItemView(_ref2, _ref3) {
       "class": css.edit,
       disabled: todo.saving,
       value: todoItemEdit.editText,
-      onBlur: todoItemEdit.handleSubmit,
+      onBlur: todoItemEdit.submit,
       onInput: todoItemEdit.setText,
-      onKeyDown: todoItemEdit.handleKeyDown
+      onKeyDown: todoItemEdit.keyDown
     }));
   }
 
@@ -10012,7 +9904,7 @@ function TodoItemView(_ref2, _ref3) {
     id: "destroy",
     "class": css.destroy,
     disabled: todo.removing,
-    onClick: todoItemEdit.handleDestroy
+    onClick: todoItemEdit.remove
   }));
 }
 TodoItemView._r = [1, [{
@@ -10113,23 +10005,19 @@ function () {
 TodoMainTheme.displayName = "TodoMainTheme";
 function TodoMainView(_, _ref) {
   var _ref$todoRepository = _ref.todoRepository,
-      todos = _ref$todoRepository.todos,
       toggleAll = _ref$todoRepository.toggleAll,
       activeTodoCount = _ref$todoRepository.activeTodoCount,
       patching = _ref$todoRepository.patching,
+      clearing = _ref$todoRepository.clearing,
       filteredTodos = _ref$todoRepository.filteredTodos,
       css = _ref.theme.css;
-
-  if (!todos.length) {
-    return null;
-  }
-
+  if (!filteredTodos.length) return null;
   return lom_h("section", {
     "class": css.main
   }, lom_h("input", {
     id: "input",
     "class": css.toggleAll,
-    disabled: !!patching,
+    disabled: patching || clearing,
     type: "checkbox",
     onChange: toggleAll,
     checked: activeTodoCount === 0
@@ -10505,37 +10393,47 @@ TimeoutHandler.displayName = "TimeoutHandler";
 var AutocompleteService = (_class2$2 =
 /*#__PURE__*/
 function () {
-  function AutocompleteService() {
-    var _this = this;
-
-    _initDefineProp$4(this, "nameToSearch", _descriptor$4, this);
-
-    _initDefineProp$4(this, "_handler", _descriptor2$1, this);
-
-    this.setValue = function (e) {
-      _this.nameToSearch = e.target.value;
-    };
-  }
-
   _createClass(AutocompleteService, [{
     key: "props",
     set: function set(_ref) {
       var initialValue = _ref.initialValue;
       this.nameToSearch = initialValue;
     }
-  }, {
+  }]);
+
+  function AutocompleteService(fetcher) {
+    _initDefineProp$4(this, "nameToSearch", _descriptor$4, this);
+
+    _initDefineProp$4(this, "_handler", _descriptor2$1, this);
+
+    this._fetcher = fetcher;
+  }
+
+  var _proto2 = AutocompleteService.prototype;
+
+  _proto2.setValue = function setValue(e) {
+    this.nameToSearch = e.target.value;
+  };
+
+  _createClass(AutocompleteService, [{
     key: "searchResults",
     get: function get() {
-      var _this2 = this;
+      var _this = this;
 
-      var name = this.nameToSearch;
+      var name = this.nameToSearch; // if (this._handler) throw new AtomWait()
+      // this._handler = new TimeoutHandler(() => { this._handler = null }, 500)
+      //
+      // const data: string[] = this._fetcher.get(`/autocomplete?q=${this.nameToSearch}`).json()
+      //
+      // return data
+
       this._handler = new TimeoutHandler(function () {
         fetch("/api/autocomplete?q=" + name).then(function (r) {
           return r.json();
         }).then(function (data) {
-          mem.cache(_this2.searchResults = data);
+          mem.cache(_this.searchResults = data);
         }).catch(function (e) {
-          mem.cache(_this2.searchResults = e);
+          mem.cache(_this.searchResults = e);
         });
       }, 500);
       throw new AtomWait();
@@ -10553,7 +10451,8 @@ function () {
   initializer: function initializer() {
     return null;
   }
-}), _applyDecoratedDescriptor$14(_class2$2.prototype, "searchResults", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "searchResults"), _class2$2.prototype), _applyDecoratedDescriptor$14(_class2$2.prototype, "searchResults", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "searchResults"), _class2$2.prototype), _class2$2);
+}), _applyDecoratedDescriptor$14(_class2$2.prototype, "searchResults", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "searchResults"), _class2$2.prototype), _applyDecoratedDescriptor$14(_class2$2.prototype, "searchResults", [mem], Object.getOwnPropertyDescriptor(_class2$2.prototype, "searchResults"), _class2$2.prototype), _applyDecoratedDescriptor$14(_class2$2.prototype, "setValue", [action], Object.getOwnPropertyDescriptor(_class2$2.prototype, "setValue"), _class2$2.prototype), _class2$2);
+AutocompleteService._r = [0, [Fetcher]];
 AutocompleteService.displayName = "AutocompleteService";
 
 function AutocompleteResultsView(_ref2) {
@@ -10569,7 +10468,7 @@ function AutocompleteResultsView(_ref2) {
 AutocompleteResultsView._r = [1];
 AutocompleteResultsView.displayName = "AutocompleteResultsView";
 function AutocompleteView(_, service) {
-  var results = service.searchResults;
+  var results = mem.async(service.searchResults);
   var name = service.nameToSearch;
   return lom_h("div", null, lom_h("div", {
     id: "filter"
@@ -10604,7 +10503,7 @@ autocompleteMocks.displayName = "autocompleteMocks";
 
 var _class$14;
 var _descriptor$5;
-var _dec$2;
+var _dec$4;
 var _class3$5;
 
 function _initDefineProp$5(target, property, descriptor, context) {
@@ -10655,7 +10554,7 @@ var Store$1 = (_class$14 = function Store() {
   }
 }), _class$14);
 Store$1.displayName = "Store";
-var CssChangeTheme = (_dec$2 = theme.self, _class3$5 =
+var CssChangeTheme = (_dec$4 = theme.self, _class3$5 =
 /*#__PURE__*/
 function () {
   function CssChangeTheme(store) {
@@ -10674,7 +10573,7 @@ function () {
     }
   }]);
   return CssChangeTheme;
-}(), _applyDecoratedDescriptor$15(_class3$5.prototype, "css", [mem, _dec$2], Object.getOwnPropertyDescriptor(_class3$5.prototype, "css"), _class3$5.prototype), _class3$5);
+}(), _applyDecoratedDescriptor$15(_class3$5.prototype, "css", [mem, _dec$4], Object.getOwnPropertyDescriptor(_class3$5.prototype, "css"), _class3$5.prototype), _class3$5);
 CssChangeTheme._r = [0, [Store$1]];
 CssChangeTheme.displayName = "CssChangeTheme";
 function CssChangeView(_, _ref) {

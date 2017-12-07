@@ -1,5 +1,5 @@
 // @flow
-import {action, mem, AtomWait} from 'lom_atom'
+import {action, mem} from 'lom_atom'
 
 import Fetcher from '../../../Fetcher'
 import {AbstractLocationStore} from '../../common-todomvc'

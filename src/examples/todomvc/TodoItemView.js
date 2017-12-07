@@ -1,7 +1,7 @@
 // @flow
 
 import {props, theme} from 'reactive-di'
-import {action, defer, mem, AtomWait} from 'lom_atom'
+import {action, mem, AtomWait} from 'lom_atom'
 import Todo from './models/Todo'
 
 const ESCAPE_KEY = 27
@@ -17,7 +17,7 @@ class TodoItemEdit {
 
     @props props: ITodoProps
 
-    beginEdit = () => {
+    @action beginEdit() {
         const {todo} = this.props
         this.todoBeingEditedId = todo.id
         this.editText = todo.title
@@ -27,27 +27,27 @@ class TodoItemEdit {
         this.editText = (target: any).value.trim()
     }
 
-    @defer setEditInputRef(el: ?HTMLInputElement) {
+    @action.defer setEditInputRef(el: ?HTMLInputElement) {
         if (!el) return
         el.focus()
     }
 
-    handleSubmit = (event: Event) => {
+    @action submit(event: Event) {
         if (!this.todoBeingEditedId) return
-        const val = this.editText.trim()
+        const title = this.editText.trim()
         const {todo} = this.props
-        if (val) {
-            if (todo.title !== val) {
-                todo.title = val
+        if (title) {
+            if (todo.title !== title) {
+                todo.update({title})
                 this.editText = ''
             }
         } else {
-            this.handleDestroy()
+            this.remove()
         }
         this.todoBeingEditedId = null
     }
 
-    handleKeyDown = (event: KeyboardEvent) => {
+    @action keyDown(event: KeyboardEvent) {
         switch (event.which) {
             case ESCAPE_KEY:
                 this.editText = this.props.todo.title
@@ -55,19 +55,19 @@ class TodoItemEdit {
                 break
 
             case ENTER_KEY:
-                this.handleSubmit(event)
+                this.submit(event)
                 break
 
             default: break
         }
     }
 
-    toggle = () => {
+    @action toggle() {
         this.props.todo.toggle()
         this.todoBeingEditedId = null
     }
 
-    handleDestroy = () => {
+    @action remove() {
         this.props.todo.remove()
         this.todoBeingEditedId = null
     }
@@ -218,9 +218,9 @@ export default function TodoItemView(
                 class={css.edit}
                 disabled={todo.saving}
                 value={todoItemEdit.editText}
-                onBlur={todoItemEdit.handleSubmit}
+                onBlur={todoItemEdit.submit}
                 onInput={todoItemEdit.setText}
-                onKeyDown={todoItemEdit.handleKeyDown}
+                onKeyDown={todoItemEdit.keyDown}
             />
         </li>
     }
@@ -246,7 +246,7 @@ export default function TodoItemView(
             id="destroy"
             class={css.destroy}
             disabled={todo.removing}
-            onClick={todoItemEdit.handleDestroy}
+            onClick={todoItemEdit.remove}
         />
     </li>
 }
