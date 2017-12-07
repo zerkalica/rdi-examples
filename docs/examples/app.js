@@ -1,4 +1,3 @@
-(function(l, i, v, e) { v = l.createElement(i); v.async = 1; v.src = '//' + (location.host || 'localhost').split(':')[0] + ':35729/livereload.js?snipver=1'; e = l.getElementsByTagName(i)[0]; e.parentNode.insertBefore(v, e)})(document, 'script');
 (function () {
 'use strict';
 
@@ -3400,7 +3399,7 @@ var devtools = createCommonjsModule(function (module, exports) {
     }
 
     initDevTools();
-  }); //# sourceMappingURL=devtools.js.map
+  }); 
 
 });
 
@@ -3571,6 +3570,13 @@ unwrapExports(SheetsRegistry_1);
  * LICENSE file in the root directory of this source tree. An additional grant
  * of patent rights can be found in the PATENTS file in the same directory.
  */
+/**
+ * Similar to invariant but only logs a warning if the condition is not met.
+ * This can be used to log issues in development environments in critical
+ * paths. Removing the logging code for production environments will keep the
+ * same logic and follow the same code paths.
+ */
+
 var warning = function warning() {};
 
 warning._r = [2];
@@ -7152,6 +7158,10 @@ globToRegexp.displayName = "globToRegexp";
 var isarray = Array.isArray || function (arr) {
   return Object.prototype.toString.call(arr) == '[object Array]';
 };
+
+/**
+ * Expose `pathToRegexp`.
+ */
 
 var pathToRegexp_1 = pathToRegexp;
 var parse_1 = parse;
