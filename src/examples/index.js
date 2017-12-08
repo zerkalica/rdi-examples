@@ -99,7 +99,10 @@ function AppView(
                 />
             </ItemView.Value>
         </ItemView>
-
+        <div id="emulate-message">
+            Type <strong id="code-1">rdi_fetch_error_rate = 0</strong> in console
+            for disabling server error emulation. <strong id="code-2">rdi_fetch_error_rate = 100</strong> for 100% errors.
+        </div>
     </div>
 }
 const el = document.getElementById('app')

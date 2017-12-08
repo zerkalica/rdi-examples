@@ -126,12 +126,15 @@ export class BrowserLocalStorage {
     }
 }
 
+global['rdi_fetch_error_rate'] = undefined
 function delayed<V>(v: V, delay: number, errorRate: number): (url: string, params: RequestOptions) => Promise<V> {
     return function resp(url: string, params: RequestOptions) {
         return new Promise((resolve: Function, reject: Function) => {
             setTimeout(() => {
-                if (Math.random() * 100)
-                resolve(v)
+                const globalRate = global['rdi_fetch_error_rate']
+                const rate = 100 - (globalRate == undefined ? errorRate : globalRate)
+                if (Math.floor(Math.random() * 100) > rate) reject(new Error('500 Fake HTTP Error'))
+                else resolve(v)
             }, delay)
         })
     }
