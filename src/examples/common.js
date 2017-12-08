@@ -126,18 +126,21 @@ export class BrowserLocalStorage {
     }
 }
 
-function delayed<V>(v: V, delay: number): (url: string, params: RequestOptions) => Promise<V> {
+function delayed<V>(v: V, delay: number, errorRate: number): (url: string, params: RequestOptions) => Promise<V> {
     return function resp(url: string, params: RequestOptions) {
-        return new Promise((resolve: Function) => {
-            setTimeout(() => { resolve(v) }, delay)
+        return new Promise((resolve: Function, reject: Function) => {
+            setTimeout(() => {
+                if (Math.random() * 100)
+                resolve(v)
+            }, delay)
         })
     }
 }
 
-export function mockFetch(storage: Storage, delay?: number = 500, mocks: Function[]) {
+export function mockFetch(storage: Storage, delay?: number = 500, errorRate?: number = 30, mocks: Function[]) {
     mocks.forEach((createMock) => {
         createMock(storage).forEach((data) => {
-            fetchMock.mock({...data, response: delayed(data.response, delay)})
+            fetchMock.mock({...data, response: delayed(data.response, delay, errorRate)})
         })
     })
 }

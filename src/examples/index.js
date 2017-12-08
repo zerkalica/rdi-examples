@@ -13,7 +13,7 @@ import {ItemView, Locale, mockFetch} from './common'
 import {AbstractLocationStore} from './common-todomvc'
 import {CssChangeView} from './cssChange'
 
-mockFetch(localStorage, 500, [
+mockFetch(localStorage, 500, 30, [
     todoMocks,
     autocompleteMocks
 ])

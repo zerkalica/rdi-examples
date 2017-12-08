@@ -9,10 +9,21 @@ interface IAutocompleteProps {
     id: string;
 }
 
-class TimeoutHandler {
+class DebouncedValue {
     _handler: ?number = null
-    constructor(fn: () => void, timeout: number) {
-        this._handler = setTimeout(fn, timeout)
+    _timeout: number
+
+    constructor(timeout: number) {
+        this._timeout = timeout
+    }
+
+    @mem value<V>(next?: V): V {
+        clearTimeout(this._handler)
+        this._handler = setTimeout(
+            () => mem.cache(this.value(next)),
+            this._timeout
+        )
+        throw new AtomWait()
     }
 
     destructor() {
@@ -27,40 +38,22 @@ class AutocompleteService {
         this.nameToSearch = initialValue
     }
 
-    @mem _handler: ?TimeoutHandler = null
-
     _fetcher: Fetcher
+
+    _debounced: DebouncedValue = new DebouncedValue(500)
 
     constructor(fetcher: Fetcher) {
         this._fetcher = fetcher
     }
 
     @mem get searchResults(): string[] {
-        const name = this.nameToSearch
-        // if (this._handler) throw new AtomWait()
-        // this._handler = new TimeoutHandler(() => { this._handler = null }, 500)
-        //
-        // const data: string[] = this._fetcher.get(`/autocomplete?q=${this.nameToSearch}`).json()
-        //
-        // return data
-        this._handler = new TimeoutHandler(() => {
-            fetch(`/api/autocomplete?q=${name}`)
-                .then((r: Response) => r.json())
-                .then((data: string[]) => {
-                    mem.cache(this.searchResults = data)
-                })
-                .catch((e: Error) => {
-                    mem.cache(this.searchResults = e)
-                })
-        }, 500)
-
-        throw new AtomWait()
+        const url = `/autocomplete?q=${this._debounced.value(this.nameToSearch)}`
+        return this._fetcher.get(url).json()
     }
 
-    @mem set searchResults(searchResults: string[] | Error) {}
-
     @action setValue(e: Event) {
-        (this.nameToSearch = (e.target: any).value)
+        const value: string = (e.target: any).value
+        this.nameToSearch = value
     }
 }
 
@@ -71,7 +64,7 @@ function AutocompleteResultsView(
 ) {
     return <ul>
         {searchResults.map((result: string, i: number) =>
-            <li key={result + i} id={`list(${i})`}>
+            <li key={i} id={`list(${i})`}>
                 {result}
             </li>
         )}

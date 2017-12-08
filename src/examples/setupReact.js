@@ -1,5 +1,5 @@
 // @flow
-import {mem, AtomWait, detached, ConsoleLogger, defaultContext} from 'lom_atom'
+import {mem, AtomWait, RecoverableError, detached, ConsoleLogger, defaultContext} from 'lom_atom'
 import {createReactWrapper, createCreateElement, Injector} from 'reactive-di'
 
 import {h, Component} from 'preact'
@@ -27,10 +27,15 @@ function ErrorableView({
         {error instanceof AtomWait
             ? <SpinnerView id="loading">{children}</SpinnerView>
             : <div id="error">
-                <h3 id="title">Fatal error !</h3>
-                <div id="message">{error.message}</div>
+                <h3 id="error-title">{error.message}</h3>
+                {error instanceof RecoverableError
+                    ? <div id="recover">
+                        <button id="recover-button" onClick={error.retry}>Retry</button>
+                    </div>
+                    : null
+                }
                 <pre id="stack">
-                    {error.stack.toString()}
+                    {String(error.stack || error)}
                 </pre>
             </div>
         }
