@@ -12,6 +12,5 @@ build
 dist
 tags
 .tags*
-*.map
 /*.sh
 /__tests__
