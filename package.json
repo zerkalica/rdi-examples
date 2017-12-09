@@ -54,7 +54,7 @@
     "@babel/register": "^7.0.0-beta.34",
     "babel-plugin-transform-metadata": "^4.0.2",
     "empty": "^0.10.1",
-    "flow-bin": "^0.60.1",
+    "flow-bin": "^0.61.0",
     "rimraf": "^2.6.2",
     "rollup": "^0.52.1",
     "rollup-plugin-alias": "^1.4.0",
@@ -78,7 +78,7 @@
     "jss-camel-case": "^6.0.0",
     "jss-global": "^3.0.0",
     "jss-nested": "^6.0.1",
-    "lom_atom": "^3.0.16",
+    "lom_atom": "^3.0.17",
     "preact": "^8.2.6",
     "reactive-di": "^6.0.6",
     "todomvc-common": "^1.0.4"

@@ -18,13 +18,15 @@ export class HttpError extends Error {
     localizedMessage: ?string
     errorCode: ?string
     params: ?IErrorParams
+    retry: () => void
 
     constructor(
         statusCode: number,
         message: string,
         errorCode?: ?string,
         localizedMessage?: ?string,
-        params?: IErrorParams
+        params?: IErrorParams,
+        retry: () => void
     ) {
         super(message)
         // $FlowFixMe new.target
@@ -33,23 +35,42 @@ export class HttpError extends Error {
         this.statusCode = statusCode
         this.errorCode = errorCode || null
         this.localizedMessage = localizedMessage || null
+        this.retry = retry
+    }
+    toJSON() {
+        return {
+            message: this.message,
+            stack: this.stack,
+            statusCode: this.statusCode,
+            errorCode: this.errorCode
+        }
     }
 }
 
-function timeoutPromise<D>(promise: Promise<D>, timeout?: ?number, params: IErrorParams): Promise<D> {
+function timeoutPromise<D>(
+    promise: Promise<D>,
+    timeout?: ?number,
+    params: IErrorParams,
+    retry: () => void
+): Promise<D> {
     if (!timeout) return promise
     const tm = timeout
 
     return Promise.race([
         promise,
         new Promise((resolve: (data: D) => void, reject: (err: any) => void) => {
-            setTimeout(() => reject(new HttpError(
-                408,
-                'Request timeout client emulation: ' + (tm / 1000) + 's',
-                null,
-                null,
-                params
-            )), tm)
+            setTimeout(
+                () => reject(
+                    new HttpError(
+                        408,
+                        'Request timeout client emulation: ' + (tm / 1000) + 's',
+                        null,
+                        null,
+                        params,
+                        retry
+                    )
+                ),
+            tm)
         })
     ])
 }
@@ -127,9 +148,11 @@ class FetcherResponse<V> implements FetcherApi<V> {
             body: opts.body || ''
         }
 
+        const retry = mem.getRetry(this.text())
+
         if (renderer) renderer.beginFetch()
         this._disposed = false
-        timeoutPromise(this._request(url, opts), opts ? opts.timeout : null, params)
+        timeoutPromise(this._request(url, opts), opts ? opts.timeout : null, params, retry)
             .then((r: Response) => r.status === 204 ? '' : r.text())
             .then((data: string) => {
                 if (renderer) renderer.endFetch(data, url)
@@ -139,7 +162,14 @@ class FetcherResponse<V> implements FetcherApi<V> {
             .catch((e: Error) => {
                 const err = e instanceof HttpError
                     ? e
-                    : new HttpError((e: Object).statusCode || 500, e.message, null, null, params)
+                    : new HttpError(
+                        (e: Object).statusCode || 500,
+                        e.message,
+                        null,
+                        null,
+                        params,
+                        retry
+                    )
                 err.stack = e.stack
 
                 if (renderer) renderer.endFetch(e, url)

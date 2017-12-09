@@ -79,9 +79,11 @@ var ATOM_STATUS_CHECKING = 2;
 var ATOM_STATUS_PULLING = 3;
 var ATOM_STATUS_ACTUAL = 4;
 var ATOM_STATUS_DEEP_RESET = 5;
-var catchedId = Symbol('lom_atom_catched');
 var ATOM_FORCE_NONE = 0;
 var ATOM_FORCE_CACHE = 1;
+var ATOM_FORCE_ASYNC = 2;
+var ATOM_FORCE_RETRY = 3;
+var catchedId = Symbol('lom_cached');
 
 var AtomWait =
 /*#__PURE__*/
@@ -103,33 +105,6 @@ function (_Error) {
   }
 
   return AtomWait;
-}(Error);
-
-var atomId = Symbol('lom_atom');
-
-var RecoverableError =
-/*#__PURE__*/
-function (_Error2) {
-  _inheritsLoose$1(RecoverableError, _Error2);
-
-  function RecoverableError(error, atom) {
-    var _this2;
-
-    _this2 = _Error2.call(this, error.message || error) || this;
-
-    _this2.retry = function () {
-      _this2[atomId].value(undefined, ATOM_FORCE_CACHE);
-    };
-
-    _this2.stack = error.stack // $FlowFixMe new.target
-    ;
-    _this2['__proto__'] = new.target.prototype;
-    _this2[catchedId] = true;
-    _this2[atomId] = atom;
-    return _this2;
-  }
-
-  return RecoverableError;
 }(Error);
 
 function getId(t, hk) {
@@ -154,7 +129,7 @@ var scheduleNative = typeof requestAnimationFrame === 'function' ? function (han
 } : function (handler) {
   return setTimeout(handler, 16);
 };
-var origId = Symbol('orig_error');
+var origId = Symbol('lom_error_orig');
 var throwOnAccess = {
   get: function get(target, key) {
     if (key === origId) return target.valueOf();
@@ -295,8 +270,10 @@ function () {
       this._masters.forEach(deleteSlave, this);
     }
 
-    if (this._slaves) this._slaves.forEach(checkSlave);
     this._masters = null;
+
+    this._checkSlaves();
+
     this._slaves = null;
 
     this._hostAtoms.delete(this._keyHash || this.owner);
@@ -310,19 +287,17 @@ function () {
     this._hostAtoms = undefined;
     this.key = undefined;
     this._keyHash = undefined;
+    this._retry = undefined;
   };
 
   _proto.value = function value(next, forceCache) {
     var context = this._context;
+    var current = this.current;
 
     if (forceCache === ATOM_FORCE_CACHE) {
       if (next === undefined) {
-        // this._suggested = this._next
-        // this._next = undefined
-        if (this.current instanceof RecoverableError) {
-          this._next = this._suggested;
-        }
-
+        this._suggested = this._next;
+        this._next = undefined;
         this.status = ATOM_STATUS_DEEP_RESET;
         if (this._slaves) this._slaves.forEach(obsoleteSlave);
       } else {
@@ -345,7 +320,7 @@ function () {
 
       var normalized;
 
-      if (next !== undefined && (normalized = conform(next, this._suggested, this.isComponent)) !== this._suggested && (this.current instanceof Error || (normalized = conform(next, this.current, this.isComponent)) !== this.current)) {
+      if (next !== undefined && (normalized = conform(next, this._suggested, this.isComponent)) !== this._suggested && (current instanceof Error || (normalized = conform(next, current, this.isComponent)) !== current)) {
         this._suggested = this._next = normalized;
         this.status = ATOM_STATUS_OBSOLETE;
       }
@@ -353,7 +328,7 @@ function () {
       this.actualize();
     }
 
-    var current = this.current;
+    current = this.current;
 
     if (current instanceof Error) {
       if (forceCache !== ATOM_FORCE_NONE) return proxify(current);
@@ -382,28 +357,29 @@ function () {
 
     if (this.status === ATOM_STATUS_DEEP_RESET && !this.isComponent) {
       Atom.deepReset = deepReset || new Set();
-
-      this._pullPush();
-
+      this.refresh();
       Atom.deepReset = deepReset;
     } else if (deepReset !== undefined && !this.manualReset && !deepReset.has(this)) {
       deepReset.add(this);
-
-      this._pullPush();
+      this.refresh();
     } else if (this.status !== ATOM_STATUS_ACTUAL) {
-      this._pullPush();
+      this.refresh();
     }
   };
 
   _proto._push = function _push(nextRaw) {
-    if (!(nextRaw instanceof AtomWait)) {
+    this.status = ATOM_STATUS_ACTUAL;
+    var prev = this.current;
+    var next;
+
+    if (nextRaw instanceof Error) {
+      if (nextRaw[origId]) nextRaw = nextRaw[origId];
+      next = nextRaw;
+    } else {
+      next = conform(nextRaw, prev, this.isComponent);
       this._suggested = this._next;
       this._next = undefined;
     }
-
-    this.status = ATOM_STATUS_ACTUAL;
-    var prev = this.current;
-    var next = nextRaw instanceof Error ? nextRaw[origId] || nextRaw : conform(nextRaw, prev, this.isComponent);
 
     if (prev !== next) {
       this.current = next;
@@ -414,7 +390,7 @@ function () {
     }
   };
 
-  _proto._pullPush = function _pullPush() {
+  _proto.refresh = function refresh() {
     var masters = this._masters;
 
     if (masters) {
@@ -438,7 +414,7 @@ function () {
         console.error(error.stack || error);
       }
 
-      newValue = error instanceof AtomWait || error instanceof RecoverableError ? error : new RecoverableError(error, this);
+      newValue = error;
     }
 
     context.current = slave;
@@ -489,6 +465,23 @@ function () {
     }
 
     this._masters.add(master);
+  };
+
+  _proto.getRetry = function getRetry() {
+    var _this = this;
+
+    if (this._retry === undefined) {
+      var fn = function fn() {
+        return _this.refresh();
+      };
+
+      fn._r = [2];
+      fn.displayName = "fn";
+      setFunctionName(fn, "atom(" + this.displayName + ").retry()");
+      this._retry = fn;
+    }
+
+    return this._retry;
   };
 
   _createClass$1(Atom, [{
@@ -810,7 +803,7 @@ function createValueHandler(initializer) {
 
 createValueHandler._r = [2];
 createValueHandler.displayName = "createValueHandler";
-var isForceCache = 0;
+var forceCache = ATOM_FORCE_NONE;
 
 function mem(proto, name, descr, deepReset) {
   var handlerKey = name + "$";
@@ -830,7 +823,7 @@ function mem(proto, name, descr, deepReset) {
       hostAtoms.set(this, atom);
     }
 
-    return atom.value(next, isForceCache);
+    return forceCache === ATOM_FORCE_RETRY ? atom : atom.value(next, forceCache);
   }
 
   if (descr.value !== undefined) {
@@ -920,7 +913,7 @@ function memkey(proto, name, descr, deepReset) {
       atomMap.set(key, atom);
     }
 
-    return atom.value(next, isForceCache);
+    return forceCache === ATOM_FORCE_RETRY ? atom : atom.value(next, forceCache);
   }
 
   descr.value = value;
@@ -939,26 +932,39 @@ memkeyManual.displayName = "memkeyManual";
 memkey.manual = memkeyManual;
 
 function cache(data) {
-  isForceCache = 0;
+  forceCache = ATOM_FORCE_NONE;
   return data;
 }
 
 cache._r = [2];
 cache.displayName = "cache";
+
+function getRetryResult(atom) {
+  forceCache = ATOM_FORCE_NONE;
+  return atom.getRetry();
+}
+
+getRetryResult._r = [2];
+getRetryResult.displayName = "getRetryResult";
 Object.defineProperties(mem, {
   cache: {
     get: function get() {
-      isForceCache = 1;
+      forceCache = ATOM_FORCE_CACHE;
       return cache;
+    }
+  },
+  getRetry: {
+    get: function get() {
+      forceCache = ATOM_FORCE_RETRY;
+      return getRetryResult;
     }
   },
   async: {
     get: function get() {
-      isForceCache = 2;
+      forceCache = ATOM_FORCE_ASYNC;
       return cache;
     }
   },
-  // unchanged: {value}
   manual: {
     value: memManual
   },
@@ -8589,7 +8595,7 @@ var HttpError =
 function (_Error) {
   _inheritsLoose(HttpError, _Error);
 
-  function HttpError(statusCode, message, errorCode, localizedMessage, params) {
+  function HttpError(statusCode, message, errorCode, localizedMessage, params, retry) {
     var _this;
 
     _this = _Error.call(this, message) || this // $FlowFixMe new.target
@@ -8599,25 +8605,37 @@ function (_Error) {
     _this.statusCode = statusCode;
     _this.errorCode = errorCode || null;
     _this.localizedMessage = localizedMessage || null;
+    _this.retry = retry;
     return _this;
   }
 
+  var _proto = HttpError.prototype;
+
+  _proto.toJSON = function toJSON() {
+    return {
+      message: this.message,
+      stack: this.stack,
+      statusCode: this.statusCode,
+      errorCode: this.errorCode
+    };
+  };
+
   return HttpError;
 }(Error);
-HttpError._r = [0, [Number, String, "IErrorParams"]];
+HttpError._r = [0, [Number, String, "IErrorParams", Function]];
 HttpError.displayName = "HttpError";
 
-function timeoutPromise(promise, timeout, params) {
+function timeoutPromise(promise, timeout, params, retry) {
   if (!timeout) return promise;
   var tm = timeout;
   return Promise.race([promise, new Promise(function (resolve, reject) {
     setTimeout(function () {
-      return reject(new HttpError(408, 'Request timeout client emulation: ' + tm / 1000 + 's', null, null, params));
+      return reject(new HttpError(408, 'Request timeout client emulation: ' + tm / 1000 + 's', null, null, params, retry));
     }, tm);
   })]);
 }
 
-timeoutPromise._r = [2, [null, "IErrorParams"]];
+timeoutPromise._r = [2, [null, "IErrorParams", Function]];
 timeoutPromise.displayName = "timeoutPromise";
 var FetcherResponse = (_class$4 =
 /*#__PURE__*/
@@ -8631,9 +8649,9 @@ function () {
     this._fetcher = fetcher;
   }
 
-  var _proto = FetcherResponse.prototype;
+  var _proto2 = FetcherResponse.prototype;
 
-  _proto._getState = function _getState() {
+  _proto2._getState = function _getState() {
     var state = this._fetcher.state,
         url = this.url;
 
@@ -8644,16 +8662,16 @@ function () {
     }
   };
 
-  _proto.options = function options(opts) {
+  _proto2.options = function options(opts) {
     Object.assign(this._options, opts);
     return this;
   };
 
-  _proto._request = function _request(url, init) {
+  _proto2._request = function _request(url, init) {
     return fetch(url, init);
   };
 
-  _proto.text = function text(next) {
+  _proto2.text = function text(next) {
     var _this2 = this;
 
     var state = this._getState();
@@ -8675,16 +8693,17 @@ function () {
       method: opts.method || 'GET',
       body: opts.body || ''
     };
+    var retry = mem.getRetry(this.text());
     if (renderer) renderer.beginFetch();
     this._disposed = false;
-    timeoutPromise(this._request(url, opts), opts ? opts.timeout : null, params).then(function (r) {
+    timeoutPromise(this._request(url, opts), opts ? opts.timeout : null, params, retry).then(function (r) {
       return r.status === 204 ? '' : r.text();
     }).then(function (data) {
       if (renderer) renderer.endFetch(data, url);
       if (_this2._disposed) return;
       mem.cache(_this2.text(data));
     }).catch(function (e) {
-      var err = e instanceof HttpError ? e : new HttpError(e.statusCode || 500, e.message, null, null, params);
+      var err = e instanceof HttpError ? e : new HttpError(e.statusCode || 500, e.message, null, null, params, retry);
       err.stack = e.stack;
       if (renderer) renderer.endFetch(e, url);
       if (_this2._disposed) return;
@@ -8693,11 +8712,11 @@ function () {
     throw new AtomWait(params.method + " " + params.url);
   };
 
-  _proto.destructor = function destructor() {
+  _proto2.destructor = function destructor() {
     this._disposed = true;
   };
 
-  _proto.json = function json(next) {
+  _proto2.json = function json(next) {
     var state = this._getState();
 
     if (state !== undefined) {
@@ -8730,35 +8749,35 @@ function () {
     this.renderer = opts.renderer;
   }
 
-  var _proto2 = Fetcher.prototype;
+  var _proto3 = Fetcher.prototype;
 
-  _proto2.mergeOptions = function mergeOptions(init) {
+  _proto3.mergeOptions = function mergeOptions(init) {
     return _extends({}, this._init || {}, init || {});
   };
 
-  _proto2._request = function _request(_ref) {
+  _proto3._request = function _request(_ref) {
     var method = _ref[0],
         url = _ref[1];
     return new FetcherResponse(method, url, this);
   };
 
-  _proto2.post = function post(url) {
+  _proto3.post = function post(url) {
     return this._request(['POST', url]);
   };
 
-  _proto2.get = function get(url) {
+  _proto3.get = function get(url) {
     return this._request(['GET', url]);
   };
 
-  _proto2.put = function put(url) {
+  _proto3.put = function put(url) {
     return this._request(['PUT', url]);
   };
 
-  _proto2.delete = function _delete(url) {
+  _proto3.delete = function _delete(url) {
     return this._request(['DELETE', url]);
   };
 
-  _proto2.patch = function patch(url) {
+  _proto3.patch = function patch(url) {
     return this._request(['PATCH', url]);
   };
 
@@ -8779,7 +8798,7 @@ function ErrorableView(_ref) {
     id: "error"
   }, lom_h("h3", {
     id: "error-title"
-  }, error.message), error instanceof RecoverableError ? lom_h("div", {
+  }, error.message), error instanceof HttpError ? lom_h("div", {
     id: "recover"
   }, lom_h("button", {
     id: "recover-button",
@@ -10468,7 +10487,7 @@ function () {
 AutocompleteService._r = [0, [Fetcher]];
 AutocompleteService.displayName = "AutocompleteService";
 
-function AutocompleteResultsView(_ref2) {
+function AutocompleteResultsView(_, _ref2) {
   var searchResults = _ref2.searchResults;
   return lom_h("ul", null, searchResults.map(function (result, i) {
     return lom_h("li", {
@@ -10478,20 +10497,19 @@ function AutocompleteResultsView(_ref2) {
   }));
 }
 
-AutocompleteResultsView._r = [1];
+AutocompleteResultsView._r = [1, [AutocompleteService]];
 AutocompleteResultsView.displayName = "AutocompleteResultsView";
-function AutocompleteView(_, service) {
-  var results = mem.async(service.searchResults);
-  var name = service.nameToSearch;
+function AutocompleteView(_, _ref3) {
+  var nameToSearch = _ref3.nameToSearch,
+      setValue = _ref3.setValue;
   return lom_h("div", null, lom_h("div", {
     id: "filter"
   }, "Filter:", lom_h("input", {
-    value: name,
+    value: nameToSearch,
     id: "value",
-    onInput: service.setValue
+    onInput: setValue
   })), "Values:", lom_h(AutocompleteResultsView, {
-    id: "results",
-    searchResults: results
+    id: "results"
   }));
 }
 AutocompleteView._r = [1, [AutocompleteService]];

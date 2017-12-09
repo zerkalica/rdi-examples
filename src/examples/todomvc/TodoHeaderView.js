@@ -21,7 +21,7 @@ class TodoToAdd {
         ref.focus()
     }
 
-    @action onInput ({target}: Event) {
+    @action onInput({target}: Event) {
         this.title = (target: any).value
     }
 

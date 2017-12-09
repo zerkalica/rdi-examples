@@ -40,7 +40,7 @@ class AutocompleteService {
 
     _fetcher: Fetcher
 
-    _debounced: DebouncedValue = new DebouncedValue(500)
+    _debounced = new DebouncedValue(500)
 
     constructor(fetcher: Fetcher) {
         this._fetcher = fetcher
@@ -58,9 +58,8 @@ class AutocompleteService {
 }
 
 function AutocompleteResultsView(
-    {searchResults}: {
-        searchResults: string[];
-    }
+    _: {},
+    {searchResults}: AutocompleteService
 ) {
     return <ul>
         {searchResults.map((result: string, i: number) =>
@@ -73,17 +72,15 @@ function AutocompleteResultsView(
 
 export function AutocompleteView(
     _: IAutocompleteProps,
-    service: AutocompleteService
+    {nameToSearch, setValue}: AutocompleteService
 ) {
-    const results = mem.async(service.searchResults)
-    const name = service.nameToSearch
     return <div>
         <div id="filter">
             Filter:
-            <input value={name} id="value" onInput={service.setValue}/>
+            <input value={nameToSearch} id="value" onInput={setValue}/>
         </div>
         Values:
-        <AutocompleteResultsView id="results" searchResults={results} />
+        <AutocompleteResultsView id="results" />
     </div>
 }
 

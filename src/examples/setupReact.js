@@ -1,5 +1,5 @@
 // @flow
-import {mem, AtomWait, RecoverableError, detached, ConsoleLogger, defaultContext} from 'lom_atom'
+import {mem, AtomWait, detached, ConsoleLogger, defaultContext} from 'lom_atom'
 import {createReactWrapper, createCreateElement, Injector} from 'reactive-di'
 
 import {h, Component} from 'preact'
@@ -12,7 +12,7 @@ import jssNested from 'jss-nested'
 import {BrowserLocationStore, AbstractLocationStore} from './common-todomvc'
 import {SpinnerView} from './common'
 
-import Fetcher from '../Fetcher'
+import Fetcher, {HttpError} from '../Fetcher'
 
 defaultContext.setLogger(new ConsoleLogger())
 
@@ -28,7 +28,7 @@ function ErrorableView({
             ? <SpinnerView id="loading">{children}</SpinnerView>
             : <div id="error">
                 <h3 id="error-title">{error.message}</h3>
-                {error instanceof RecoverableError
+                {error instanceof HttpError
                     ? <div id="recover">
                         <button id="recover-button" onClick={error.retry}>Retry</button>
                     </div>
