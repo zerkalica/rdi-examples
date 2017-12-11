@@ -1,7 +1,7 @@
 // @flow
 import {action, mem} from 'lom_atom'
 
-import Fetcher from '../../../Fetcher'
+import {Fetcher} from '../../../fetcher'
 import {AbstractLocationStore} from '../../common-todomvc'
 import Todo from './Todo'
 import type {ITodoRepository, ITodoData} from './Todo'
@@ -27,7 +27,7 @@ export default class TodoRepository implements ITodoRepository {
 
     @mem get todos(): Todo[] {
         return this._fetcher.get('/todos').json()
-            .map((data: ITodoData) => new Todo(data, this))
+            .map((data: ITodoData) => new Todo(data, this, this._fetcher))
     }
     set todos(todos: Todo[]) {}
 
@@ -53,7 +53,7 @@ export default class TodoRepository implements ITodoRepository {
     }
 
     @action addTodo(title: string) {
-        this.adding = new Todo({title}, this)
+        this.adding = new Todo({title}, this, this._fetcher)
     }
 
     @mem get patching(): ?ITogglePatch[] {

@@ -2,7 +2,7 @@
 
 import {mem, AtomWait, action} from 'lom_atom'
 import {props} from 'reactive-di'
-import Fetcher from '../Fetcher'
+import {Fetcher} from '../fetcher'
 
 interface IAutocompleteProps {
     initialValue: string;

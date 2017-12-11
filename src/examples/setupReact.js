@@ -12,7 +12,7 @@ import jssNested from 'jss-nested'
 import {BrowserLocationStore, AbstractLocationStore} from './common-todomvc'
 import {SpinnerView} from './common'
 
-import Fetcher, {HttpError} from '../Fetcher'
+import {Fetcher, HttpError} from '../fetcher'
 
 defaultContext.setLogger(new ConsoleLogger())
 

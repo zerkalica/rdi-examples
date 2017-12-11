@@ -1,7 +1,7 @@
 // @flow
 import {action, mem, AtomWait} from 'lom_atom'
 
-import Fetcher from '../../../Fetcher'
+import {Fetcher} from '../../../fetcher'
 import {uuid} from '../../common-todomvc'
 
 export interface ITodoData {
@@ -11,7 +11,6 @@ export interface ITodoData {
 }
 
 export interface ITodoRepository {
-    _fetcher: Fetcher;
     todos: Todo[];
 }
 
@@ -23,17 +22,17 @@ export default class Todo implements ITodoData {
     _store: ITodoRepository
     _fetcher: Fetcher
 
-    constructor(todo?: $Shape<ITodoData> = {}, store: ITodoRepository) {
+    constructor(todo?: $Shape<ITodoData> = {}, store: ITodoRepository, fetcher: Fetcher) {
         this.title = todo.title || ''
         this.id = todo.id || uuid()
         this.completed = todo.completed || false
         this._store = store
-        this._fetcher = store._fetcher
+        this._fetcher = fetcher
     }
 
     copy(data?: ?$Shape<ITodoData>): Todo {
         return data
-            ? new Todo({...this.toJSON(), ...data}, this._store)
+            ? new Todo({...this.toJSON(), ...data}, this._store, this._fetcher)
             : this
     }
 
