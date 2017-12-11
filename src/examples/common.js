@@ -45,6 +45,12 @@ ItemView.Value = ValueView
 
 class SpinnerTheme {
     @theme get css() {
+        const spinner = {
+            backgroundSize: '28px 28px',
+            minWidth: '28px',
+            minHeight: '28px'
+        }
+
         return {
             '@keyframes rdi_spinner_wait_move': {
                 from: {
@@ -55,30 +61,26 @@ class SpinnerTheme {
                 }
             },
             spinner: {
+                ...spinner,
                 '& *': {
-                    opacity: '0.8',
-                    background: 'none'
+                    opacity: '0.8'
                 },
-                position: 'relative',
-                zIndex: '1000',
-                left: 0,
-                top: 0,
-                pointerEvents: 'none',
-                backgroundSize: '28px 28px',
                 backgroundImage: `repeating-linear-gradient(45deg, rgba(0,0,0, 0.05), rgba(0,0,0,0.05) 9px, rgba(255,255,255,.015) 10px, rgba(255,255,255,.015) 20px)`,
-                animation: 'rdi_spinner_wait_move .25s steps(6) infinite',
-                minWidth: '28px',
-                minHeight: '28px'
+                animation: 'rdi_spinner_wait_move .25s steps(6) infinite'
+            },
+            spinnerError: {
+                ...spinner,
+                backgroundImage: `repeating-linear-gradient(45deg, rgba(255,0,0, 0.1), rgba(255,0,0,0.1) 9px, rgba(255,255,255,.015) 10px, rgba(255,255,255,.015) 20px)`,
             }
         }
     }
 }
 
 export function SpinnerView(
-    {children}: {children: any},
+    {children, isError, enableEvents}: {children: any, isError?: boolean, enableEvents?: boolean},
     {theme: {css}}: {theme: SpinnerTheme}
 ) {
-    return <div class={css.spinner}>{children}</div>
+    return <div class={isError ? css.spinnerError : css.spinner}>{children}</div>
 }
 
 export class Locale {

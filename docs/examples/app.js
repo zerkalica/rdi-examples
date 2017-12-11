@@ -8423,6 +8423,11 @@ function () {
   _createClass(SpinnerTheme, [{
     key: "css",
     get: function get() {
+      var spinner = {
+        backgroundSize: '28px 28px',
+        minWidth: '28px',
+        minHeight: '28px'
+      };
       return {
         '@keyframes rdi_spinner_wait_move': {
           from: {
@@ -8432,22 +8437,16 @@ function () {
             backgroundPosition: '-28px 0'
           }
         },
-        spinner: {
+        spinner: _extends({}, spinner, {
           '& *': {
-            opacity: '0.8',
-            background: 'none'
+            opacity: '0.8'
           },
-          position: 'relative',
-          zIndex: '1000',
-          left: 0,
-          top: 0,
-          pointerEvents: 'none',
-          backgroundSize: '28px 28px',
           backgroundImage: "repeating-linear-gradient(45deg, rgba(0,0,0, 0.05), rgba(0,0,0,0.05) 9px, rgba(255,255,255,.015) 10px, rgba(255,255,255,.015) 20px)",
-          animation: 'rdi_spinner_wait_move .25s steps(6) infinite',
-          minWidth: '28px',
-          minHeight: '28px'
-        }
+          animation: 'rdi_spinner_wait_move .25s steps(6) infinite'
+        }),
+        spinnerError: _extends({}, spinner, {
+          backgroundImage: "repeating-linear-gradient(45deg, rgba(255,0,0, 0.1), rgba(255,0,0,0.1) 9px, rgba(255,255,255,.015) 10px, rgba(255,255,255,.015) 20px)"
+        })
       };
     }
   }]);
@@ -8455,10 +8454,12 @@ function () {
 }(), _applyDecoratedDescriptor$3(_class2$1.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class2$1.prototype, "css"), _class2$1.prototype), _class2$1);
 SpinnerTheme.displayName = "SpinnerTheme";
 function SpinnerView(_ref7, _ref8) {
-  var children = _ref7.children;
+  var children = _ref7.children,
+      isError = _ref7.isError,
+      enableEvents = _ref7.enableEvents;
   var css = _ref8.theme.css;
   return lom_h("div", {
-    "class": css.spinner
+    "class": isError ? css.spinnerError : css.spinner
   }, children);
 }
 SpinnerView._r = [1, [{
@@ -8886,26 +8887,38 @@ function () {
 Fetcher.displayName = "Fetcher";
 
 defaultContext.setLogger(new ConsoleLogger());
+var stackId = Symbol('stack_id');
 
 function ErrorableView(_ref) {
   var error = _ref.error,
       children = _ref.children;
-  return lom_h("div", {
-    id: "errorable"
-  }, error instanceof AtomWait ? lom_h(SpinnerView, {
-    id: "loading"
+  var errorWasShowed = error[stackId];
+  error[stackId] = true;
+  var isWait = error instanceof AtomWait;
+  return lom_h(SpinnerView, {
+    id: "errorable",
+    isError: !isWait
+  }, isWait || errorWasShowed ? lom_h("div", {
+    id: "content",
+    style: {
+      pointerEvents: 'none'
+    }
   }, children) : lom_h("div", {
-    id: "error"
+    id: "error",
+    style: {
+      padding: '0.1em 1em'
+    }
   }, lom_h("h3", {
     id: "error-title"
   }, error.message), error instanceof HttpError ? lom_h("div", {
-    id: "recover"
+    id: "recover",
+    style: {
+      paddingBottom: '1em'
+    }
   }, lom_h("button", {
     id: "recover-button",
     onClick: error.retry
-  }, "Retry")) : null, lom_h("pre", {
-    id: "stack"
-  }, String(error.stack || error))));
+  }, "Retry")) : null));
 }
 
 ErrorableView._r = [1];
@@ -10564,9 +10577,9 @@ function () {
 
   var _proto2 = AutocompleteService.prototype;
 
-  _proto2.setValue = function setValue(e) {
-    var value = e.target.value;
-    this.nameToSearch = value;
+  _proto2.setValue = function setValue(_ref2) {
+    var target = _ref2.target;
+    this.nameToSearch = target.value;
   };
 
   _createClass(AutocompleteService, [{
@@ -10587,8 +10600,8 @@ function () {
 AutocompleteService._r = [0, [Fetcher]];
 AutocompleteService.displayName = "AutocompleteService";
 
-function AutocompleteResultsView(_, _ref2) {
-  var searchResults = _ref2.searchResults;
+function AutocompleteResultsView(_, _ref3) {
+  var searchResults = _ref3.searchResults;
   return lom_h("ul", null, searchResults.map(function (result, i) {
     return lom_h("li", {
       key: i,
@@ -10599,16 +10612,16 @@ function AutocompleteResultsView(_, _ref2) {
 
 AutocompleteResultsView._r = [1, [AutocompleteService]];
 AutocompleteResultsView.displayName = "AutocompleteResultsView";
-function AutocompleteView(_, _ref3) {
-  var nameToSearch = _ref3.nameToSearch,
-      setValue = _ref3.setValue;
+function AutocompleteView(_, _ref4) {
+  var nameToSearch = _ref4.nameToSearch,
+      setValue = _ref4.setValue;
   return lom_h("div", null, lom_h("div", {
     id: "filter"
-  }, "Filter:", lom_h("input", {
+  }, "Filter: ", lom_h("input", {
     value: nameToSearch,
     id: "value",
     onInput: setValue
-  })), "Values:", lom_h(AutocompleteResultsView, {
+  })), "Values: ", lom_h(AutocompleteResultsView, {
     id: "results"
   }));
 }

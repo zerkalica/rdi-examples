@@ -16,6 +16,7 @@ import {Fetcher, HttpError} from '../fetcher'
 
 defaultContext.setLogger(new ConsoleLogger())
 
+const stackId = Symbol('stack_id')
 function ErrorableView({
     error,
     children
@@ -23,23 +24,23 @@ function ErrorableView({
     children: any,
     error: Error
 }) {
-    return <div id="errorable">
-        {error instanceof AtomWait
-            ? <SpinnerView id="loading">{children}</SpinnerView>
-            : <div id="error">
+    const errorWasShowed = (error: Object)[stackId]
+    ;(error: Object)[stackId] = true
+    const isWait = error instanceof AtomWait
+    return <SpinnerView id="errorable" isError={!isWait}>
+        {isWait || errorWasShowed
+            ? <div id="content" style={{pointerEvents: 'none'}}>{children}</div>
+            : <div id="error" style={{padding: '0.1em 1em'}}>
                 <h3 id="error-title">{error.message}</h3>
                 {error instanceof HttpError
-                    ? <div id="recover">
+                    ? <div id="recover" style={{paddingBottom: '1em'}}>
                         <button id="recover-button" onClick={error.retry}>Retry</button>
                     </div>
                     : null
                 }
-                <pre id="stack">
-                    {String(error.stack || error)}
-                </pre>
             </div>
         }
-    </div>
+    </SpinnerView>
 }
 
 const jss = createJss({

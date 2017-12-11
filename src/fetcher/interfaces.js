@@ -1,6 +1,7 @@
 // @flow
 
 export type IRequestOptions = RequestOptions & {
+    params?: {[id: string]: string};
     requestId: string;
     fullUrl: string;
     url: string;

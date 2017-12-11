@@ -51,9 +51,8 @@ class AutocompleteService {
         return this._fetcher.get(url).json()
     }
 
-    @action setValue(e: Event) {
-        const value: string = (e.target: any).value
-        this.nameToSearch = value
+    @action setValue({target}: Event) {
+        this.nameToSearch = (target: Object).value
     }
 }
 
@@ -76,11 +75,9 @@ export function AutocompleteView(
 ) {
     return <div>
         <div id="filter">
-            Filter:
-            <input value={nameToSearch} id="value" onInput={setValue}/>
+            Filter: <input value={nameToSearch} id="value" onInput={setValue}/>
         </div>
-        Values:
-        <AutocompleteResultsView id="results" />
+        Values: <AutocompleteResultsView id="results" />
     </div>
 }
 
