@@ -8424,6 +8424,8 @@ function () {
     key: "css",
     get: function get() {
       var spinner = {
+        position: 'relative',
+        zIndex: '1000',
         backgroundSize: '28px 28px',
         minWidth: '28px',
         minHeight: '28px'
