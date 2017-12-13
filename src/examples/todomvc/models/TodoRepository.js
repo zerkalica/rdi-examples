@@ -27,7 +27,7 @@ export default class TodoRepository implements ITodoRepository {
 
     @mem get todos(): Todo[] {
         return this._fetcher.get('/todos').json()
-            .map((data: ITodoData) => new Todo(data, this, this._fetcher))
+            .map((data: ITodoData) => new Todo(data, this))
     }
     set todos(todos: Todo[]) {}
 
@@ -42,6 +42,16 @@ export default class TodoRepository implements ITodoRepository {
         return this.todos.length - this.activeTodoCount
     }
 
+    remove(todo: Todo) {
+        this._fetcher.delete(`/todo/${todo.id}`).json()
+        this.todos = this.todos.filter(t => t.id !== todo.id)
+    }
+
+    update(next: Todo) {
+        this._fetcher.post(`/todo/${next.id}`).json(next)
+        this.todos = this.todos.map(t => t.id === next.id ? next : t)
+    }
+
     @mem get adding(): ?Todo {
         return null
     }
@@ -53,7 +63,7 @@ export default class TodoRepository implements ITodoRepository {
     }
 
     @action addTodo(title: string) {
-        this.adding = new Todo({title}, this, this._fetcher)
+        this.adding = new Todo({title}, this)
     }
 
     @mem get patching(): ?ITogglePatch[] {

@@ -9377,7 +9377,7 @@ function _applyDecoratedDescriptor$10(target, property, decorators, descriptor, 
 var Todo = (_class$10 =
 /*#__PURE__*/
 function () {
-  function Todo(todo, store, fetcher) {
+  function Todo(todo, store) {
     if (todo === void 0) {
       todo = {};
     }
@@ -9386,27 +9386,26 @@ function () {
     this.id = todo.id || uuid();
     this.completed = todo.completed || false;
     this._store = store;
-    this._fetcher = fetcher;
   }
 
   var _proto = Todo.prototype;
 
   _proto.copy = function copy(data) {
-    return data ? new Todo(_extends({}, this.toJSON(), data), this._store, this._fetcher) : this;
+    return data ? new Todo(_extends({}, this.toJSON(), data), this._store) : this;
   };
 
   _proto.update = function update(data) {
     this.saving = this.copy(data);
   };
 
+  _proto.remove = function remove() {
+    this.removing = true;
+  };
+
   _proto.toggle = function toggle() {
     this.update({
       completed: !this.completed
     });
-  };
-
-  _proto.remove = function remove() {
-    this.removing = true;
   };
 
   _proto.toJSON = function toJSON() {
@@ -9423,13 +9422,8 @@ function () {
       return null;
     },
     set: function set(next) {
-      this._fetcher.post("/todo/" + this.id).json(next);
+      this._store.update(next);
 
-      var store = this._store; // mem.cache(store.todos) // Reload from server
-
-      store.todos = store.todos.map(function (t) {
-        return t.id === next.id ? next : t;
-      });
       mem.cache(this.saving);
     }
   }, {
@@ -9438,21 +9432,14 @@ function () {
       return false;
     },
     set: function set(next) {
-      var _this = this;
+      this._store.remove(this);
 
-      this._fetcher.delete("/todo/" + this.id).json();
-
-      var store = this._store; // mem.cache(store.todos) // Reload from server
-
-      store.todos = store.todos.filter(function (t) {
-        return t.id !== _this.id;
-      });
       mem.cache(this.removing);
     }
   }]);
   return Todo;
-}(), _applyDecoratedDescriptor$10(_class$10.prototype, "update", [action], Object.getOwnPropertyDescriptor(_class$10.prototype, "update"), _class$10.prototype), _applyDecoratedDescriptor$10(_class$10.prototype, "saving", [mem], Object.getOwnPropertyDescriptor(_class$10.prototype, "saving"), _class$10.prototype), _applyDecoratedDescriptor$10(_class$10.prototype, "saving", [mem], Object.getOwnPropertyDescriptor(_class$10.prototype, "saving"), _class$10.prototype), _applyDecoratedDescriptor$10(_class$10.prototype, "toggle", [action], Object.getOwnPropertyDescriptor(_class$10.prototype, "toggle"), _class$10.prototype), _applyDecoratedDescriptor$10(_class$10.prototype, "removing", [mem], Object.getOwnPropertyDescriptor(_class$10.prototype, "removing"), _class$10.prototype), _applyDecoratedDescriptor$10(_class$10.prototype, "removing", [mem], Object.getOwnPropertyDescriptor(_class$10.prototype, "removing"), _class$10.prototype), _applyDecoratedDescriptor$10(_class$10.prototype, "remove", [action], Object.getOwnPropertyDescriptor(_class$10.prototype, "remove"), _class$10.prototype), _class$10);
-Todo._r = [0, ["ITodoRepository", Fetcher]];
+}(), _applyDecoratedDescriptor$10(_class$10.prototype, "update", [action], Object.getOwnPropertyDescriptor(_class$10.prototype, "update"), _class$10.prototype), _applyDecoratedDescriptor$10(_class$10.prototype, "saving", [mem], Object.getOwnPropertyDescriptor(_class$10.prototype, "saving"), _class$10.prototype), _applyDecoratedDescriptor$10(_class$10.prototype, "saving", [mem], Object.getOwnPropertyDescriptor(_class$10.prototype, "saving"), _class$10.prototype), _applyDecoratedDescriptor$10(_class$10.prototype, "removing", [mem], Object.getOwnPropertyDescriptor(_class$10.prototype, "removing"), _class$10.prototype), _applyDecoratedDescriptor$10(_class$10.prototype, "removing", [mem], Object.getOwnPropertyDescriptor(_class$10.prototype, "removing"), _class$10.prototype), _applyDecoratedDescriptor$10(_class$10.prototype, "remove", [action], Object.getOwnPropertyDescriptor(_class$10.prototype, "remove"), _class$10.prototype), _applyDecoratedDescriptor$10(_class$10.prototype, "toggle", [action], Object.getOwnPropertyDescriptor(_class$10.prototype, "toggle"), _class$10.prototype), _class$10);
+Todo._r = [0, ["ITodoRepository"]];
 Todo.displayName = "Todo";
 
 var _class$9;
@@ -9501,10 +9488,26 @@ function () {
 
   var _proto = TodoRepository.prototype;
 
+  _proto.remove = function remove(todo) {
+    this._fetcher.delete("/todo/" + todo.id).json();
+
+    this.todos = this.todos.filter(function (t) {
+      return t.id !== todo.id;
+    });
+  };
+
+  _proto.update = function update(next) {
+    this._fetcher.post("/todo/" + next.id).json(next);
+
+    this.todos = this.todos.map(function (t) {
+      return t.id === next.id ? next : t;
+    });
+  };
+
   _proto.addTodo = function addTodo(title) {
     this.adding = new Todo({
       title: title
-    }, this, this._fetcher);
+    }, this);
   };
 
   _proto.toggleAll = function toggleAll() {
@@ -9533,7 +9536,7 @@ function () {
       var _this = this;
 
       return this._fetcher.get('/todos').json().map(function (data) {
-        return new Todo(data, _this, _this._fetcher);
+        return new Todo(data, _this);
       });
     },
     set: function set(todos) {}

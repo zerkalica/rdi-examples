@@ -1,7 +1,6 @@
 // @flow
 import {action, mem, AtomWait} from 'lom_atom'
 
-import {Fetcher} from '../../../fetcher'
 import {uuid} from '../../common-todomvc'
 
 export interface ITodoData {
@@ -11,7 +10,8 @@ export interface ITodoData {
 }
 
 export interface ITodoRepository {
-    todos: Todo[];
+    update(todo: Todo): void;
+    remove(todo: Todo): void;
 }
 
 export default class Todo implements ITodoData {
@@ -20,23 +20,21 @@ export default class Todo implements ITodoData {
     id: string
 
     _store: ITodoRepository
-    _fetcher: Fetcher
 
-    constructor(todo?: $Shape<ITodoData> = {}, store: ITodoRepository, fetcher: Fetcher) {
+    constructor(todo?: $Shape<ITodoData> = {}, store: ITodoRepository) {
         this.title = todo.title || ''
         this.id = todo.id || uuid()
         this.completed = todo.completed || false
         this._store = store
-        this._fetcher = fetcher
     }
 
     copy(data?: ?$Shape<ITodoData>): Todo {
         return data
-            ? new Todo({...this.toJSON(), ...data}, this._store, this._fetcher)
+            ? new Todo({...this.toJSON(), ...data}, this._store)
             : this
     }
 
-    @action update(data: $Shape<ITodoData>) {
+    @action update(data?: $Shape<ITodoData>) {
         this.saving = this.copy(data)
     }
 
@@ -45,17 +43,8 @@ export default class Todo implements ITodoData {
     }
 
     @mem set saving(next: Todo) {
-        this._fetcher.post(`/todo/${this.id}`).json(next)
-
-        const store = this._store
-        // mem.cache(store.todos) // Reload from server
-        store.todos = store.todos.map(t => t.id === next.id ? next : t)
-
+        this._store.update(next)
         mem.cache(this.saving)
-    }
-
-    @action toggle() {
-        this.update({completed: !this.completed})
     }
 
     @mem get removing(): boolean {
@@ -63,16 +52,16 @@ export default class Todo implements ITodoData {
     }
 
     @mem set removing(next: boolean) {
-        this._fetcher.delete(`/todo/${this.id}`).json()
-
-        const store = this._store
-        // mem.cache(store.todos) // Reload from server
-        store.todos = store.todos.filter(t => t.id !== this.id)
+        this._store.remove(this)
         mem.cache(this.removing)
     }
 
     @action remove() {
         this.removing = true
+    }
+
+    @action toggle() {
+        this.update({completed: !this.completed})
     }
 
     toJSON(): ITodoData {
