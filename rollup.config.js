@@ -25,6 +25,7 @@ babelrc.plugins = babelrc.plugins.map(
 const uglifyOpts = {
     warnings: true,
     compress: {
+        reduce_vars: false,
         dead_code: true,
         unused: true,
         toplevel: true,

@@ -2,7 +2,7 @@
 import {action, mem} from 'lom_atom'
 
 import {Fetcher} from '../../../fetcher'
-import {AbstractLocationStore} from '../../common-todomvc'
+import AbstractLocationStore from '../../../rdi/AbstractLocationStore'
 import Todo from './Todo'
 import type {ITodoRepository, ITodoData} from './Todo'
 

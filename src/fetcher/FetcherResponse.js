@@ -1,21 +1,23 @@
 // @flow
-
-import {mem, AtomWait} from 'lom_atom'
 import type {IRequestOptions, IFetcher, FetcherApi} from './interfaces'
 
 export default class FetcherResponse implements FetcherApi {
     _fetcher: IFetcher
     _options: IRequestOptions
-
+    static WaitError: Class<Error> = Error
     constructor(method: string, url: string, fullUrl: string, fetcher: IFetcher) {
         this._options = {
             method,
             url,
             fullUrl,
             requestId: '' + Date.now(),
-            retry: mem.getRetry(this.text())
+            retry: this._getRetry()
         }
         this._fetcher = fetcher
+    }
+
+    _getRetry(): () => void {
+        throw new Error('implement')
     }
 
     _getState<V>(): V | void {
@@ -34,7 +36,7 @@ export default class FetcherResponse implements FetcherApi {
 
     _disposed = false
 
-    @mem text<V: string | Error | FormData>(next?: V): V {
+    text<V: string | Error | FormData>(next?: V): V {
         if (next instanceof Error) throw new Error('Need a string')
         const {_fetcher: fetcher} = this
         const opts: IRequestOptions = fetcher.mergeOptions(
@@ -53,10 +55,14 @@ export default class FetcherResponse implements FetcherApi {
         this._disposed = false
         fetcher.request(opts)
             .then((data: any) => {
-                if (!this._disposed) mem.cache(this.text(data))
+                if (!this._disposed) this._setData(data)
             })
 
-        throw new AtomWait(`${opts.method || 'GET'} ${opts.fullUrl}`)
+        throw new this.constructor.WaitError(`${opts.method || 'GET'} ${opts.fullUrl}`)
+    }
+
+    _setData(data: string) {
+        throw new Error('implement')
     }
 
     destructor() {

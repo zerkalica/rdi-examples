@@ -1,6 +1,4 @@
 // @flow
-
-import {mem} from 'lom_atom'
 import type {IState, IFetcher, IStateCollector, FetcherApi, IRequestOptions} from './interfaces'
 import timeoutPromise from './timeoutPromise'
 import HttpError from './HttpError'
@@ -14,8 +12,10 @@ export default class Fetcher implements IFetcher {
     _baseUrl: [RegExp, string][]
     _timeout: number
 
+    static HttpError: Class<HttpError> = HttpError
+
     constructor(opts?: {
-        timeout?: ?number,
+        timeout?: ?number;
         baseUrl?: string | [string, string][];
         state?: IState;
         init?: $Shape<IRequestOptions>;
@@ -32,32 +32,37 @@ export default class Fetcher implements IFetcher {
         this._collector = opts.collector
     }
 
-    _normalizeResponse(r: Response, opts: IRequestOptions): Promise<string> {
-        return r.status === 204 ? Promise.resolve('') : r.text()
+    normalizeResponse(response: Response, opts: IRequestOptions): Promise<string | HttpError> {
+        if (response.status >= 400) {
+            return response.text()
+                .then((data: string) => new this.constructor.HttpError({opts, parent: null, response, data}))
+        }
+
+        return response.status === 204
+            ? Promise.resolve('')
+            : response.text()
     }
 
-    _normalizeError(err: Error, opts: IRequestOptions): Promise<Error> {
-        return Promise.resolve(new HttpError(err, opts))
-    }
-
-    _fetch(url: string, opts: RequestOptions): Promise<Response> {
-        return timeoutPromise(fetch(url, opts), this._timeout)
+    fetch(url: string, opts: RequestOptions): Promise<Response> {
+        return fetch(url, opts)
     }
 
     request(opts: IRequestOptions): Promise<*> {
         const collector = this._collector
         if (collector) collector.beginFetch(opts)
-        return this._fetch(opts.fullUrl, opts)
-            .then((r: Response) => this._normalizeResponse(r, opts))
-            .catch((err: Error) => this._normalizeError(err, opts))
-            .catch((err: Error) => new HttpError(err, opts))
+        const {HttpError} = this.constructor
+        return timeoutPromise(this.fetch(opts.fullUrl, opts), this._timeout)
+            .then((response: Response) => this.normalizeResponse(response, opts)
+                .catch((err: Error) => new HttpError({opts, parent: err, response}))
+            )
+            .catch((err: Error) => new HttpError({opts, parent: err}))
             .then((result) => {
                 if (collector) collector.endFetch(result, opts)
                 return result
             })
     }
 
-    _getFullUrl(url: string): string {
+    getFullUrl(url: string): string {
         const bu = this._baseUrl
         let baseUrl = ''
         for (let i = 0; i < bu.length; i++) {
@@ -75,8 +80,8 @@ export default class Fetcher implements IFetcher {
         return {...this._init, ...(init: Object)}
     }
 
-    @mem.key _request([method, url]: [string, string]): FetcherApi {
-        return new FetcherResponse(method, url, this._getFullUrl(url), this)
+    _request([method, url]: [string, string]): FetcherApi {
+        throw new Error('implement')
     }
 
     post<V>(url: string): FetcherApi {

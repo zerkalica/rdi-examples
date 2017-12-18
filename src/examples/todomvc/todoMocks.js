@@ -1,13 +1,16 @@
+// @flow
 
-import {BrowserLocalStorage} from '../common'
-import {uuid} from '../common-todomvc'
+import BrowserLocalStorage from '../../rdi/BrowserLocalStorage'
+import uuid from '../../rdi/uuid'
+
 interface ITodo {
     id: string;
     title: string;
     completed: boolean;
+    created: Date;
 }
 
-function getBody(body?: ?(string | Object)): Object {
+function getBody(body?: ?(string | Object)): any {
     return typeof body === 'string'
         ? JSON.parse(body)
         : ((body || {}): any)
@@ -27,21 +30,21 @@ function sortByDate(el1: ITodo, el2: ITodo): number {
     return 0
 }
 
-export default function todoMocks(
-    rawStorage: Storage
-) {
+export default function todoMocks(rawStorage: Storage) {
     const storage = new BrowserLocalStorage(rawStorage, 'lom_todomvc')
     const infos = new BrowserLocalStorage(rawStorage, 'lom_todomvc_info')
-    const defaultTodos = [
+    const defaultTodos: ITodo[] = [
         {
             id: 't1',
             title: 'test todo #1',
-            completed: false
+            completed: false,
+            created: new Date()
         },
         {
             id: 't2',
             title: 'test todo #2',
-            completed: true
+            completed: true,
+            created: new Date()
         }
     ]
 
@@ -49,7 +52,7 @@ export default function todoMocks(
         {
             method: 'GET',
             matcher: new RegExp('/api/todos'),
-            response(url: string, params: RequestOptions) { // eslint-disable-line
+            response(url: string, params: RequestOptions) {
                 let newTodos = storage.get()
                 if (!newTodos) {
                     newTodos = defaultTodos
@@ -61,9 +64,8 @@ export default function todoMocks(
         {
             method: 'GET',
             matcher: new RegExp('/api/todo/(.*)/info'),
-            response(url: string, params: RequestOptions) { // eslint-disable-line
+            response(url: string, params: RequestOptions, id: string) {
                 const data = infos.get() || []
-                const id = url.match(new RegExp('/api/todo/(.+)/info'))[1]
                 const i = data.find((inf) => inf.id === id)
                 return {id, description: i ? i.description : 'desc'}
             }
@@ -71,13 +73,13 @@ export default function todoMocks(
         {
             method: 'PUT',
             matcher: new RegExp('/api/todos'),
-            response(url: string, params: RequestOptions) { // eslint-disable-line
+            response(url: string, params: RequestOptions) {
                 const data: ?ITodo[] = storage.get()
                 const todos = data || defaultTodos
                 const updates: Map<string, $Shape<ITodo>> = new Map(getBody(params.body))
 
                 const newTodos = todos
-                    .map((todo: Todo) => {
+                    .map(todo => {
                         return {...todo, ...updates.get(todo.id)}
                     })
                     .sort(sortByDate)
@@ -89,11 +91,11 @@ export default function todoMocks(
         {
             method: 'DELETE',
             matcher: new RegExp('/api/todos'),
-            response(url: string, params: RequestOptions) { // eslint-disable-line
-                const data: ?Todo[] = storage.get()
+            response(url: string, params: RequestOptions) {
+                const data: ?ITodo[] = storage.get()
                 const todos = data || defaultTodos
                 const ids: string[] = getBody(params.body)
-                const newTodos = todos.filter((todo: Todo) =>
+                const newTodos = todos.filter(todo =>
                     ids.indexOf(todo.id) === -1
                 )
                 storage.set(newTodos)
@@ -104,11 +106,10 @@ export default function todoMocks(
         {
             method: 'DELETE',
             matcher: new RegExp('/api/todo/(.*)'),
-            response(url: string, params: RequestOptions) { // eslint-disable-line
-                const data: ?Todo[] = storage.get()
+            response(url: string, params: RequestOptions, id: string) {
+                const data: ?ITodo[] = storage.get()
                 const todos = data || []
-                const id = url.match(new RegExp('/api/todo/(.+)'))[1]
-                const newTodos = todos.filter((todo: Todo) => todo.id !== id)
+                const newTodos = todos.filter(todo => todo.id !== id)
                 storage.set(newTodos.sort(sortByDate))
 
                 return {id}
@@ -117,13 +118,10 @@ export default function todoMocks(
         {
             method: 'POST',
             matcher: new RegExp('/api/todo/(.*)'),
-            response(url: string, params: RequestOptions) { // eslint-disable-line
-                const data: ?Todo[] = storage.get()
-                const id = url.match(new RegExp('/api/todo/(.+)'))[1]
+            response(url: string, params: RequestOptions, id: string) {
+                const data: ?ITodo[] = storage.get()
                 const newTodo = getBody(params.body)
-                const newTodos = (data || []).map(
-                    (todo: Todo) => (todo.id === id ? newTodo : todo)
-                )
+                const newTodos = (data || []).map(todo => (todo.id === id ? newTodo : todo))
                 storage.set(newTodos)
 
                 return newTodo
@@ -132,8 +130,8 @@ export default function todoMocks(
         {
             method: 'PUT',
             matcher: new RegExp('/api/todo'),
-            response(url: string, params: RequestOptions) { // eslint-disable-line
-                const todos = storage.get()
+            response(url: string, params: RequestOptions) {
+                const todos = storage.get() || []
                 const body = getBody(params.body)
                 const id = uuid()
 

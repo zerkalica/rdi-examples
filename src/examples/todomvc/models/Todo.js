@@ -1,7 +1,6 @@
 // @flow
 import {action, mem, AtomWait} from 'lom_atom'
-
-import {uuid} from '../../common-todomvc'
+import uuid from '../../../rdi/uuid'
 
 export interface ITodoData {
     id: string;

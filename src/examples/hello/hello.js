@@ -4,13 +4,13 @@ import {mem, action} from 'lom_atom'
 import {props} from 'reactive-di'
 
 interface IHelloProps {
-    name: string;
+    initialValue: string;
 }
 
 class HelloContext {
     @mem name: string
-    @props set props({name}: IHelloProps) {
-        this.name = name
+    @props set props({initialValue}: IHelloProps) {
+        this.name = initialValue
     }
     @mem get greet() {
         return 'Hello, ' + this.name

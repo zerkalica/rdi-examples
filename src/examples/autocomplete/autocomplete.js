@@ -2,7 +2,7 @@
 
 import {mem, AtomWait, action} from 'lom_atom'
 import {props} from 'reactive-di'
-import {Fetcher} from '../fetcher'
+import {Fetcher} from '../../fetcher'
 
 interface IAutocompleteProps {
     initialValue: string;
@@ -79,28 +79,4 @@ export function AutocompleteView(
         </div>
         Values: <AutocompleteResultsView id="results" />
     </div>
-}
-
-export function autocompleteMocks(
-    rawStorage: Storage
-) {
-    const fixture = [
-        'John Doe',
-        'Vasia Pupkin'
-    ]
-
-    return [
-        {
-            method: 'GET',
-            matcher: new RegExp('/api/autocomplete'),
-            response(url: string, params: RequestOptions) { // eslint-disable-line
-                const names = url.match(new RegExp('/api/autocomplete\\?q=(.+)'))
-                const name = names && names.length ? names[1] : ''
-
-                return name
-                    ? fixture.filter((userName: string) => userName.indexOf(name) === 0)
-                    : fixture
-            }
-        }
-    ]
 }

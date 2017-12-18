@@ -43,6 +43,1660 @@ function _inheritsLoose(subClass, superClass) {
 
 var global$1 = typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {};
 
+global$1['rdi_fetch_error_rate'] = undefined;
+
+function delayed(mock, delay, errorRate, fakeError) {
+  return function resp(url, params) {
+    return new Promise(function (resolve, reject) {
+      setTimeout(function () {
+        var globalRate = global$1['rdi_fetch_error_rate'];
+        var rate = 100 - (globalRate == undefined ? errorRate : globalRate);
+
+        if (Math.floor(Math.random() * 100) > rate) {
+          reject(fakeError);
+        } else {
+          resolve(function (url, params) {
+            return mock.response.apply(mock, [url, params].concat((url.match(mock.matcher) || []).slice(1)));
+          });
+        }
+      }, delay);
+    });
+  };
+}
+
+delayed._r = [2, [{
+  method: String,
+  matcher: RegExp,
+  response: Object
+}, Number, Number, Error]];
+delayed.displayName = "delayed";
+function apiMocker(_ref) {
+  var fetchMock = _ref.fetchMock,
+      mocks = _ref.mocks,
+      _ref$storage = _ref.storage,
+      storage = _ref$storage === void 0 ? localStorage : _ref$storage,
+      _ref$delay = _ref.delay,
+      delay = _ref$delay === void 0 ? 500 : _ref$delay,
+      _ref$errorRate = _ref.errorRate,
+      errorRate = _ref$errorRate === void 0 ? 30 : _ref$errorRate,
+      _ref$fakeError = _ref.fakeError,
+      fakeError = _ref$fakeError === void 0 ? new Error('500 Fake HTTP Error') : _ref$fakeError;
+  mocks.forEach(function (createMock) {
+    createMock(storage).forEach(function (data) {
+      fetchMock.mock(_extends({}, data, {
+        response: delayed(data, delay, errorRate, fakeError)
+      }));
+    });
+  });
+}
+apiMocker._r = [2, [{
+  fetchMock: {
+    mock: Function
+  },
+  storage: Storage,
+  delay: Number,
+  errorRate: Number,
+  fakeError: Error
+}]];
+apiMocker.displayName = "apiMocker";
+
+var globToRegexp = function globToRegexp(glob, opts) {
+  if (typeof glob !== 'string') {
+    throw new TypeError('Expected a string');
+  }
+
+  var str = String(glob); // The regexp we are building, as a string.
+
+  var reStr = ""; // Whether we are matching so called "extended" globs (like bash) and should
+  // support single character matching, matching ranges of characters, group
+  // matching, etc.
+
+  var extended = opts ? !!opts.extended : false; // When globstar is _false_ (default), '/foo/*' is translated a regexp like
+  // '^\/foo\/.*$' which will match any string beginning with '/foo/'
+  // When globstar is _true_, '/foo/*' is translated to regexp like
+  // '^\/foo\/[^/]*$' which will match any string beginning with '/foo/' BUT
+  // which does not have a '/' to the right of it.
+  // E.g. with '/foo/*' these will match: '/foo/bar', '/foo/bar.txt' but
+  // these will not '/foo/bar/baz', '/foo/bar/baz.txt'
+  // Lastely, when globstar is _true_, '/foo/**' is equivelant to '/foo/*' when
+  // globstar is _false_
+
+  var globstar = opts ? !!opts.globstar : false; // If we are doing extended matching, this boolean is true when we are inside
+  // a group (eg {*.html,*.js}), and false otherwise.
+
+  var inGroup = false; // RegExp flags (eg "i" ) to pass in to RegExp constructor.
+
+  var flags = opts && typeof opts.flags === "string" ? opts.flags : "";
+  var c;
+
+  for (var i = 0, len = str.length; i < len; i++) {
+    c = str[i];
+
+    switch (c) {
+      case "\\":
+      case "/":
+      case "$":
+      case "^":
+      case "+":
+      case ".":
+      case "(":
+      case ")":
+      case "=":
+      case "!":
+      case "|":
+        reStr += "\\" + c;
+        break;
+
+      case "?":
+        if (extended) {
+          reStr += ".";
+          break;
+        }
+
+      case "[":
+      case "]":
+        if (extended) {
+          reStr += c;
+          break;
+        }
+
+      case "{":
+        if (extended) {
+          inGroup = true;
+          reStr += "(";
+          break;
+        }
+
+      case "}":
+        if (extended) {
+          inGroup = false;
+          reStr += ")";
+          break;
+        }
+
+      case ",":
+        if (inGroup) {
+          reStr += "|";
+          break;
+        }
+
+        reStr += "\\" + c;
+        break;
+
+      case "*":
+        // Move over all consecutive "*"'s.
+        // Also store the previous and next characters
+        var prevChar = str[i - 1];
+        var starCount = 1;
+
+        while (str[i + 1] === "*") {
+          starCount++;
+          i++;
+        }
+
+        var nextChar = str[i + 1];
+
+        if (!globstar) {
+          // globstar is disabled, so treat any number of "*" as one
+          reStr += ".*";
+        } else {
+          // globstar is enabled, so determine if this is a globstar segment
+          var isGlobstar = starCount > 1 // multiple "*"'s
+          && (prevChar === "/" || prevChar === undefined) // from the start of the segment
+          && (nextChar === "/" || nextChar === undefined); // to the end of the segment
+
+          if (isGlobstar) {
+            // it's a globstar, so match zero or more path segments
+            reStr += "(?:[^/]*(?:\/|$))*";
+            i++; // move over the "/"
+          } else {
+            // it's not a globstar, so only match one path segment
+            reStr += "[^/]*";
+          }
+        }
+
+        break;
+
+      default:
+        reStr += c;
+    }
+  } // When regexp 'g' flag is specified don't
+  // constrain the regular expression with ^ & $
+
+
+  if (!flags || !~flags.indexOf('g')) {
+    reStr = "^" + reStr + "$";
+  }
+
+  return new RegExp(reStr, flags);
+};
+
+globToRegexp._r = [2];
+globToRegexp.displayName = "globToRegexp";
+
+var isarray = Array.isArray || function (arr) {
+  return Object.prototype.toString.call(arr) == '[object Array]';
+};
+
+/**
+ * Expose `pathToRegexp`.
+ */
+
+var pathToRegexp_1 = pathToRegexp;
+var parse_1 = parse;
+var compile_1 = compile;
+var tokensToFunction_1 = tokensToFunction;
+var tokensToRegExp_1 = tokensToRegExp;
+/**
+ * The main path matching regexp utility.
+ *
+ * @type {RegExp}
+ */
+
+var PATH_REGEXP = new RegExp([// Match escaped characters that would otherwise appear in future matches.
+// This allows the user to escape special characters that won't transform.
+'(\\\\.)', // Match Express-style parameters and un-named parameters with a prefix
+// and optional suffixes. Matches appear as:
+//
+// "/:test(\\d+)?" => ["/", "test", "\d+", undefined, "?", undefined]
+// "/route(\\d+)"  => [undefined, undefined, undefined, "\d+", undefined, undefined]
+// "/*"            => ["/", undefined, undefined, undefined, undefined, "*"]
+'([\\/.])?(?:(?:\\:(\\w+)(?:\\(((?:\\\\.|[^\\\\()])+)\\))?|\\(((?:\\\\.|[^\\\\()])+)\\))([+*?])?|(\\*))'].join('|'), 'g');
+/**
+ * Parse a string for the raw tokens.
+ *
+ * @param  {string}  str
+ * @param  {Object=} options
+ * @return {!Array}
+ */
+
+function parse(str, options) {
+  var tokens = [];
+  var key = 0;
+  var index = 0;
+  var path = '';
+  var defaultDelimiter = options && options.delimiter || '/';
+  var res;
+
+  while ((res = PATH_REGEXP.exec(str)) != null) {
+    var m = res[0];
+    var escaped = res[1];
+    var offset = res.index;
+    path += str.slice(index, offset);
+    index = offset + m.length; // Ignore already escaped sequences.
+
+    if (escaped) {
+      path += escaped[1];
+      continue;
+    }
+
+    var next = str[index];
+    var prefix = res[2];
+    var name = res[3];
+    var capture = res[4];
+    var group = res[5];
+    var modifier = res[6];
+    var asterisk = res[7]; // Push the current path onto the tokens.
+
+    if (path) {
+      tokens.push(path);
+      path = '';
+    }
+
+    var partial = prefix != null && next != null && next !== prefix;
+    var repeat = modifier === '+' || modifier === '*';
+    var optional = modifier === '?' || modifier === '*';
+    var delimiter = res[2] || defaultDelimiter;
+    var pattern = capture || group;
+    tokens.push({
+      name: name || key++,
+      prefix: prefix || '',
+      delimiter: delimiter,
+      optional: optional,
+      repeat: repeat,
+      partial: partial,
+      asterisk: !!asterisk,
+      pattern: pattern ? escapeGroup(pattern) : asterisk ? '.*' : '[^' + escapeString(delimiter) + ']+?'
+    });
+  } // Match any characters still remaining.
+
+
+  if (index < str.length) {
+    path += str.substr(index);
+  } // If the path exists, push it onto the end.
+
+
+  if (path) {
+    tokens.push(path);
+  }
+
+  return tokens;
+}
+/**
+ * Compile a string to a template function for the path.
+ *
+ * @param  {string}             str
+ * @param  {Object=}            options
+ * @return {!function(Object=, Object=)}
+ */
+
+
+parse._r = [2];
+parse.displayName = "parse";
+
+function compile(str, options) {
+  return tokensToFunction(parse(str, options));
+}
+/**
+ * Prettier encoding of URI path segments.
+ *
+ * @param  {string}
+ * @return {string}
+ */
+
+
+compile._r = [2];
+compile.displayName = "compile";
+
+function encodeURIComponentPretty(str) {
+  return encodeURI(str).replace(/[\/?#]/g, function (c) {
+    return '%' + c.charCodeAt(0).toString(16).toUpperCase();
+  });
+}
+/**
+ * Encode the asterisk parameter. Similar to `pretty`, but allows slashes.
+ *
+ * @param  {string}
+ * @return {string}
+ */
+
+
+encodeURIComponentPretty._r = [2];
+encodeURIComponentPretty.displayName = "encodeURIComponentPretty";
+
+function encodeAsterisk(str) {
+  return encodeURI(str).replace(/[?#]/g, function (c) {
+    return '%' + c.charCodeAt(0).toString(16).toUpperCase();
+  });
+}
+/**
+ * Expose a method for transforming tokens into the path function.
+ */
+
+
+encodeAsterisk._r = [2];
+encodeAsterisk.displayName = "encodeAsterisk";
+
+function tokensToFunction(tokens) {
+  // Compile all the tokens into regexps.
+  var matches = new Array(tokens.length); // Compile all the patterns before compilation.
+
+  for (var i = 0; i < tokens.length; i++) {
+    if (typeof tokens[i] === 'object') {
+      matches[i] = new RegExp('^(?:' + tokens[i].pattern + ')$');
+    }
+  }
+
+  return function (obj, opts) {
+    var path = '';
+    var data = obj || {};
+    var options = opts || {};
+    var encode = options.pretty ? encodeURIComponentPretty : encodeURIComponent;
+
+    for (var i = 0; i < tokens.length; i++) {
+      var token = tokens[i];
+
+      if (typeof token === 'string') {
+        path += token;
+        continue;
+      }
+
+      var value = data[token.name];
+      var segment;
+
+      if (value == null) {
+        if (token.optional) {
+          // Prepend partial segment prefixes.
+          if (token.partial) {
+            path += token.prefix;
+          }
+
+          continue;
+        } else {
+          throw new TypeError('Expected "' + token.name + '" to be defined');
+        }
+      }
+
+      if (isarray(value)) {
+        if (!token.repeat) {
+          throw new TypeError('Expected "' + token.name + '" to not repeat, but received `' + JSON.stringify(value) + '`');
+        }
+
+        if (value.length === 0) {
+          if (token.optional) {
+            continue;
+          } else {
+            throw new TypeError('Expected "' + token.name + '" to not be empty');
+          }
+        }
+
+        for (var j = 0; j < value.length; j++) {
+          segment = encode(value[j]);
+
+          if (!matches[i].test(segment)) {
+            throw new TypeError('Expected all "' + token.name + '" to match "' + token.pattern + '", but received `' + JSON.stringify(segment) + '`');
+          }
+
+          path += (j === 0 ? token.prefix : token.delimiter) + segment;
+        }
+
+        continue;
+      }
+
+      segment = token.asterisk ? encodeAsterisk(value) : encode(value);
+
+      if (!matches[i].test(segment)) {
+        throw new TypeError('Expected "' + token.name + '" to match "' + token.pattern + '", but received "' + segment + '"');
+      }
+
+      path += token.prefix + segment;
+    }
+
+    return path;
+  };
+}
+/**
+ * Escape a regular expression string.
+ *
+ * @param  {string} str
+ * @return {string}
+ */
+
+
+tokensToFunction._r = [2];
+tokensToFunction.displayName = "tokensToFunction";
+
+function escapeString(str) {
+  return str.replace(/([.+*?=^!:${}()[\]|\/\\])/g, '\\$1');
+}
+/**
+ * Escape the capturing group by escaping special characters and meaning.
+ *
+ * @param  {string} group
+ * @return {string}
+ */
+
+
+escapeString._r = [2];
+escapeString.displayName = "escapeString";
+
+function escapeGroup(group) {
+  return group.replace(/([=!:$\/()])/g, '\\$1');
+}
+/**
+ * Attach the keys as a property of the regexp.
+ *
+ * @param  {!RegExp} re
+ * @param  {Array}   keys
+ * @return {!RegExp}
+ */
+
+
+escapeGroup._r = [2];
+escapeGroup.displayName = "escapeGroup";
+
+function attachKeys(re, keys) {
+  re.keys = keys;
+  return re;
+}
+/**
+ * Get the flags for a regexp from the options.
+ *
+ * @param  {Object} options
+ * @return {string}
+ */
+
+
+attachKeys._r = [2];
+attachKeys.displayName = "attachKeys";
+
+function flags(options) {
+  return options.sensitive ? '' : 'i';
+}
+/**
+ * Pull out keys from a regexp.
+ *
+ * @param  {!RegExp} path
+ * @param  {!Array}  keys
+ * @return {!RegExp}
+ */
+
+
+flags._r = [2];
+flags.displayName = "flags";
+
+function regexpToRegexp(path, keys) {
+  // Use a negative lookahead to match only capturing groups.
+  var groups = path.source.match(/\((?!\?)/g);
+
+  if (groups) {
+    for (var i = 0; i < groups.length; i++) {
+      keys.push({
+        name: i,
+        prefix: null,
+        delimiter: null,
+        optional: false,
+        repeat: false,
+        partial: false,
+        asterisk: false,
+        pattern: null
+      });
+    }
+  }
+
+  return attachKeys(path, keys);
+}
+/**
+ * Transform an array into a regexp.
+ *
+ * @param  {!Array}  path
+ * @param  {Array}   keys
+ * @param  {!Object} options
+ * @return {!RegExp}
+ */
+
+
+regexpToRegexp._r = [2];
+regexpToRegexp.displayName = "regexpToRegexp";
+
+function arrayToRegexp(path, keys, options) {
+  var parts = [];
+
+  for (var i = 0; i < path.length; i++) {
+    parts.push(pathToRegexp(path[i], keys, options).source);
+  }
+
+  var regexp = new RegExp('(?:' + parts.join('|') + ')', flags(options));
+  return attachKeys(regexp, keys);
+}
+/**
+ * Create a path regexp from string input.
+ *
+ * @param  {string}  path
+ * @param  {!Array}  keys
+ * @param  {!Object} options
+ * @return {!RegExp}
+ */
+
+
+arrayToRegexp._r = [2];
+arrayToRegexp.displayName = "arrayToRegexp";
+
+function stringToRegexp(path, keys, options) {
+  return tokensToRegExp(parse(path, options), keys, options);
+}
+/**
+ * Expose a function for taking tokens and returning a RegExp.
+ *
+ * @param  {!Array}          tokens
+ * @param  {(Array|Object)=} keys
+ * @param  {Object=}         options
+ * @return {!RegExp}
+ */
+
+
+stringToRegexp._r = [2];
+stringToRegexp.displayName = "stringToRegexp";
+
+function tokensToRegExp(tokens, keys, options) {
+  if (!isarray(keys)) {
+    options =
+    /** @type {!Object} */
+    keys || options;
+    keys = [];
+  }
+
+  options = options || {};
+  var strict = options.strict;
+  var end = options.end !== false;
+  var route = ''; // Iterate over the tokens and create our regexp string.
+
+  for (var i = 0; i < tokens.length; i++) {
+    var token = tokens[i];
+
+    if (typeof token === 'string') {
+      route += escapeString(token);
+    } else {
+      var prefix = escapeString(token.prefix);
+      var capture = '(?:' + token.pattern + ')';
+      keys.push(token);
+
+      if (token.repeat) {
+        capture += '(?:' + prefix + capture + ')*';
+      }
+
+      if (token.optional) {
+        if (!token.partial) {
+          capture = '(?:' + prefix + '(' + capture + '))?';
+        } else {
+          capture = prefix + '(' + capture + ')?';
+        }
+      } else {
+        capture = prefix + '(' + capture + ')';
+      }
+
+      route += capture;
+    }
+  }
+
+  var delimiter = escapeString(options.delimiter || '/');
+  var endsWithDelimiter = route.slice(-delimiter.length) === delimiter; // In non-strict mode we allow a slash at the end of match. If the path to
+  // match already ends with a slash, we remove it for consistency. The slash
+  // is valid at the end of a path match, not in the middle. This is important
+  // in non-ending mode, where "/test/" shouldn't match "/test//route".
+
+  if (!strict) {
+    route = (endsWithDelimiter ? route.slice(0, -delimiter.length) : route) + '(?:' + delimiter + '(?=$))?';
+  }
+
+  if (end) {
+    route += '$';
+  } else {
+    // In non-ending mode, we need the capturing groups to match as much as
+    // possible by using a positive lookahead to the end or next path segment.
+    route += strict && endsWithDelimiter ? '' : '(?=' + delimiter + '|$)';
+  }
+
+  return attachKeys(new RegExp('^' + route, flags(options)), keys);
+}
+/**
+ * Normalize the given path string, returning a regular expression.
+ *
+ * An empty array can be passed in for the keys, which will hold the
+ * placeholder key descriptions. For example, using `/user/:id`, `keys` will
+ * contain `[{ name: 'id', delimiter: '/', optional: false, repeat: false }]`.
+ *
+ * @param  {(string|RegExp|Array)} path
+ * @param  {(Array|Object)=}       keys
+ * @param  {Object=}               options
+ * @return {!RegExp}
+ */
+
+
+tokensToRegExp._r = [2];
+tokensToRegExp.displayName = "tokensToRegExp";
+
+function pathToRegexp(path, keys, options) {
+  if (!isarray(keys)) {
+    options =
+    /** @type {!Object} */
+    keys || options;
+    keys = [];
+  }
+
+  options = options || {};
+
+  if (path instanceof RegExp) {
+    return regexpToRegexp(path,
+    /** @type {!Array} */
+    keys);
+  }
+
+  if (isarray(path)) {
+    return arrayToRegexp(
+    /** @type {!Array} */
+    path,
+    /** @type {!Array} */
+    keys, options);
+  }
+
+  return stringToRegexp(
+  /** @type {string} */
+  path,
+  /** @type {!Array} */
+  keys, options);
+}
+
+pathToRegexp._r = [2];
+pathToRegexp.displayName = "pathToRegexp";
+pathToRegexp_1.parse = parse_1;
+pathToRegexp_1.compile = compile_1;
+pathToRegexp_1.tokensToFunction = tokensToFunction_1;
+pathToRegexp_1.tokensToRegExp = tokensToRegExp_1;
+
+var _extends$2 = Object.assign || function (target) {
+  for (var i = 1; i < arguments.length; i++) {
+    var source = arguments[i];
+
+    for (var key in source) {
+      if (Object.prototype.hasOwnProperty.call(source, key)) {
+        target[key] = source[key];
+      }
+    }
+  }
+
+  return target;
+};
+
+var stringMatchers = {
+  begin: function begin(targetString) {
+    return function (url) {
+      return url.indexOf(targetString) === 0;
+    };
+  },
+  end: function end(targetString) {
+    return function (url) {
+      return url.substr(-targetString.length) === targetString;
+    };
+  },
+  glob: function glob(targetString) {
+    var urlRX = globToRegexp(targetString.replace(/^glob:/, ''));
+
+    return function (url) {
+      return urlRX.test(url);
+    };
+  },
+  express: function express(targetString) {
+    var urlRX = pathToRegexp_1(targetString.replace(/^express:/, ''));
+
+    return function (url) {
+      return urlRX.test(url);
+    };
+  }
+};
+
+function getHeaderMatcher(expectedHeaders, HeadersConstructor) {
+  var expectation = Object.keys(expectedHeaders).map(function (k) {
+    return {
+      key: k.toLowerCase(),
+      val: expectedHeaders[k]
+    };
+  });
+  return function (headers) {
+    if (!headers) {
+      headers = {};
+    }
+
+    if (headers instanceof HeadersConstructor) {
+      headers = headers.raw();
+    }
+
+    var lowerCaseHeaders = Object.keys(headers).reduce(function (obj, k) {
+      obj[k.toLowerCase()] = headers[k];
+      return obj;
+    }, {});
+    return expectation.every(function (header) {
+      return areHeadersEqual(lowerCaseHeaders, header);
+    });
+  };
+}
+
+getHeaderMatcher._r = [2];
+getHeaderMatcher.displayName = "getHeaderMatcher";
+
+function areHeadersEqual(currentHeader, expectedHeader) {
+  var key = expectedHeader.key;
+  var val = expectedHeader.val;
+  var currentHeaderValue = Array.isArray(currentHeader[key]) ? currentHeader[key] : [currentHeader[key]];
+  var expectedHeaderValue = Array.isArray(val) ? val : [val];
+
+  if (currentHeaderValue.length !== expectedHeaderValue.length) {
+    return false;
+  }
+
+  for (var i = 0; i < currentHeaderValue.length; ++i) {
+    if (currentHeaderValue[i] !== expectedHeaderValue[i]) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+areHeadersEqual._r = [2];
+areHeadersEqual.displayName = "areHeadersEqual";
+
+function normalizeRequest(url, options, Request) {
+  if (Request.prototype.isPrototypeOf(url)) {
+    return {
+      url: url.url,
+      method: url.method,
+      headers: function () {
+        var headers = {};
+        url.headers.forEach(function (name) {
+          return headers[name] = url.headers.name;
+        });
+        return headers;
+      }()
+    };
+  } else {
+    return {
+      url: url,
+      method: options && options.method || 'GET',
+      headers: options && options.headers
+    };
+  }
+}
+
+normalizeRequest._r = [2];
+normalizeRequest.displayName = "normalizeRequest";
+
+var compileRoute = function compileRoute(route, Request, HeadersConstructor) {
+  route = _extends$2({}, route);
+
+  if (typeof route.response === 'undefined') {
+    throw new Error('Each route must define a response');
+  }
+
+  if (!route.matcher) {
+    throw new Error('each route must specify a string, regex or function to match calls to fetch');
+  }
+
+  if (!route.name) {
+    route.name = route.matcher.toString();
+    route.__unnamed = true;
+  }
+
+  var matchUrl = void 0;
+  var expectedMethod = route.method && route.method.toLowerCase();
+
+  function matchMethod(method) {
+    return !expectedMethod || expectedMethod === (method ? method.toLowerCase() : 'get');
+  }
+
+  
+  var matchHeaders = route.headers ? getHeaderMatcher(route.headers, HeadersConstructor) : function () {
+    return true;
+  };
+
+  if (typeof route.matcher === 'function') {
+    matchUrl = route.matcher;
+  } else if (typeof route.matcher === 'string') {
+    Object.keys(stringMatchers).some(function (name) {
+      if (route.matcher.indexOf(name + ':') === 0) {
+        var url = route.matcher.replace(new RegExp('^' + name + ':'), '');
+        matchUrl = stringMatchers[name](url);
+        return true;
+      }
+    });
+
+    if (!matchUrl) {
+      if (route.matcher === '*') {
+        matchUrl = function matchUrl() {
+          return true;
+        };
+      } else if (route.matcher.indexOf('^') === 0) {
+        (function () {
+          console.warn('Using \'^\' to denote the start of a url is deprecated. Use \'begin:\' instead');
+          var expectedUrl = route.matcher.substr(1);
+
+          matchUrl = function matchUrl(url) {
+            return url.indexOf(expectedUrl) === 0;
+          };
+        })();
+      } else {
+        (function () {
+          var expectedUrl = route.matcher;
+
+          matchUrl = function matchUrl(url) {
+            return url === expectedUrl;
+          };
+        })();
+      }
+    }
+  } else if (route.matcher instanceof RegExp) {
+    (function () {
+      var urlRX = route.matcher;
+
+      matchUrl = function matchUrl(url) {
+        return urlRX.test(url);
+      };
+    })();
+  }
+
+  var matcher = function matcher(url, options) {
+    var req = normalizeRequest(url, options, Request);
+    return matchHeaders(req.headers) && matchMethod(req.method) && matchUrl(req.url, options);
+  };
+
+  matcher._r = [2];
+  matcher.displayName = "matcher";
+
+  if (route.times) {
+    (function () {
+      var timesLeft = route.times;
+
+      route.matcher = function (url, options) {
+        var match = timesLeft && matcher(url, options);
+
+        if (match) {
+          timesLeft--;
+          return true;
+        }
+      };
+
+      route.reset = function () {
+        return timesLeft = route.times;
+      };
+    })();
+  } else {
+    route.matcher = matcher;
+  }
+
+  return route;
+};
+
+compileRoute._r = [2];
+compileRoute.displayName = "compileRoute";
+
+var _typeof$1 = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
+  return typeof obj;
+} : function (obj) {
+  return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
+};
+
+var _extends$1 = Object.assign || function (target) {
+  for (var i = 1; i < arguments.length; i++) {
+    var source = arguments[i];
+
+    for (var key in source) {
+      if (Object.prototype.hasOwnProperty.call(source, key)) {
+        target[key] = source[key];
+      }
+    }
+  }
+
+  return target;
+};
+
+var FetchMock = function FetchMock() {
+  this.routes = [];
+  this._calls = {};
+  this._matchedCalls = [];
+  this._unmatchedCalls = [];
+  this._holdingPromises = [];
+  this.bindMethods();
+};
+
+FetchMock._r = [2];
+FetchMock.displayName = "FetchMock";
+
+FetchMock.prototype.bindMethods = function () {
+  this.fetchMock = FetchMock.prototype.fetchMock.bind(this);
+  this.restore = FetchMock.prototype.restore.bind(this);
+  this.reset = FetchMock.prototype.reset.bind(this);
+};
+
+FetchMock.prototype.mock = function (matcher, response, options) {
+  var route = void 0; // Handle the variety of parameters accepted by mock (see README)
+
+  if (matcher && response && options) {
+    route = _extends$1({
+      matcher: matcher,
+      response: response
+    }, options);
+  } else if (matcher && response) {
+    route = {
+      matcher: matcher,
+      response: response
+    };
+  } else if (matcher && matcher.matcher) {
+    route = matcher;
+  } else {
+    throw new Error('Invalid parameters passed to fetch-mock');
+  }
+
+  this.addRoute(route);
+  return this._mock();
+};
+
+FetchMock.prototype.once = function (matcher, response, options) {
+  return this.mock(matcher, response, _extends$1({}, options, {
+    times: 1
+  }));
+};
+
+FetchMock.prototype._mock = function () {
+  if (!this.isSandbox) {
+    // Do this here rather than in the constructor to ensure it's scoped to the test
+    this.realFetch = this.realFetch || FetchMock.global.fetch;
+    FetchMock.global.fetch = this.fetchMock;
+  }
+
+  return this;
+};
+
+FetchMock.prototype._unMock = function () {
+  if (this.realFetch) {
+    FetchMock.global.fetch = this.realFetch;
+    this.realFetch = null;
+  }
+
+  this.fallbackResponse = null;
+  return this;
+};
+
+FetchMock.prototype.catch = function (response) {
+  if (this.fallbackResponse) {
+    console.warn('calling fetchMock.catch() twice - are you sure you want to overwrite the previous fallback response');
+  }
+
+  this.fallbackResponse = response || 'ok';
+  return this._mock();
+};
+
+FetchMock.prototype.spy = function () {
+  this._mock();
+
+  return this.catch(this.realFetch);
+};
+
+FetchMock.prototype.fetchMock = function (url, opts) {
+  var _this = this;
+
+  var Promise = this.Promise || FetchMock.Promise;
+  var resolveHoldingPromise = void 0;
+  var holdingPromise = new Promise(function (res) {
+    return resolveHoldingPromise = res;
+  });
+
+  this._holdingPromises.push(holdingPromise);
+
+  var response = this.router(url, opts);
+
+  if (!response) {
+    console.warn('Unmatched ' + (opts && opts.method || 'GET') + ' to ' + url);
+    this.push(null, [url, opts]);
+
+    if (this.fallbackResponse) {
+      response = this.fallbackResponse;
+    } else {
+      throw new Error('No fallback response defined for ' + (opts && opts.method || 'GET') + ' to ' + url);
+    }
+  }
+
+  if (typeof response === 'function') {
+    response = response(url, opts);
+  }
+
+  if (typeof response.then === 'function') {
+    var responsePromise = response.then(function (response) {
+      return _this.mockResponse(url, response, opts, resolveHoldingPromise);
+    });
+    return Promise.resolve(responsePromise); // Ensure Promise is always our implementation.
+  } else {
+    return this.mockResponse(url, response, opts, resolveHoldingPromise);
+  }
+};
+
+FetchMock.prototype.router = function (url, opts) {
+  var route = void 0;
+
+  for (var i = 0, il = this.routes.length; i < il; i++) {
+    route = this.routes[i];
+
+    if (route.matcher(url, opts)) {
+      this.push(route.name, [url, opts]);
+      return route.response;
+    }
+  }
+};
+
+FetchMock.prototype.addRoute = function (route) {
+  if (!route) {
+    throw new Error('.mock() must be passed configuration for a route');
+  } // Allows selective application of some of the preregistered routes
+
+
+  this.routes.push(compileRoute(route, FetchMock.Request, FetchMock.Headers));
+};
+
+FetchMock.prototype.mockResponse = function (url, responseConfig, fetchOpts, resolveHoldingPromise) {
+  var Promise = this.Promise || FetchMock.Promise; // It seems odd to call this in here even though it's already called within fetchMock
+  // It's to handle the fact that because we want to support making it very easy to add a
+  // delay to any sort of response (including responses which are defined with a function)
+  // while also allowing function responses to return a Promise for a response config.
+
+  if (typeof responseConfig === 'function') {
+    responseConfig = responseConfig(url, fetchOpts);
+  } // If the response is a pre-made Response, respond with it
+
+
+  if (FetchMock.Response.prototype.isPrototypeOf(responseConfig)) {
+    return this.respond(Promise.resolve(responseConfig), resolveHoldingPromise);
+  } // If the response says to throw an error, throw it
+
+
+  if (responseConfig.throws) {
+    return this.respond(Promise.reject(responseConfig.throws), resolveHoldingPromise);
+  } // If the response config looks like a status, start to generate a simple response
+
+
+  if (typeof responseConfig === 'number') {
+    responseConfig = {
+      status: responseConfig
+    }; // If the response config is not an object, or is an object that doesn't use
+    // any reserved properties, assume it is meant to be the body of the response
+  } else if (typeof responseConfig === 'string' || !(responseConfig.body || responseConfig.headers || responseConfig.throws || responseConfig.status || responseConfig.__redirectUrl)) {
+    responseConfig = {
+      body: responseConfig
+    };
+  } // Now we are sure we're dealing with a response config object, so start to
+  // construct a real response from it
+
+
+  var opts = responseConfig.opts || {}; // set the response url
+
+  opts.url = responseConfig.__redirectUrl || url; // Handle a reasonably common misuse of the library - returning an object
+  // with the property 'status'
+
+  if (responseConfig.status && (typeof responseConfig.status !== 'number' || parseInt(responseConfig.status, 10) !== responseConfig.status || responseConfig.status < 200 || responseConfig.status > 599)) {
+    throw new TypeError('Invalid status ' + responseConfig.status + ' passed on response object.\nTo respond with a JSON object that has status as a property assign the object to body\ne.g. {"body": {"status: "registered"}}');
+  } // set up the response status
+
+
+  opts.status = responseConfig.status || 200;
+  opts.statusText = FetchMock.statusTextMap['' + opts.status]; // Set up response headers. The ternary operator is to cope with
+  // new Headers(undefined) throwing in Chrome
+  // https://code.google.com/p/chromium/issues/detail?id=335871
+
+  opts.headers = responseConfig.headers ? new FetchMock.Headers(responseConfig.headers) : new FetchMock.Headers(); // start to construct the body
+
+  var body = responseConfig.body; // convert to json if we need to
+
+  opts.sendAsJson = responseConfig.sendAsJson === undefined ? FetchMock.config.sendAsJson : responseConfig.sendAsJson;
+
+  if (opts.sendAsJson && responseConfig.body != null && (typeof body === 'undefined' ? 'undefined' : _typeof$1(body)) === 'object') {
+    //eslint-disable-line
+    body = JSON.stringify(body);
+  } // add a Content-Length header if we need to
+
+
+  opts.includeContentLength = responseConfig.includeContentLength === undefined ? FetchMock.config.includeContentLength : responseConfig.includeContentLength;
+
+  if (opts.includeContentLength && typeof body === 'string' && !opts.headers.has('Content-Length')) {
+    opts.headers.set('Content-Length', body.length.toString());
+  } // On the server we need to manually construct the readable stream for the
+  // Response object (on the client this is done automatically)
+
+
+  if (FetchMock.stream) {
+    var s = new FetchMock.stream.Readable();
+
+    if (body != null) {
+      //eslint-disable-line
+      s.push(body, 'utf-8');
+    }
+
+    s.push(null);
+    body = s;
+  }
+
+  var response = new FetchMock.Response(body, opts); // When mocking a followed redirect we must wrap the response in an object
+  // which sets the redirected flag (not a writable property on the actual response)
+
+  if (responseConfig.__redirectUrl) {
+    response = Object.create(response, {
+      redirected: {
+        value: true
+      },
+      url: {
+        value: responseConfig.__redirectUrl
+      },
+      // TODO extend to all other methods as requested by users
+      // Such a nasty hack
+      text: {
+        value: response.text.bind(response)
+      },
+      json: {
+        value: response.json.bind(response)
+      }
+    });
+  }
+
+  return this.respond(Promise.resolve(response), resolveHoldingPromise);
+};
+
+FetchMock.prototype.respond = function (response, resolveHoldingPromise) {
+  response.then(resolveHoldingPromise, resolveHoldingPromise);
+  return response;
+};
+
+FetchMock.prototype.flush = function () {
+  return Promise.all(this._holdingPromises);
+};
+
+FetchMock.prototype.push = function (name, call) {
+  if (name) {
+    this._calls[name] = this._calls[name] || [];
+
+    this._calls[name].push(call);
+
+    this._matchedCalls.push(call);
+  } else {
+    this._unmatchedCalls.push(call);
+  }
+};
+
+FetchMock.prototype.restore = function () {
+  this._unMock();
+
+  this.reset();
+  this.routes = [];
+  return this;
+};
+
+FetchMock.prototype.reset = function () {
+  this._calls = {};
+  this._matchedCalls = [];
+  this._unmatchedCalls = [];
+  this._holdingPromises = [];
+  this.routes.forEach(function (route) {
+    return route.reset && route.reset();
+  });
+  return this;
+};
+
+FetchMock.prototype.calls = function (name) {
+  return name ? this._calls[name] || [] : {
+    matched: this._matchedCalls,
+    unmatched: this._unmatchedCalls
+  };
+};
+
+FetchMock.prototype.lastCall = function (name) {
+  var calls = name ? this.calls(name) : this.calls().matched;
+
+  if (calls && calls.length) {
+    return calls[calls.length - 1];
+  } else {
+    return undefined;
+  }
+};
+
+FetchMock.prototype.lastUrl = function (name) {
+  var call = this.lastCall(name);
+  return call && call[0];
+};
+
+FetchMock.prototype.lastOptions = function (name) {
+  var call = this.lastCall(name);
+  return call && call[1];
+};
+
+FetchMock.prototype.called = function (name) {
+  if (!name) {
+    return !!(this._matchedCalls.length || this._unmatchedCalls.length);
+  }
+
+  return !!(this._calls[name] && this._calls[name].length);
+};
+
+FetchMock.prototype.done = function (name) {
+  var _this2 = this;
+
+  var names = name ? [name] : this.routes.map(function (r) {
+    return r.name;
+  }); // Can't use array.every because
+  // a) not widely supported
+  // b) would exit after first failure, which would break the logging
+
+  return names.map(function (name) {
+    if (!_this2.called(name)) {
+      console.warn('Warning: ' + name + ' not called');
+      return false;
+    } // would use array.find... but again not so widely supported
+
+
+    var expectedTimes = (_this2.routes.filter(function (r) {
+      return r.name === name;
+    }) || [{}])[0].times;
+
+    if (!expectedTimes) {
+      return true;
+    }
+
+    var actualTimes = _this2.calls(name).length;
+
+    if (expectedTimes > actualTimes) {
+      console.warn('Warning: ' + name + ' only called ' + actualTimes + ' times, but ' + expectedTimes + ' expected');
+      return false;
+    } else {
+      return true;
+    }
+  }).filter(function (bool) {
+    return !bool;
+  }).length === 0;
+};
+
+FetchMock.config = {
+  includeContentLength: false,
+  sendAsJson: true
+};
+
+FetchMock.prototype.configure = function (opts) {
+  _extends$1(FetchMock.config, opts);
+};
+
+FetchMock.setImplementations = FetchMock.prototype.setImplementations = function (implementations) {
+  FetchMock.Headers = implementations.Headers || FetchMock.Headers;
+  FetchMock.Request = implementations.Request || FetchMock.Request;
+  FetchMock.Response = implementations.Response || FetchMock.Response;
+  FetchMock.Promise = implementations.Promise || FetchMock.Promise;
+};
+
+FetchMock.prototype.sandbox = function (Promise) {
+  if (this.routes.length || this.fallbackResponse) {
+    throw new Error('.sandbox() can only be called on fetch-mock instances that don\'t have routes configured already');
+  }
+
+  var instance = new FetchMock(); // this construct allows us to create a fetch-mock instance which is also
+  // a callable function, while circumventing circularity when defining the
+  // object that this function should be bound to
+
+  var boundMock = void 0;
+
+  var proxy = function proxy() {
+    return boundMock.apply(null, arguments);
+  };
+
+  proxy._r = [2];
+  proxy.displayName = "proxy";
+
+  var functionInstance = _extends$1(proxy, // Ensures that the entire returned object is a callable function
+  FetchMock.prototype, // all prototype methods
+  instance // instance data
+  );
+
+  functionInstance.bindMethods();
+  boundMock = functionInstance.fetchMock;
+  functionInstance.isSandbox = true;
+
+  if (Promise) {
+    functionInstance.Promise = Promise;
+  }
+
+  return functionInstance;
+};
+
+['get', 'post', 'put', 'delete', 'head', 'patch'].forEach(function (method) {
+  FetchMock.prototype[method] = function (matcher, response, options) {
+    return this.mock(matcher, response, _extends$1({}, options, {
+      method: method.toUpperCase()
+    }));
+  };
+
+  FetchMock.prototype[method + 'Once'] = function (matcher, response, options) {
+    return this.once(matcher, response, _extends$1({}, options, {
+      method: method.toUpperCase()
+    }));
+  };
+});
+var fetchMock$1 = FetchMock;
+
+var statusTextMap = {
+  '100': 'Continue',
+  '101': 'Switching Protocols',
+  '102': 'Processing',
+  '200': 'OK',
+  '201': 'Created',
+  '202': 'Accepted',
+  '203': 'Non-Authoritative Information',
+  '204': 'No Content',
+  '205': 'Reset Content',
+  '206': 'Partial Content',
+  '207': 'Multi-Status',
+  '208': 'Already Reported',
+  '226': 'IM Used',
+  '300': 'Multiple Choices',
+  '301': 'Moved Permanently',
+  '302': 'Found',
+  '303': 'See Other',
+  '304': 'Not Modified',
+  '305': 'Use Proxy',
+  '307': 'Temporary Redirect',
+  '308': 'Permanent Redirect',
+  '400': 'Bad Request',
+  '401': 'Unauthorized',
+  '402': 'Payment Required',
+  '403': 'Forbidden',
+  '404': 'Not Found',
+  '405': 'Method Not Allowed',
+  '406': 'Not Acceptable',
+  '407': 'Proxy Authentication Required',
+  '408': 'Request Timeout',
+  '409': 'Conflict',
+  '410': 'Gone',
+  '411': 'Length Required',
+  '412': 'Precondition Failed',
+  '413': 'Payload Too Large',
+  '414': 'URI Too Long',
+  '415': 'Unsupported Media Type',
+  '416': 'Range Not Satisfiable',
+  '417': 'Expectation Failed',
+  '418': 'I\'m a teapot',
+  '421': 'Misdirected Request',
+  '422': 'Unprocessable Entity',
+  '423': 'Locked',
+  '424': 'Failed Dependency',
+  '425': 'Unordered Collection',
+  '426': 'Upgrade Required',
+  '428': 'Precondition Required',
+  '429': 'Too Many Requests',
+  '431': 'Request Header Fields Too Large',
+  '451': 'Unavailable For Legal Reasons',
+  '500': 'Internal Server Error',
+  '501': 'Not Implemented',
+  '502': 'Bad Gateway',
+  '503': 'Service Unavailable',
+  '504': 'Gateway Timeout',
+  '505': 'HTTP Version Not Supported',
+  '506': 'Variant Also Negotiates',
+  '507': 'Insufficient Storage',
+  '508': 'Loop Detected',
+  '509': 'Bandwidth Limit Exceeded',
+  '510': 'Not Extended',
+  '511': 'Network Authentication Required'
+};
+var statusText = statusTextMap;
+
+var theGlobal = typeof window !== 'undefined' ? window : self;
+fetchMock$1.global = theGlobal;
+fetchMock$1.statusTextMap = statusText;
+fetchMock$1.setImplementations({
+  Promise: theGlobal.Promise,
+  Request: theGlobal.Request,
+  Response: theGlobal.Response,
+  Headers: theGlobal.Headers
+});
+var client = new fetchMock$1();
+
+function autocompleteMocks(rawStorage) {
+  var fixture = ['John Doe', 'Vasia Pupkin'];
+  return [{
+    method: 'GET',
+    matcher: new RegExp('/api/autocomplete\\?q=(.+)'),
+    response: function response(url, params, name) {
+      // eslint-disable-line
+      return name ? fixture.filter(function (userName) {
+        return userName.indexOf(name) === 0;
+      }) : fixture;
+    }
+  }];
+}
+autocompleteMocks._r = [2, [Storage]];
+autocompleteMocks.displayName = "autocompleteMocks";
+
+var BrowserLocalStorage =
+/*#__PURE__*/
+function () {
+  function BrowserLocalStorage(storage, key) {
+    this._storage = storage;
+    this._key = key;
+  }
+
+  var _proto = BrowserLocalStorage.prototype;
+
+  _proto.get = function get() {
+    var value = this._storage.getItem(this._key);
+
+    return !value ? null : JSON.parse(value || '');
+  };
+
+  _proto.set = function set(value) {
+    this._storage.setItem(this._key, JSON.stringify(value));
+  };
+
+  _proto.clear = function clear() {
+    this._storage.removeItem(this._key);
+  };
+
+  _proto.clearAll = function clearAll() {
+    this._storage.clear();
+  };
+
+  return BrowserLocalStorage;
+}();
+
+BrowserLocalStorage._r = [0, [Storage, String]];
+BrowserLocalStorage.displayName = "BrowserLocalStorage";
+
+function uuid() {
+  var uuid = '';
+
+  for (var i = 0; i < 32; i++) {
+    var random = Math.random() * 16 | 0;
+
+    if (i === 8 || i === 12 || i === 16 || i === 20) {
+      uuid += '-';
+    }
+
+    uuid += (i === 12 ? 4 : i === 16 ? random & 3 | 8 : random).toString(16);
+  }
+
+  return uuid;
+}
+uuid._r = [2];
+uuid.displayName = "uuid";
+
+function getBody(body) {
+  return typeof body === 'string' ? JSON.parse(body) : body || {};
+}
+
+getBody._r = [2];
+getBody.displayName = "getBody";
+
+function sortByDate(el1, el2) {
+  if (!el2.created || el1.created) {
+    return 0;
+  }
+
+  if (String(el1.created) > String(el2.created)) {
+    return 1;
+  }
+
+  if (String(el1.created) < String(el2.created)) {
+    return -1;
+  }
+
+  return 0;
+}
+
+sortByDate._r = [2, [{
+  id: String,
+  title: String,
+  completed: Boolean,
+  created: Date
+}, {
+  id: String,
+  title: String,
+  completed: Boolean,
+  created: Date
+}]];
+sortByDate.displayName = "sortByDate";
+function todoMocks(rawStorage) {
+  var storage = new BrowserLocalStorage(rawStorage, 'lom_todomvc');
+  var infos = new BrowserLocalStorage(rawStorage, 'lom_todomvc_info');
+  var defaultTodos = [{
+    id: 't1',
+    title: 'test todo #1',
+    completed: false,
+    created: new Date()
+  }, {
+    id: 't2',
+    title: 'test todo #2',
+    completed: true,
+    created: new Date()
+  }];
+  return [{
+    method: 'GET',
+    matcher: new RegExp('/api/todos'),
+    response: function response(url, params) {
+      var newTodos = storage.get();
+
+      if (!newTodos) {
+        newTodos = defaultTodos;
+        storage.set(newTodos);
+      }
+
+      return newTodos.sort(sortByDate);
+    }
+  }, {
+    method: 'GET',
+    matcher: new RegExp('/api/todo/(.*)/info'),
+    response: function response(url, params, id) {
+      var data = infos.get() || [];
+      var i = data.find(function (inf) {
+        return inf.id === id;
+      });
+      return {
+        id: id,
+        description: i ? i.description : 'desc'
+      };
+    }
+  }, {
+    method: 'PUT',
+    matcher: new RegExp('/api/todos'),
+    response: function response(url, params) {
+      var data = storage.get();
+      var todos = data || defaultTodos;
+      var updates = new Map(getBody(params.body));
+      var newTodos = todos.map(function (todo) {
+        return _extends({}, todo, updates.get(todo.id));
+      }).sort(sortByDate);
+      storage.set(newTodos);
+      return newTodos;
+    }
+  }, {
+    method: 'DELETE',
+    matcher: new RegExp('/api/todos'),
+    response: function response(url, params) {
+      var data = storage.get();
+      var todos = data || defaultTodos;
+      var ids = getBody(params.body);
+      var newTodos = todos.filter(function (todo) {
+        return ids.indexOf(todo.id) === -1;
+      });
+      storage.set(newTodos);
+      return newTodos.map(function (_ref) {
+        var id = _ref.id;
+        return id;
+      });
+    }
+  }, {
+    method: 'DELETE',
+    matcher: new RegExp('/api/todo/(.*)'),
+    response: function response(url, params, id) {
+      var data = storage.get();
+      var todos = data || [];
+      var newTodos = todos.filter(function (todo) {
+        return todo.id !== id;
+      });
+      storage.set(newTodos.sort(sortByDate));
+      return {
+        id: id
+      };
+    }
+  }, {
+    method: 'POST',
+    matcher: new RegExp('/api/todo/(.*)'),
+    response: function response(url, params, id) {
+      var data = storage.get();
+      var newTodo = getBody(params.body);
+      var newTodos = (data || []).map(function (todo) {
+        return todo.id === id ? newTodo : todo;
+      });
+      storage.set(newTodos);
+      return newTodo;
+    }
+  }, {
+    method: 'PUT',
+    matcher: new RegExp('/api/todo'),
+    response: function response(url, params) {
+      var todos = storage.get() || [];
+      var body = getBody(params.body);
+      var id = uuid();
+      var newTodo = _extends({}, body, {
+        id: id
+      });
+      todos.push(newTodo);
+      storage.set(todos);
+      infos.set((infos.get() || []).concat([{
+        id: id,
+        description: 'desc#' + id
+      }]));
+      return newTodo;
+    }
+  }];
+}
+todoMocks._r = [2, [Storage]];
+todoMocks.displayName = "todoMocks";
+
+apiMocker({
+  fetchMock: client,
+  mocks: [todoMocks, autocompleteMocks]
+});
+
 function _defineProperties$1(target, props) {
   for (var i = 0; i < props.length; i++) {
     var descriptor = props[i];
@@ -197,9 +1851,9 @@ function conform(target, source, isComponent, stack) {
 conform._r = [2];
 conform.displayName = "conform";
 
-var _class$1;
+var _class;
 
-var _temp$1;
+var _temp;
 
 function checkSlave(slave) {
   slave.check();
@@ -230,7 +1884,7 @@ function actualizeMaster(master) {
 
 actualizeMaster._r = [2];
 actualizeMaster.displayName = "actualizeMaster";
-var Atom = (_temp$1 = _class$1 =
+var Atom = (_temp = _class =
 /*#__PURE__*/
 function () {
   function Atom(field, owner, context, hostAtoms, manualReset, key, keyHash, isComponent) {
@@ -492,7 +2146,7 @@ function () {
   }]);
 
   return Atom;
-}(), _class$1.deepReset = undefined, _temp$1);
+}(), _class.deepReset = undefined, _temp);
 
 function fastCallMethod(host, methodName, args) {
   try {
@@ -1460,7 +3114,7 @@ function () {
   return Injector;
 }();
 
-function _applyDecoratedDescriptor$1(target, property, decorators, descriptor, context) {
+function _applyDecoratedDescriptor(target, property, decorators, descriptor, context) {
   var desc = {};
   Object['ke' + 'ys'](descriptor).forEach(function (key) {
     desc[key] = descriptor[key];
@@ -1489,8 +3143,8 @@ function _applyDecoratedDescriptor$1(target, property, decorators, descriptor, c
   return desc;
 }
 
-_applyDecoratedDescriptor$1._r = [2];
-_applyDecoratedDescriptor$1.displayName = "_applyDecoratedDescriptor";
+_applyDecoratedDescriptor._r = [2];
+_applyDecoratedDescriptor.displayName = "_applyDecoratedDescriptor";
 
 function createReactWrapper(BaseComponent, ErrorComponent, detached, rootInjector, isFullEqual) {
   var _class, _class2, _temp;
@@ -1622,7 +3276,7 @@ function createReactWrapper(BaseComponent, ErrorComponent, detached, rootInjecto
     }]);
 
     return AtomizedComponent;
-  }(BaseComponent), _class2.isFullEqual = isFullEqual, _temp), _applyDecoratedDescriptor$1(_class.prototype, "r", [detached], Object.getOwnPropertyDescriptor(_class.prototype, "r"), _class.prototype), _class);
+  }(BaseComponent), _class2.isFullEqual = isFullEqual, _temp), _applyDecoratedDescriptor(_class.prototype, "r", [detached], Object.getOwnPropertyDescriptor(_class.prototype, "r"), _class.prototype), _class);
   return function reactWrapper(render) {
     var WrappedComponent = function WrappedComponent(props, context) {
       AtomizedComponent.call(this, props, context);
@@ -1847,10 +3501,33 @@ var options = {
 };
 var stack = [];
 var EMPTY_CHILDREN = [];
-/** JSX/hyperscript reviver
-*	Benchmarks: https://esbench.com/bench/57ee8f8e330ab09900a1a1a0
- *	@see http://jasonformat.com/wtf-is-jsx
- *	@public
+/**
+ * JSX/hyperscript reviver.
+ * @see http://jasonformat.com/wtf-is-jsx
+ * Benchmarks: https://esbench.com/bench/57ee8f8e330ab09900a1a1a0
+ *
+ * Note: this is exported as both `h()` and `createElement()` for compatibility reasons.
+ *
+ * Creates a VNode (virtual DOM element). A tree of VNodes can be used as a lightweight representation
+ * of the structure of a DOM tree. This structure can be realized by recursively comparing it against
+ * the current _actual_ DOM structure, and applying only the differences.
+ *
+ * `h()`/`createElement()` accepts an element name, a list of attributes/props,
+ * and optionally children to append to the element.
+ *
+ * @example The following DOM tree
+ *
+ * `<div id="foo" name="bar">Hello!</div>`
+ *
+ * can be constructed using this function as:
+ *
+ * `h('div', { id: 'foo', name : 'bar' }, 'Hello!');`
+ *
+ * @param {string} nodeName	An element name. Ex: `div`, `a`, `span`, etc.
+ * @param {Object} attributes	Any attributes/props to set on the created element.
+ * @param rest			Additional arguments are taken to be children to append. Can be infinitely nested Arrays.
+ *
+ * @public
  */
 
 function h(nodeName, attributes) {
@@ -1902,9 +3579,12 @@ function h(nodeName, attributes) {
   if (options.vnode !== undefined) options.vnode(p);
   return p;
 }
-/** Copy own-properties from `props` onto `obj`.
- *	@returns obj
- *	@private
+/**
+ *  Copy all properties from `props` onto `obj`.
+ *  @param {Object} obj		Object onto which properties should be copied.
+ *  @param {Object} props	Object from which to copy properties.
+ *  @returns obj
+ *  @private
  */
 
 
@@ -1918,14 +3598,24 @@ function extend(obj, props) {
 
   return obj;
 }
-/** Call a function asynchronously, as soon as possible.
- *	@param {Function} callback
+/**
+ * Call a function asynchronously, as soon as possible. Makes
+ * use of HTML Promise to schedule the callback if available,
+ * otherwise falling back to `setTimeout` (mainly for IE<11).
+ *
+ * @param {Function} callback
  */
 
 
 extend._r = [2];
 extend.displayName = "extend";
 var defer = typeof Promise == 'function' ? Promise.resolve().then.bind(Promise.resolve()) : setTimeout;
+/**
+ * Clones the given VNode, optionally adding attributes/props and replacing its children.
+ * @param {VNode} vnode		The virutal DOM element to clone
+ * @param {Object} props	Attributes/props to add when cloning
+ * @param {VNode} rest		Any additional arguments will be used as replacement children.
+ */
 
 function cloneElement(vnode, props) {
   return h(vnode.nodeName, extend(extend({}, vnode.attributes), props), arguments.length > 2 ? [].slice.call(arguments, 2) : vnode.children);
@@ -1957,10 +3647,13 @@ function rerender() {
     if (p._dirty) renderComponent(p);
   }
 }
-/** Check if two nodes are equivalent.
- *	@param {Element} node
- *	@param {VNode} vnode
- *	@private
+/**
+ * Check if two nodes are equivalent.
+ *
+ * @param {Node} node			DOM Node to compare
+ * @param {VNode} vnode			Virtual DOM node to compare
+ * @param {boolean} [hyrdating=false]	If true, ignores component constructors when comparing.
+ * @private
  */
 
 
@@ -1978,9 +3671,11 @@ function isSameNodeType(node, vnode, hydrating) {
 
   return hydrating || node._componentConstructor === vnode.nodeName;
 }
-/** Check if an Element has a given normalized name.
-*	@param {Element} node
-*	@param {String} nodeName
+/**
+ * Check if an Element has a given nodeName, case-insensitively.
+ *
+ * @param {Element} node	A DOM Element to inspect the name of.
+ * @param {String} nodeName	Unnormalized name to compare against.
  */
 
 
@@ -1994,6 +3689,7 @@ function isNamedNode(node, nodeName) {
  * Reconstruct Component-style `props` from a VNode.
  * Ensures default/fallback values from `defaultProps`:
  * Own-properties of `defaultProps` not present in `vnode.attributes` are added.
+ *
  * @param {VNode} vnode
  * @returns {Object} props
  */
@@ -3663,28 +5359,50 @@ var toCssValue_1 = createCommonjsModule(function (module, exports) {
   });
   exports['default'] = toCssValue;
 
-  var joinWithSpace = function joinWithSpace(value) {
-    return value.join(' ');
+  var join = function join(value, by) {
+    var result = '';
+
+    for (var i = 0; i < value.length; i++) {
+      // Remove !important from the value, it will be readded later.
+      if (value[i] === '!important') break;
+      if (result) result += by;
+      result += value[i];
+    }
+
+    return result;
   };
   /**
    * Converts array values to string.
    *
    * `margin: [['5px', '10px']]` > `margin: 5px 10px;`
    * `border: ['1px', '2px']` > `border: 1px, 2px;`
+   * `margin: [['5px', '10px'], '!important']` > `margin: 5px 10px !important;`
+   * `color: ['red', !important]` > `color: red !important;`
    */
 
 
-  joinWithSpace._r = [2];
-  joinWithSpace.displayName = "joinWithSpace";
+  join._r = [2];
+  join.displayName = "join";
 
   function toCssValue(value) {
-    if (!Array.isArray(value)) return value; // Support space separated values.
+    var ignoreImportant = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : false;
+    if (!Array.isArray(value)) return value;
+    var cssValue = ''; // Support space separated values via `[['5px', '10px']]`.
 
     if (Array.isArray(value[0])) {
-      return toCssValue(value.map(joinWithSpace));
+      for (var i = 0; i < value.length; i++) {
+        if (value[i] === '!important') break;
+        if (cssValue) cssValue += ', ';
+        cssValue += join(value[i], ' ');
+      }
+    } else cssValue = join(value, ', '); // Add !important, because it was ignored.
+
+
+    if (!ignoreImportant && value[value.length - 1] === '!important') {
+      cssValue += ' !important';
     }
 
-    return value.join(', ');
+    return cssValue;
   }
 });
 unwrapExports(toCssValue_1);
@@ -4155,28 +5873,11 @@ var linkRule_1 = createCommonjsModule(function (module, exports) {
 });
 unwrapExports(linkRule_1);
 
-var global_1 = createCommonjsModule(function (module, exports) {
-  Object.defineProperty(exports, "__esModule", {
-    value: true
-  });
-  exports['default'] = typeof window === 'undefined' ? commonjsGlobal : window;
-});
-unwrapExports(global_1);
-
 var _escape = createCommonjsModule(function (module, exports) {
   Object.defineProperty(exports, "__esModule", {
     value: true
   });
-
-  var _global2 = _interopRequireDefault$$1(global_1);
-
-  function _interopRequireDefault$$1(obj) {
-    return obj && obj.__esModule ? obj : {
-      'default': obj
-    };
-  }
-
-  var CSS = _global2['default'].CSS;
+  var CSS = commonjsGlobal.CSS;
   var env = "development";
   var escapeRegex = /([[\].#*$><+~=|^:(),"'`])/g;
 
@@ -4728,6 +6429,20 @@ var StyleSheet_1 = createCommonjsModule(function (module, exports) {
 });
 unwrapExports(StyleSheet_1);
 
+var moduleId = createCommonjsModule(function (module, exports) {
+  Object.defineProperty(exports, "__esModule", {
+    value: true
+  });
+  var ns = '2f1acc6c3a606b082e5eef5e54414ffb';
+  if (commonjsGlobal[ns] == null) commonjsGlobal[ns] = 0; // Bundle may contain multiple JSS versions at the same time. In order to identify
+  // the current version with just one short number and use it for classes generation
+  // we use a counter. Also it is more accurate, because user can manually reevaluate
+  // the module.
+
+  exports['default'] = commonjsGlobal[ns]++;
+});
+unwrapExports(moduleId);
+
 var createGenerateClassName = createCommonjsModule(function (module, exports) {
   Object.defineProperty(exports, "__esModule", {
     value: true
@@ -4737,7 +6452,7 @@ var createGenerateClassName = createCommonjsModule(function (module, exports) {
 
   var _StyleSheet2 = _interopRequireDefault$$1(StyleSheet_1);
 
-  var _global2 = _interopRequireDefault$$1(global_1);
+  var _moduleId2 = _interopRequireDefault$$1(moduleId);
 
   function _interopRequireDefault$$1(obj) {
     return obj && obj.__esModule ? obj : {
@@ -4745,10 +6460,6 @@ var createGenerateClassName = createCommonjsModule(function (module, exports) {
     };
   }
 
-  var ns = '2f1acc6c3a606b082e5eef5e54414ffb';
-  if (_global2['default'][ns] == null) _global2['default'][ns] = 0; // In case we have more than one JSS version.
-
-  var jssCounter = _global2['default'][ns]++;
   var maxRules = 1e10;
   var env = "development";
   /**
@@ -4759,6 +6470,7 @@ var createGenerateClassName = createCommonjsModule(function (module, exports) {
 
   exports['default'] = function () {
     var ruleCounter = 0;
+    var defaultPrefix = env === 'production' ? 'c' : '';
     return function (rule, sheet) {
       ruleCounter += 1;
 
@@ -4766,24 +6478,31 @@ var createGenerateClassName = createCommonjsModule(function (module, exports) {
         (0, _warning2['default'])(false, '[JSS] You might have a memory leak. Rule counter is at %s.', ruleCounter);
       }
 
-      if (env === 'production') {
-        return 'c' + jssCounter + ruleCounter;
+      var prefix = defaultPrefix;
+      var jssId = '';
+
+      if (sheet) {
+        prefix = sheet.options.classNamePrefix || defaultPrefix;
+        if (sheet.options.jss.id != null) jssId += sheet.options.jss.id;
       }
 
-      var prefix = sheet ? sheet.options.classNamePrefix || '' : '';
-      return prefix + rule.key + '-' + jssCounter + '-' + ruleCounter;
+      if (env === 'production') {
+        return '' + prefix + _moduleId2['default'] + jssId + ruleCounter;
+      }
+
+      return prefix + rule.key + '-' + _moduleId2['default'] + (jssId && '-' + jssId) + '-' + ruleCounter;
     };
   };
 });
 unwrapExports(createGenerateClassName);
 
-var _typeof$1 = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
+var _typeof$2 = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
   return typeof obj;
 } : function (obj) {
   return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
 };
 
-var isBrowser = (typeof window === "undefined" ? "undefined" : _typeof$1(window)) === "object" && (typeof document === "undefined" ? "undefined" : _typeof$1(document)) === 'object' && document.nodeType === 9;
+var isBrowser = (typeof window === "undefined" ? "undefined" : _typeof$2(window)) === "object" && (typeof document === "undefined" ? "undefined" : _typeof$2(document)) === 'object' && document.nodeType === 9;
 
 
 var module$1 = Object.freeze({
@@ -5624,7 +7343,7 @@ var DomRenderer_1 = createCommonjsModule(function (module, exports) {
 
   var _StyleRule2 = _interopRequireDefault$$1(StyleRule_1);
 
-  var _global2 = _interopRequireDefault$$1(global_1);
+  var _toCssValue2 = _interopRequireDefault$$1(toCssValue_1);
 
   function _interopRequireDefault$$1(obj) {
     return obj && obj.__esModule ? obj : {
@@ -5657,7 +7376,18 @@ var DomRenderer_1 = createCommonjsModule(function (module, exports) {
 
   function setStyle(cssRule, prop, value) {
     try {
-      cssRule.style.setProperty(prop, value);
+      var cssValue = value;
+
+      if (Array.isArray(value)) {
+        cssValue = (0, _toCssValue2['default'])(value, true);
+
+        if (value[value.length - 1] === '!important') {
+          cssRule.style.setProperty(prop, cssValue, 'important');
+          return true;
+        }
+      }
+
+      cssRule.style.setProperty(prop, cssValue);
     } catch (err) {
       // IE may throw if property is unknown.
       return false;
@@ -5907,7 +7637,7 @@ var DomRenderer_1 = createCommonjsModule(function (module, exports) {
       if (media) this.element.setAttribute('media', media);
       if (meta) this.element.setAttribute('data-meta', meta); // eslint-disable-next-line no-underscore-dangle
 
-      var nonce = _global2['default'].__webpack_nonce__;
+      var nonce = commonjsGlobal.__webpack_nonce__;
       if (nonce) this.element.setAttribute('nonce', nonce);
     }
     /**
@@ -6216,11 +7946,14 @@ var Jss_1 = createCommonjsModule(function (module, exports) {
 
   var defaultPlugins = _rules2['default'].concat([_observables2['default'], _functions2['default']]);
 
+  var instanceCounter = 0;
+
   var Jss = function () {
     function Jss(options) {
       _classCallCheck$$1(this, Jss);
 
-      this.version = "9.3.3";
+      this.id = instanceCounter++;
+      this.version = "9.4.0";
       this.plugins = new _PluginsRegistry2['default']();
       this.options = {
         createGenerateClassName: _createGenerateClassName2['default'],
@@ -6843,10 +8576,26 @@ var lib$4 = createCommonjsModule(function (module, exports) {
 });
 var jssNested = unwrapExports(lib$4);
 
-var _dec;
-var _class$2;
+var AbstractLocationStore =
+/*#__PURE__*/
+function () {
+  function AbstractLocationStore() {}
 
-function _applyDecoratedDescriptor$2(target, property, decorators, descriptor, context) {
+  var _proto = AbstractLocationStore.prototype;
+
+  _proto.location = function location(key, value) {
+    throw new Error('implement');
+  };
+
+  return AbstractLocationStore;
+}();
+
+AbstractLocationStore.displayName = "AbstractLocationStore";
+
+var _dec;
+var _class$1;
+
+function _applyDecoratedDescriptor$1(target, property, decorators, descriptor, context) {
   var desc = {};
   Object['ke' + 'ys'](descriptor).forEach(function (key) {
     desc[key] = descriptor[key];
@@ -6875,39 +8624,7 @@ function _applyDecoratedDescriptor$2(target, property, decorators, descriptor, c
   return desc;
 }
 
-function uuid() {
-  var uuid = '';
-
-  for (var i = 0; i < 32; i++) {
-    var random = Math.random() * 16 | 0;
-
-    if (i === 8 || i === 12 || i === 16 || i === 20) {
-      uuid += '-';
-    }
-
-    uuid += (i === 12 ? 4 : i === 16 ? random & 3 | 8 : random).toString(16);
-  }
-
-  return uuid;
-}
-uuid._r = [2];
-uuid.displayName = "uuid";
-
-var AbstractLocationStore =
-/*#__PURE__*/
-function () {
-  function AbstractLocationStore() {}
-
-  var _proto = AbstractLocationStore.prototype;
-
-  _proto.location = function location(key, value) {
-    throw new Error('implement');
-  };
-
-  return AbstractLocationStore;
-}();
-AbstractLocationStore.displayName = "AbstractLocationStore";
-var BrowserLocationStore = (_dec = mem.key.manual, _class$2 =
+var BrowserLocationStore = (_dec = mem.key.manual, _class$1 =
 /*#__PURE__*/
 function (_AbstractLocationStor) {
   _inheritsLoose(BrowserLocationStore, _AbstractLocationStor);
@@ -6916,7 +8633,7 @@ function (_AbstractLocationStor) {
     var _this;
 
     if (ns === void 0) {
-      ns = 'rdi_demos';
+      ns = 'rdi_app';
     }
 
     _this = _AbstractLocationStor.call(this) || this;
@@ -6926,13 +8643,13 @@ function (_AbstractLocationStor) {
     return _this;
   }
 
-  var _proto2 = BrowserLocationStore.prototype;
+  var _proto = BrowserLocationStore.prototype;
 
-  _proto2._params = function _params() {
+  _proto._params = function _params() {
     return new URLSearchParams(this._location.search);
   };
 
-  _proto2.location = function location(key, value) {
+  _proto.location = function location(key, value) {
     var params = this._params();
 
     if (value === undefined) return params.get(key);
@@ -6944,1384 +8661,345 @@ function (_AbstractLocationStor) {
   };
 
   return BrowserLocationStore;
-}(AbstractLocationStore), _applyDecoratedDescriptor$2(_class$2.prototype, "location", [_dec], Object.getOwnPropertyDescriptor(_class$2.prototype, "location"), _class$2.prototype), _class$2);
+}(AbstractLocationStore), _applyDecoratedDescriptor$1(_class$1.prototype, "location", [_dec], Object.getOwnPropertyDescriptor(_class$1.prototype, "location"), _class$1.prototype), _class$1);
 BrowserLocationStore._r = [0, [Location, History]];
 BrowserLocationStore.displayName = "BrowserLocationStore";
 
-var globToRegexp = function globToRegexp(glob, opts) {
-  if (typeof glob !== 'string') {
-    throw new TypeError('Expected a string');
+var TimeoutError =
+/*#__PURE__*/
+function (_Error) {
+  _inheritsLoose(TimeoutError, _Error);
+
+  function TimeoutError(timeout) {
+    var _this;
+
+    _this = _Error.call(this, 'Request timeout client emulation: ' + timeout / 1000 + 's') || this // $FlowFixMe new.target
+    ;
+    _this['__proto__'] = new.target.prototype;
+    _this.statusCode = 408;
+    return _this;
   }
 
-  var str = String(glob); // The regexp we are building, as a string.
+  return TimeoutError;
+}(Error);
 
-  var reStr = ""; // Whether we are matching so called "extended" globs (like bash) and should
-  // support single character matching, matching ranges of characters, group
-  // matching, etc.
-
-  var extended = opts ? !!opts.extended : false; // When globstar is _false_ (default), '/foo/*' is translated a regexp like
-  // '^\/foo\/.*$' which will match any string beginning with '/foo/'
-  // When globstar is _true_, '/foo/*' is translated to regexp like
-  // '^\/foo\/[^/]*$' which will match any string beginning with '/foo/' BUT
-  // which does not have a '/' to the right of it.
-  // E.g. with '/foo/*' these will match: '/foo/bar', '/foo/bar.txt' but
-  // these will not '/foo/bar/baz', '/foo/bar/baz.txt'
-  // Lastely, when globstar is _true_, '/foo/**' is equivelant to '/foo/*' when
-  // globstar is _false_
-
-  var globstar = opts ? !!opts.globstar : false; // If we are doing extended matching, this boolean is true when we are inside
-  // a group (eg {*.html,*.js}), and false otherwise.
-
-  var inGroup = false; // RegExp flags (eg "i" ) to pass in to RegExp constructor.
-
-  var flags = opts && typeof opts.flags === "string" ? opts.flags : "";
-  var c;
-
-  for (var i = 0, len = str.length; i < len; i++) {
-    c = str[i];
-
-    switch (c) {
-      case "\\":
-      case "/":
-      case "$":
-      case "^":
-      case "+":
-      case ".":
-      case "(":
-      case ")":
-      case "=":
-      case "!":
-      case "|":
-        reStr += "\\" + c;
-        break;
-
-      case "?":
-        if (extended) {
-          reStr += ".";
-          break;
-        }
-
-      case "[":
-      case "]":
-        if (extended) {
-          reStr += c;
-          break;
-        }
-
-      case "{":
-        if (extended) {
-          inGroup = true;
-          reStr += "(";
-          break;
-        }
-
-      case "}":
-        if (extended) {
-          inGroup = false;
-          reStr += ")";
-          break;
-        }
-
-      case ",":
-        if (inGroup) {
-          reStr += "|";
-          break;
-        }
-
-        reStr += "\\" + c;
-        break;
-
-      case "*":
-        // Move over all consecutive "*"'s.
-        // Also store the previous and next characters
-        var prevChar = str[i - 1];
-        var starCount = 1;
-
-        while (str[i + 1] === "*") {
-          starCount++;
-          i++;
-        }
-
-        var nextChar = str[i + 1];
-
-        if (!globstar) {
-          // globstar is disabled, so treat any number of "*" as one
-          reStr += ".*";
-        } else {
-          // globstar is enabled, so determine if this is a globstar segment
-          var isGlobstar = starCount > 1 // multiple "*"'s
-          && (prevChar === "/" || prevChar === undefined) // from the start of the segment
-          && (nextChar === "/" || nextChar === undefined); // to the end of the segment
-
-          if (isGlobstar) {
-            // it's a globstar, so match zero or more path segments
-            reStr += "(?:[^/]*(?:\/|$))*";
-            i++; // move over the "/"
-          } else {
-            // it's not a globstar, so only match one path segment
-            reStr += "[^/]*";
-          }
-        }
-
-        break;
-
-      default:
-        reStr += c;
-    }
-  } // When regexp 'g' flag is specified don't
-  // constrain the regular expression with ^ & $
-
-
-  if (!flags || !~flags.indexOf('g')) {
-    reStr = "^" + reStr + "$";
-  }
-
-  return new RegExp(reStr, flags);
-};
-
-globToRegexp._r = [2];
-globToRegexp.displayName = "globToRegexp";
-
-var isarray = Array.isArray || function (arr) {
-  return Object.prototype.toString.call(arr) == '[object Array]';
-};
-
-/**
- * Expose `pathToRegexp`.
- */
-
-var pathToRegexp_1 = pathToRegexp;
-var parse_1 = parse;
-var compile_1 = compile;
-var tokensToFunction_1 = tokensToFunction;
-var tokensToRegExp_1 = tokensToRegExp;
-/**
- * The main path matching regexp utility.
- *
- * @type {RegExp}
- */
-
-var PATH_REGEXP = new RegExp([// Match escaped characters that would otherwise appear in future matches.
-// This allows the user to escape special characters that won't transform.
-'(\\\\.)', // Match Express-style parameters and un-named parameters with a prefix
-// and optional suffixes. Matches appear as:
-//
-// "/:test(\\d+)?" => ["/", "test", "\d+", undefined, "?", undefined]
-// "/route(\\d+)"  => [undefined, undefined, undefined, "\d+", undefined, undefined]
-// "/*"            => ["/", undefined, undefined, undefined, undefined, "*"]
-'([\\/.])?(?:(?:\\:(\\w+)(?:\\(((?:\\\\.|[^\\\\()])+)\\))?|\\(((?:\\\\.|[^\\\\()])+)\\))([+*?])?|(\\*))'].join('|'), 'g');
-/**
- * Parse a string for the raw tokens.
- *
- * @param  {string}  str
- * @param  {Object=} options
- * @return {!Array}
- */
-
-function parse(str, options) {
-  var tokens = [];
-  var key = 0;
-  var index = 0;
-  var path = '';
-  var defaultDelimiter = options && options.delimiter || '/';
-  var res;
-
-  while ((res = PATH_REGEXP.exec(str)) != null) {
-    var m = res[0];
-    var escaped = res[1];
-    var offset = res.index;
-    path += str.slice(index, offset);
-    index = offset + m.length; // Ignore already escaped sequences.
-
-    if (escaped) {
-      path += escaped[1];
-      continue;
-    }
-
-    var next = str[index];
-    var prefix = res[2];
-    var name = res[3];
-    var capture = res[4];
-    var group = res[5];
-    var modifier = res[6];
-    var asterisk = res[7]; // Push the current path onto the tokens.
-
-    if (path) {
-      tokens.push(path);
-      path = '';
-    }
-
-    var partial = prefix != null && next != null && next !== prefix;
-    var repeat = modifier === '+' || modifier === '*';
-    var optional = modifier === '?' || modifier === '*';
-    var delimiter = res[2] || defaultDelimiter;
-    var pattern = capture || group;
-    tokens.push({
-      name: name || key++,
-      prefix: prefix || '',
-      delimiter: delimiter,
-      optional: optional,
-      repeat: repeat,
-      partial: partial,
-      asterisk: !!asterisk,
-      pattern: pattern ? escapeGroup(pattern) : asterisk ? '.*' : '[^' + escapeString(delimiter) + ']+?'
-    });
-  } // Match any characters still remaining.
-
-
-  if (index < str.length) {
-    path += str.substr(index);
-  } // If the path exists, push it onto the end.
-
-
-  if (path) {
-    tokens.push(path);
-  }
-
-  return tokens;
+TimeoutError._r = [0, [Number]];
+TimeoutError.displayName = "TimeoutError";
+function timeoutPromise(promise, timeout) {
+  if (!timeout) return promise;
+  var tm = timeout;
+  return Promise.race([promise, new Promise(function (resolve, reject) {
+    setTimeout(function () {
+      return reject(new TimeoutError(tm));
+    }, tm);
+  })]);
 }
-/**
- * Compile a string to a template function for the path.
- *
- * @param  {string}             str
- * @param  {Object=}            options
- * @return {!function(Object=, Object=)}
- */
+timeoutPromise._r = [2, [null]];
+timeoutPromise.displayName = "timeoutPromise";
 
+function safeToJson(v) {
+  var data;
 
-parse._r = [2];
-parse.displayName = "parse";
-
-function compile(str, options) {
-  return tokensToFunction(parse(str, options));
-}
-/**
- * Prettier encoding of URI path segments.
- *
- * @param  {string}
- * @return {string}
- */
-
-
-compile._r = [2];
-compile.displayName = "compile";
-
-function encodeURIComponentPretty(str) {
-  return encodeURI(str).replace(/[\/?#]/g, function (c) {
-    return '%' + c.charCodeAt(0).toString(16).toUpperCase();
-  });
-}
-/**
- * Encode the asterisk parameter. Similar to `pretty`, but allows slashes.
- *
- * @param  {string}
- * @return {string}
- */
-
-
-encodeURIComponentPretty._r = [2];
-encodeURIComponentPretty.displayName = "encodeURIComponentPretty";
-
-function encodeAsterisk(str) {
-  return encodeURI(str).replace(/[?#]/g, function (c) {
-    return '%' + c.charCodeAt(0).toString(16).toUpperCase();
-  });
-}
-/**
- * Expose a method for transforming tokens into the path function.
- */
-
-
-encodeAsterisk._r = [2];
-encodeAsterisk.displayName = "encodeAsterisk";
-
-function tokensToFunction(tokens) {
-  // Compile all the tokens into regexps.
-  var matches = new Array(tokens.length); // Compile all the patterns before compilation.
-
-  for (var i = 0; i < tokens.length; i++) {
-    if (typeof tokens[i] === 'object') {
-      matches[i] = new RegExp('^(?:' + tokens[i].pattern + ')$');
-    }
-  }
-
-  return function (obj, opts) {
-    var path = '';
-    var data = obj || {};
-    var options = opts || {};
-    var encode = options.pretty ? encodeURIComponentPretty : encodeURIComponent;
-
-    for (var i = 0; i < tokens.length; i++) {
-      var token = tokens[i];
-
-      if (typeof token === 'string') {
-        path += token;
-        continue;
+  try {
+    data = JSON.parse(v);
+  } catch (e) {
+    data = {
+      valueOf: function valueOf() {
+        return v;
       }
-
-      var value = data[token.name];
-      var segment;
-
-      if (value == null) {
-        if (token.optional) {
-          // Prepend partial segment prefixes.
-          if (token.partial) {
-            path += token.prefix;
-          }
-
-          continue;
-        } else {
-          throw new TypeError('Expected "' + token.name + '" to be defined');
-        }
-      }
-
-      if (isarray(value)) {
-        if (!token.repeat) {
-          throw new TypeError('Expected "' + token.name + '" to not repeat, but received `' + JSON.stringify(value) + '`');
-        }
-
-        if (value.length === 0) {
-          if (token.optional) {
-            continue;
-          } else {
-            throw new TypeError('Expected "' + token.name + '" to not be empty');
-          }
-        }
-
-        for (var j = 0; j < value.length; j++) {
-          segment = encode(value[j]);
-
-          if (!matches[i].test(segment)) {
-            throw new TypeError('Expected all "' + token.name + '" to match "' + token.pattern + '", but received `' + JSON.stringify(segment) + '`');
-          }
-
-          path += (j === 0 ? token.prefix : token.delimiter) + segment;
-        }
-
-        continue;
-      }
-
-      segment = token.asterisk ? encodeAsterisk(value) : encode(value);
-
-      if (!matches[i].test(segment)) {
-        throw new TypeError('Expected "' + token.name + '" to match "' + token.pattern + '", but received "' + segment + '"');
-      }
-
-      path += token.prefix + segment;
-    }
-
-    return path;
-  };
-}
-/**
- * Escape a regular expression string.
- *
- * @param  {string} str
- * @return {string}
- */
-
-
-tokensToFunction._r = [2];
-tokensToFunction.displayName = "tokensToFunction";
-
-function escapeString(str) {
-  return str.replace(/([.+*?=^!:${}()[\]|\/\\])/g, '\\$1');
-}
-/**
- * Escape the capturing group by escaping special characters and meaning.
- *
- * @param  {string} group
- * @return {string}
- */
-
-
-escapeString._r = [2];
-escapeString.displayName = "escapeString";
-
-function escapeGroup(group) {
-  return group.replace(/([=!:$\/()])/g, '\\$1');
-}
-/**
- * Attach the keys as a property of the regexp.
- *
- * @param  {!RegExp} re
- * @param  {Array}   keys
- * @return {!RegExp}
- */
-
-
-escapeGroup._r = [2];
-escapeGroup.displayName = "escapeGroup";
-
-function attachKeys(re, keys) {
-  re.keys = keys;
-  return re;
-}
-/**
- * Get the flags for a regexp from the options.
- *
- * @param  {Object} options
- * @return {string}
- */
-
-
-attachKeys._r = [2];
-attachKeys.displayName = "attachKeys";
-
-function flags(options) {
-  return options.sensitive ? '' : 'i';
-}
-/**
- * Pull out keys from a regexp.
- *
- * @param  {!RegExp} path
- * @param  {!Array}  keys
- * @return {!RegExp}
- */
-
-
-flags._r = [2];
-flags.displayName = "flags";
-
-function regexpToRegexp(path, keys) {
-  // Use a negative lookahead to match only capturing groups.
-  var groups = path.source.match(/\((?!\?)/g);
-
-  if (groups) {
-    for (var i = 0; i < groups.length; i++) {
-      keys.push({
-        name: i,
-        prefix: null,
-        delimiter: null,
-        optional: false,
-        repeat: false,
-        partial: false,
-        asterisk: false,
-        pattern: null
-      });
-    }
+    };
   }
 
-  return attachKeys(path, keys);
+  return data;
 }
-/**
- * Transform an array into a regexp.
- *
- * @param  {!Array}  path
- * @param  {Array}   keys
- * @param  {!Object} options
- * @return {!RegExp}
- */
 
+safeToJson._r = [2, [String]];
+safeToJson.displayName = "safeToJson";
 
-regexpToRegexp._r = [2];
-regexpToRegexp.displayName = "regexpToRegexp";
+var HttpError =
+/*#__PURE__*/
+function (_Error) {
+  _inheritsLoose(HttpError, _Error);
 
-function arrayToRegexp(path, keys, options) {
-  var parts = [];
+  function HttpError(_ref) {
+    var _this;
 
-  for (var i = 0; i < path.length; i++) {
-    parts.push(pathToRegexp(path[i], keys, options).source);
-  }
+    var opts = _ref.opts,
+        parent = _ref.parent,
+        response = _ref.response,
+        data = _ref.data,
+        uid = _ref.uid;
+    _this = _Error.call(this, (parent ? parent.message || parent.stack : response ? response.statusText : null) || 'unknown') || this;
 
-  var regexp = new RegExp('(?:' + parts.join('|') + ')', flags(options));
-  return attachKeys(regexp, keys);
-}
-/**
- * Create a path regexp from string input.
- *
- * @param  {string}  path
- * @param  {!Array}  keys
- * @param  {!Object} options
- * @return {!RegExp}
- */
-
-
-arrayToRegexp._r = [2];
-arrayToRegexp.displayName = "arrayToRegexp";
-
-function stringToRegexp(path, keys, options) {
-  return tokensToRegExp(parse(path, options), keys, options);
-}
-/**
- * Expose a function for taking tokens and returning a RegExp.
- *
- * @param  {!Array}          tokens
- * @param  {(Array|Object)=} keys
- * @param  {Object=}         options
- * @return {!RegExp}
- */
-
-
-stringToRegexp._r = [2];
-stringToRegexp.displayName = "stringToRegexp";
-
-function tokensToRegExp(tokens, keys, options) {
-  if (!isarray(keys)) {
-    options =
-    /** @type {!Object} */
-    keys || options;
-    keys = [];
-  }
-
-  options = options || {};
-  var strict = options.strict;
-  var end = options.end !== false;
-  var route = ''; // Iterate over the tokens and create our regexp string.
-
-  for (var i = 0; i < tokens.length; i++) {
-    var token = tokens[i];
-
-    if (typeof token === 'string') {
-      route += escapeString(token);
+    if (parent) {
+      _this.status = parent.status || null;
+      _this.stack = parent.stack;
+    } else if (response) {
+      _this.status = response.status || null;
     } else {
-      var prefix = escapeString(token.prefix);
-      var capture = '(?:' + token.pattern + ')';
-      keys.push(token);
-
-      if (token.repeat) {
-        capture += '(?:' + prefix + capture + ')*';
-      }
-
-      if (token.optional) {
-        if (!token.partial) {
-          capture = '(?:' + prefix + '(' + capture + '))?';
-        } else {
-          capture = prefix + '(' + capture + ')?';
-        }
-      } else {
-        capture = prefix + '(' + capture + ')';
-      }
-
-      route += capture;
+      _this.status = null;
     }
+
+    _this.uid = uid ? uid : '' + Date.now();
+    _this.data = data ? typeof data === 'object' ? data : safeToJson(data) : null // $FlowFixMe new.target
+    ;
+    _this['__proto__'] = new.target.prototype;
+    _this._opts = opts;
+    _this.retry = opts.retry;
+    return _this;
   }
 
-  var delimiter = escapeString(options.delimiter || '/');
-  var endsWithDelimiter = route.slice(-delimiter.length) === delimiter; // In non-strict mode we allow a slash at the end of match. If the path to
-  // match already ends with a slash, we remove it for consistency. The slash
-  // is valid at the end of a path match, not in the middle. This is important
-  // in non-ending mode, where "/test/" shouldn't match "/test//route".
+  var _proto = HttpError.prototype;
 
-  if (!strict) {
-    route = (endsWithDelimiter ? route.slice(0, -delimiter.length) : route) + '(?:' + delimiter + '(?=$))?';
-  }
-
-  if (end) {
-    route += '$';
-  } else {
-    // In non-ending mode, we need the capturing groups to match as much as
-    // possible by using a positive lookahead to the end or next path segment.
-    route += strict && endsWithDelimiter ? '' : '(?=' + delimiter + '|$)';
-  }
-
-  return attachKeys(new RegExp('^' + route, flags(options)), keys);
-}
-/**
- * Normalize the given path string, returning a regular expression.
- *
- * An empty array can be passed in for the keys, which will hold the
- * placeholder key descriptions. For example, using `/user/:id`, `keys` will
- * contain `[{ name: 'id', delimiter: '/', optional: false, repeat: false }]`.
- *
- * @param  {(string|RegExp|Array)} path
- * @param  {(Array|Object)=}       keys
- * @param  {Object=}               options
- * @return {!RegExp}
- */
-
-
-tokensToRegExp._r = [2];
-tokensToRegExp.displayName = "tokensToRegExp";
-
-function pathToRegexp(path, keys, options) {
-  if (!isarray(keys)) {
-    options =
-    /** @type {!Object} */
-    keys || options;
-    keys = [];
-  }
-
-  options = options || {};
-
-  if (path instanceof RegExp) {
-    return regexpToRegexp(path,
-    /** @type {!Array} */
-    keys);
-  }
-
-  if (isarray(path)) {
-    return arrayToRegexp(
-    /** @type {!Array} */
-    path,
-    /** @type {!Array} */
-    keys, options);
-  }
-
-  return stringToRegexp(
-  /** @type {string} */
-  path,
-  /** @type {!Array} */
-  keys, options);
-}
-
-pathToRegexp._r = [2];
-pathToRegexp.displayName = "pathToRegexp";
-pathToRegexp_1.parse = parse_1;
-pathToRegexp_1.compile = compile_1;
-pathToRegexp_1.tokensToFunction = tokensToFunction_1;
-pathToRegexp_1.tokensToRegExp = tokensToRegExp_1;
-
-var _extends$2 = Object.assign || function (target) {
-  for (var i = 1; i < arguments.length; i++) {
-    var source = arguments[i];
-
-    for (var key in source) {
-      if (Object.prototype.hasOwnProperty.call(source, key)) {
-        target[key] = source[key];
-      }
-    }
-  }
-
-  return target;
-};
-
-var stringMatchers = {
-  begin: function begin(targetString) {
-    return function (url) {
-      return url.indexOf(targetString) === 0;
-    };
-  },
-  end: function end(targetString) {
-    return function (url) {
-      return url.substr(-targetString.length) === targetString;
-    };
-  },
-  glob: function glob(targetString) {
-    var urlRX = globToRegexp(targetString.replace(/^glob:/, ''));
-
-    return function (url) {
-      return urlRX.test(url);
-    };
-  },
-  express: function express(targetString) {
-    var urlRX = pathToRegexp_1(targetString.replace(/^express:/, ''));
-
-    return function (url) {
-      return urlRX.test(url);
-    };
-  }
-};
-
-function getHeaderMatcher(expectedHeaders, HeadersConstructor) {
-  var expectation = Object.keys(expectedHeaders).map(function (k) {
+  _proto.toJSON = function toJSON() {
+    var opts = this._opts;
     return {
-      key: k.toLowerCase(),
-      val: expectedHeaders[k]
-    };
-  });
-  return function (headers) {
-    if (!headers) {
-      headers = {};
-    }
-
-    if (headers instanceof HeadersConstructor) {
-      headers = headers.raw();
-    }
-
-    var lowerCaseHeaders = Object.keys(headers).reduce(function (obj, k) {
-      obj[k.toLowerCase()] = headers[k];
-      return obj;
-    }, {});
-    return expectation.every(function (header) {
-      return areHeadersEqual(lowerCaseHeaders, header);
-    });
-  };
-}
-
-getHeaderMatcher._r = [2];
-getHeaderMatcher.displayName = "getHeaderMatcher";
-
-function areHeadersEqual(currentHeader, expectedHeader) {
-  var key = expectedHeader.key;
-  var val = expectedHeader.val;
-  var currentHeaderValue = Array.isArray(currentHeader[key]) ? currentHeader[key] : [currentHeader[key]];
-  var expectedHeaderValue = Array.isArray(val) ? val : [val];
-
-  if (currentHeaderValue.length !== expectedHeaderValue.length) {
-    return false;
-  }
-
-  for (var i = 0; i < currentHeaderValue.length; ++i) {
-    if (currentHeaderValue[i] !== expectedHeaderValue[i]) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-areHeadersEqual._r = [2];
-areHeadersEqual.displayName = "areHeadersEqual";
-
-function normalizeRequest(url, options, Request) {
-  if (Request.prototype.isPrototypeOf(url)) {
-    return {
-      url: url.url,
-      method: url.method,
-      headers: function () {
-        var headers = {};
-        url.headers.forEach(function (name) {
-          return headers[name] = url.headers.name;
-        });
-        return headers;
-      }()
-    };
-  } else {
-    return {
-      url: url,
-      method: options && options.method || 'GET',
-      headers: options && options.headers
-    };
-  }
-}
-
-normalizeRequest._r = [2];
-normalizeRequest.displayName = "normalizeRequest";
-
-var compileRoute = function compileRoute(route, Request, HeadersConstructor) {
-  route = _extends$2({}, route);
-
-  if (typeof route.response === 'undefined') {
-    throw new Error('Each route must define a response');
-  }
-
-  if (!route.matcher) {
-    throw new Error('each route must specify a string, regex or function to match calls to fetch');
-  }
-
-  if (!route.name) {
-    route.name = route.matcher.toString();
-    route.__unnamed = true;
-  }
-
-  var matchUrl = void 0;
-  var expectedMethod = route.method && route.method.toLowerCase();
-
-  function matchMethod(method) {
-    return !expectedMethod || expectedMethod === (method ? method.toLowerCase() : 'get');
-  }
-
-  
-  var matchHeaders = route.headers ? getHeaderMatcher(route.headers, HeadersConstructor) : function () {
-    return true;
-  };
-
-  if (typeof route.matcher === 'function') {
-    matchUrl = route.matcher;
-  } else if (typeof route.matcher === 'string') {
-    Object.keys(stringMatchers).some(function (name) {
-      if (route.matcher.indexOf(name + ':') === 0) {
-        var url = route.matcher.replace(new RegExp('^' + name + ':'), '');
-        matchUrl = stringMatchers[name](url);
-        return true;
-      }
-    });
-
-    if (!matchUrl) {
-      if (route.matcher === '*') {
-        matchUrl = function matchUrl() {
-          return true;
-        };
-      } else if (route.matcher.indexOf('^') === 0) {
-        (function () {
-          console.warn('Using \'^\' to denote the start of a url is deprecated. Use \'begin:\' instead');
-          var expectedUrl = route.matcher.substr(1);
-
-          matchUrl = function matchUrl(url) {
-            return url.indexOf(expectedUrl) === 0;
-          };
-        })();
-      } else {
-        (function () {
-          var expectedUrl = route.matcher;
-
-          matchUrl = function matchUrl(url) {
-            return url === expectedUrl;
-          };
-        })();
-      }
-    }
-  } else if (route.matcher instanceof RegExp) {
-    (function () {
-      var urlRX = route.matcher;
-
-      matchUrl = function matchUrl(url) {
-        return urlRX.test(url);
-      };
-    })();
-  }
-
-  var matcher = function matcher(url, options) {
-    var req = normalizeRequest(url, options, Request);
-    return matchHeaders(req.headers) && matchMethod(req.method) && matchUrl(req.url, options);
-  };
-
-  matcher._r = [2];
-  matcher.displayName = "matcher";
-
-  if (route.times) {
-    (function () {
-      var timesLeft = route.times;
-
-      route.matcher = function (url, options) {
-        var match = timesLeft && matcher(url, options);
-
-        if (match) {
-          timesLeft--;
-          return true;
-        }
-      };
-
-      route.reset = function () {
-        return timesLeft = route.times;
-      };
-    })();
-  } else {
-    route.matcher = matcher;
-  }
-
-  return route;
-};
-
-compileRoute._r = [2];
-compileRoute.displayName = "compileRoute";
-
-var _typeof$2 = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
-  return typeof obj;
-} : function (obj) {
-  return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
-};
-
-var _extends$1 = Object.assign || function (target) {
-  for (var i = 1; i < arguments.length; i++) {
-    var source = arguments[i];
-
-    for (var key in source) {
-      if (Object.prototype.hasOwnProperty.call(source, key)) {
-        target[key] = source[key];
-      }
-    }
-  }
-
-  return target;
-};
-
-var FetchMock = function FetchMock() {
-  this.routes = [];
-  this._calls = {};
-  this._matchedCalls = [];
-  this._unmatchedCalls = [];
-  this._holdingPromises = [];
-  this.bindMethods();
-};
-
-FetchMock._r = [2];
-FetchMock.displayName = "FetchMock";
-
-FetchMock.prototype.bindMethods = function () {
-  this.fetchMock = FetchMock.prototype.fetchMock.bind(this);
-  this.restore = FetchMock.prototype.restore.bind(this);
-  this.reset = FetchMock.prototype.reset.bind(this);
-};
-
-FetchMock.prototype.mock = function (matcher, response, options) {
-  var route = void 0; // Handle the variety of parameters accepted by mock (see README)
-
-  if (matcher && response && options) {
-    route = _extends$1({
-      matcher: matcher,
-      response: response
-    }, options);
-  } else if (matcher && response) {
-    route = {
-      matcher: matcher,
-      response: response
-    };
-  } else if (matcher && matcher.matcher) {
-    route = matcher;
-  } else {
-    throw new Error('Invalid parameters passed to fetch-mock');
-  }
-
-  this.addRoute(route);
-  return this._mock();
-};
-
-FetchMock.prototype.once = function (matcher, response, options) {
-  return this.mock(matcher, response, _extends$1({}, options, {
-    times: 1
-  }));
-};
-
-FetchMock.prototype._mock = function () {
-  if (!this.isSandbox) {
-    // Do this here rather than in the constructor to ensure it's scoped to the test
-    this.realFetch = this.realFetch || FetchMock.global.fetch;
-    FetchMock.global.fetch = this.fetchMock;
-  }
-
-  return this;
-};
-
-FetchMock.prototype._unMock = function () {
-  if (this.realFetch) {
-    FetchMock.global.fetch = this.realFetch;
-    this.realFetch = null;
-  }
-
-  this.fallbackResponse = null;
-  return this;
-};
-
-FetchMock.prototype.catch = function (response) {
-  if (this.fallbackResponse) {
-    console.warn('calling fetchMock.catch() twice - are you sure you want to overwrite the previous fallback response');
-  }
-
-  this.fallbackResponse = response || 'ok';
-  return this._mock();
-};
-
-FetchMock.prototype.spy = function () {
-  this._mock();
-
-  return this.catch(this.realFetch);
-};
-
-FetchMock.prototype.fetchMock = function (url, opts) {
-  var _this = this;
-
-  var Promise = this.Promise || FetchMock.Promise;
-  var resolveHoldingPromise = void 0;
-  var holdingPromise = new Promise(function (res) {
-    return resolveHoldingPromise = res;
-  });
-
-  this._holdingPromises.push(holdingPromise);
-
-  var response = this.router(url, opts);
-
-  if (!response) {
-    console.warn('Unmatched ' + (opts && opts.method || 'GET') + ' to ' + url);
-    this.push(null, [url, opts]);
-
-    if (this.fallbackResponse) {
-      response = this.fallbackResponse;
-    } else {
-      throw new Error('No fallback response defined for ' + (opts && opts.method || 'GET') + ' to ' + url);
-    }
-  }
-
-  if (typeof response === 'function') {
-    response = response(url, opts);
-  }
-
-  if (typeof response.then === 'function') {
-    var responsePromise = response.then(function (response) {
-      return _this.mockResponse(url, response, opts, resolveHoldingPromise);
-    });
-    return Promise.resolve(responsePromise); // Ensure Promise is always our implementation.
-  } else {
-    return this.mockResponse(url, response, opts, resolveHoldingPromise);
-  }
-};
-
-FetchMock.prototype.router = function (url, opts) {
-  var route = void 0;
-
-  for (var i = 0, il = this.routes.length; i < il; i++) {
-    route = this.routes[i];
-
-    if (route.matcher(url, opts)) {
-      this.push(route.name, [url, opts]);
-      return route.response;
-    }
-  }
-};
-
-FetchMock.prototype.addRoute = function (route) {
-  if (!route) {
-    throw new Error('.mock() must be passed configuration for a route');
-  } // Allows selective application of some of the preregistered routes
-
-
-  this.routes.push(compileRoute(route, FetchMock.Request, FetchMock.Headers));
-};
-
-FetchMock.prototype.mockResponse = function (url, responseConfig, fetchOpts, resolveHoldingPromise) {
-  var Promise = this.Promise || FetchMock.Promise; // It seems odd to call this in here even though it's already called within fetchMock
-  // It's to handle the fact that because we want to support making it very easy to add a
-  // delay to any sort of response (including responses which are defined with a function)
-  // while also allowing function responses to return a Promise for a response config.
-
-  if (typeof responseConfig === 'function') {
-    responseConfig = responseConfig(url, fetchOpts);
-  } // If the response is a pre-made Response, respond with it
-
-
-  if (FetchMock.Response.prototype.isPrototypeOf(responseConfig)) {
-    return this.respond(Promise.resolve(responseConfig), resolveHoldingPromise);
-  } // If the response says to throw an error, throw it
-
-
-  if (responseConfig.throws) {
-    return this.respond(Promise.reject(responseConfig.throws), resolveHoldingPromise);
-  } // If the response config looks like a status, start to generate a simple response
-
-
-  if (typeof responseConfig === 'number') {
-    responseConfig = {
-      status: responseConfig
-    }; // If the response config is not an object, or is an object that doesn't use
-    // any reserved properties, assume it is meant to be the body of the response
-  } else if (typeof responseConfig === 'string' || !(responseConfig.body || responseConfig.headers || responseConfig.throws || responseConfig.status || responseConfig.__redirectUrl)) {
-    responseConfig = {
-      body: responseConfig
-    };
-  } // Now we are sure we're dealing with a response config object, so start to
-  // construct a real response from it
-
-
-  var opts = responseConfig.opts || {}; // set the response url
-
-  opts.url = responseConfig.__redirectUrl || url; // Handle a reasonably common misuse of the library - returning an object
-  // with the property 'status'
-
-  if (responseConfig.status && (typeof responseConfig.status !== 'number' || parseInt(responseConfig.status, 10) !== responseConfig.status || responseConfig.status < 200 || responseConfig.status > 599)) {
-    throw new TypeError('Invalid status ' + responseConfig.status + ' passed on response object.\nTo respond with a JSON object that has status as a property assign the object to body\ne.g. {"body": {"status: "registered"}}');
-  } // set up the response status
-
-
-  opts.status = responseConfig.status || 200;
-  opts.statusText = FetchMock.statusTextMap['' + opts.status]; // Set up response headers. The ternary operator is to cope with
-  // new Headers(undefined) throwing in Chrome
-  // https://code.google.com/p/chromium/issues/detail?id=335871
-
-  opts.headers = responseConfig.headers ? new FetchMock.Headers(responseConfig.headers) : new FetchMock.Headers(); // start to construct the body
-
-  var body = responseConfig.body; // convert to json if we need to
-
-  opts.sendAsJson = responseConfig.sendAsJson === undefined ? FetchMock.config.sendAsJson : responseConfig.sendAsJson;
-
-  if (opts.sendAsJson && responseConfig.body != null && (typeof body === 'undefined' ? 'undefined' : _typeof$2(body)) === 'object') {
-    //eslint-disable-line
-    body = JSON.stringify(body);
-  } // add a Content-Length header if we need to
-
-
-  opts.includeContentLength = responseConfig.includeContentLength === undefined ? FetchMock.config.includeContentLength : responseConfig.includeContentLength;
-
-  if (opts.includeContentLength && typeof body === 'string' && !opts.headers.has('Content-Length')) {
-    opts.headers.set('Content-Length', body.length.toString());
-  } // On the server we need to manually construct the readable stream for the
-  // Response object (on the client this is done automatically)
-
-
-  if (FetchMock.stream) {
-    var s = new FetchMock.stream.Readable();
-
-    if (body != null) {
-      //eslint-disable-line
-      s.push(body, 'utf-8');
-    }
-
-    s.push(null);
-    body = s;
-  }
-
-  var response = new FetchMock.Response(body, opts); // When mocking a followed redirect we must wrap the response in an object
-  // which sets the redirected flag (not a writable property on the actual response)
-
-  if (responseConfig.__redirectUrl) {
-    response = Object.create(response, {
-      redirected: {
-        value: true
+      uid: this.uid,
+      message: this.message,
+      stack: this.stack,
+      status: this.status,
+      request: {
+        requestId: opts.requestId,
+        url: opts.fullUrl,
+        method: opts.method || 'GET',
+        body: opts.body ? String(opts.body) : null
       },
-      url: {
-        value: responseConfig.__redirectUrl
-      },
-      // TODO extend to all other methods as requested by users
-      // Such a nasty hack
-      text: {
-        value: response.text.bind(response)
-      },
-      json: {
-        value: response.json.bind(response)
-      }
-    });
-  }
-
-  return this.respond(Promise.resolve(response), resolveHoldingPromise);
-};
-
-FetchMock.prototype.respond = function (response, resolveHoldingPromise) {
-  response.then(resolveHoldingPromise, resolveHoldingPromise);
-  return response;
-};
-
-FetchMock.prototype.flush = function () {
-  return Promise.all(this._holdingPromises);
-};
-
-FetchMock.prototype.push = function (name, call) {
-  if (name) {
-    this._calls[name] = this._calls[name] || [];
-
-    this._calls[name].push(call);
-
-    this._matchedCalls.push(call);
-  } else {
-    this._unmatchedCalls.push(call);
-  }
-};
-
-FetchMock.prototype.restore = function () {
-  this._unMock();
-
-  this.reset();
-  this.routes = [];
-  return this;
-};
-
-FetchMock.prototype.reset = function () {
-  this._calls = {};
-  this._matchedCalls = [];
-  this._unmatchedCalls = [];
-  this._holdingPromises = [];
-  this.routes.forEach(function (route) {
-    return route.reset && route.reset();
-  });
-  return this;
-};
-
-FetchMock.prototype.calls = function (name) {
-  return name ? this._calls[name] || [] : {
-    matched: this._matchedCalls,
-    unmatched: this._unmatchedCalls
-  };
-};
-
-FetchMock.prototype.lastCall = function (name) {
-  var calls = name ? this.calls(name) : this.calls().matched;
-
-  if (calls && calls.length) {
-    return calls[calls.length - 1];
-  } else {
-    return undefined;
-  }
-};
-
-FetchMock.prototype.lastUrl = function (name) {
-  var call = this.lastCall(name);
-  return call && call[0];
-};
-
-FetchMock.prototype.lastOptions = function (name) {
-  var call = this.lastCall(name);
-  return call && call[1];
-};
-
-FetchMock.prototype.called = function (name) {
-  if (!name) {
-    return !!(this._matchedCalls.length || this._unmatchedCalls.length);
-  }
-
-  return !!(this._calls[name] && this._calls[name].length);
-};
-
-FetchMock.prototype.done = function (name) {
-  var _this2 = this;
-
-  var names = name ? [name] : this.routes.map(function (r) {
-    return r.name;
-  }); // Can't use array.every because
-  // a) not widely supported
-  // b) would exit after first failure, which would break the logging
-
-  return names.map(function (name) {
-    if (!_this2.called(name)) {
-      console.warn('Warning: ' + name + ' not called');
-      return false;
-    } // would use array.find... but again not so widely supported
-
-
-    var expectedTimes = (_this2.routes.filter(function (r) {
-      return r.name === name;
-    }) || [{}])[0].times;
-
-    if (!expectedTimes) {
-      return true;
-    }
-
-    var actualTimes = _this2.calls(name).length;
-
-    if (expectedTimes > actualTimes) {
-      console.warn('Warning: ' + name + ' only called ' + actualTimes + ' times, but ' + expectedTimes + ' expected');
-      return false;
-    } else {
-      return true;
-    }
-  }).filter(function (bool) {
-    return !bool;
-  }).length === 0;
-};
-
-FetchMock.config = {
-  includeContentLength: false,
-  sendAsJson: true
-};
-
-FetchMock.prototype.configure = function (opts) {
-  _extends$1(FetchMock.config, opts);
-};
-
-FetchMock.setImplementations = FetchMock.prototype.setImplementations = function (implementations) {
-  FetchMock.Headers = implementations.Headers || FetchMock.Headers;
-  FetchMock.Request = implementations.Request || FetchMock.Request;
-  FetchMock.Response = implementations.Response || FetchMock.Response;
-  FetchMock.Promise = implementations.Promise || FetchMock.Promise;
-};
-
-FetchMock.prototype.sandbox = function (Promise) {
-  if (this.routes.length || this.fallbackResponse) {
-    throw new Error('.sandbox() can only be called on fetch-mock instances that don\'t have routes configured already');
-  }
-
-  var instance = new FetchMock(); // this construct allows us to create a fetch-mock instance which is also
-  // a callable function, while circumventing circularity when defining the
-  // object that this function should be bound to
-
-  var boundMock = void 0;
-
-  var proxy = function proxy() {
-    return boundMock.apply(null, arguments);
+      data: this.data
+    };
   };
 
-  proxy._r = [2];
-  proxy.displayName = "proxy";
+  return HttpError;
+}(Error);
 
-  var functionInstance = _extends$1(proxy, // Ensures that the entire returned object is a callable function
-  FetchMock.prototype, // all prototype methods
-  instance // instance data
-  );
-
-  functionInstance.bindMethods();
-  boundMock = functionInstance.fetchMock;
-  functionInstance.isSandbox = true;
-
-  if (Promise) {
-    functionInstance.Promise = Promise;
-  }
-
-  return functionInstance;
-};
-
-['get', 'post', 'put', 'delete', 'head', 'patch'].forEach(function (method) {
-  FetchMock.prototype[method] = function (matcher, response, options) {
-    return this.mock(matcher, response, _extends$1({}, options, {
-      method: method.toUpperCase()
-    }));
-  };
-
-  FetchMock.prototype[method + 'Once'] = function (matcher, response, options) {
-    return this.once(matcher, response, _extends$1({}, options, {
-      method: method.toUpperCase()
-    }));
-  };
-});
-var fetchMock$1 = FetchMock;
-
-var statusTextMap = {
-  '100': 'Continue',
-  '101': 'Switching Protocols',
-  '102': 'Processing',
-  '200': 'OK',
-  '201': 'Created',
-  '202': 'Accepted',
-  '203': 'Non-Authoritative Information',
-  '204': 'No Content',
-  '205': 'Reset Content',
-  '206': 'Partial Content',
-  '207': 'Multi-Status',
-  '208': 'Already Reported',
-  '226': 'IM Used',
-  '300': 'Multiple Choices',
-  '301': 'Moved Permanently',
-  '302': 'Found',
-  '303': 'See Other',
-  '304': 'Not Modified',
-  '305': 'Use Proxy',
-  '307': 'Temporary Redirect',
-  '308': 'Permanent Redirect',
-  '400': 'Bad Request',
-  '401': 'Unauthorized',
-  '402': 'Payment Required',
-  '403': 'Forbidden',
-  '404': 'Not Found',
-  '405': 'Method Not Allowed',
-  '406': 'Not Acceptable',
-  '407': 'Proxy Authentication Required',
-  '408': 'Request Timeout',
-  '409': 'Conflict',
-  '410': 'Gone',
-  '411': 'Length Required',
-  '412': 'Precondition Failed',
-  '413': 'Payload Too Large',
-  '414': 'URI Too Long',
-  '415': 'Unsupported Media Type',
-  '416': 'Range Not Satisfiable',
-  '417': 'Expectation Failed',
-  '418': 'I\'m a teapot',
-  '421': 'Misdirected Request',
-  '422': 'Unprocessable Entity',
-  '423': 'Locked',
-  '424': 'Failed Dependency',
-  '425': 'Unordered Collection',
-  '426': 'Upgrade Required',
-  '428': 'Precondition Required',
-  '429': 'Too Many Requests',
-  '431': 'Request Header Fields Too Large',
-  '451': 'Unavailable For Legal Reasons',
-  '500': 'Internal Server Error',
-  '501': 'Not Implemented',
-  '502': 'Bad Gateway',
-  '503': 'Service Unavailable',
-  '504': 'Gateway Timeout',
-  '505': 'HTTP Version Not Supported',
-  '506': 'Variant Also Negotiates',
-  '507': 'Insufficient Storage',
-  '508': 'Loop Detected',
-  '509': 'Bandwidth Limit Exceeded',
-  '510': 'Not Extended',
-  '511': 'Network Authentication Required'
-};
-var statusText = statusTextMap;
-
-var theGlobal = typeof window !== 'undefined' ? window : self;
-fetchMock$1.global = theGlobal;
-fetchMock$1.statusTextMap = statusText;
-fetchMock$1.setImplementations({
-  Promise: theGlobal.Promise,
-  Request: theGlobal.Request,
-  Response: theGlobal.Response,
-  Headers: theGlobal.Headers
-});
-var client = new fetchMock$1();
+HttpError._r = [0, [{
+  opts: "IRequestOptions",
+  response: Response,
+  uid: String
+}]];
+HttpError.displayName = "HttpError";
 
 var _class$3;
-var _class2$1;
-var _class3;
+var _temp$2;
+
+var FetcherResponse = (_temp$2 = _class$3 =
+/*#__PURE__*/
+function () {
+  function FetcherResponse(method, url, fullUrl, fetcher) {
+    this._disposed = false;
+    this._options = {
+      method: method,
+      url: url,
+      fullUrl: fullUrl,
+      requestId: '' + Date.now(),
+      retry: this._getRetry()
+    };
+    this._fetcher = fetcher;
+  }
+
+  var _proto = FetcherResponse.prototype;
+
+  _proto._getRetry = function _getRetry() {
+    throw new Error('implement');
+  };
+
+  _proto._getState = function _getState() {
+    var state = this._fetcher.state,
+        url = this._options.url;
+
+    if (state !== undefined) {
+      var apiData = state[url];
+      state[url] = undefined;
+      return apiData;
+    }
+  };
+
+  _proto.options = function options(opts) {
+    Object.assign(this._options, opts);
+    return this;
+  };
+
+  _proto.text = function text(next) {
+    var _this = this;
+
+    if (next instanceof Error) throw new Error('Need a string');
+    var fetcher = this._fetcher;
+    var opts = fetcher.mergeOptions(_extends({}, this._options, {
+      body: next === undefined ? undefined : next
+    }));
+
+    var state = this._getState();
+
+    if (state !== undefined) {
+      if (typeof state !== 'string') throw new Error("fetch.text " + this._options.url + ", string expected");
+      return state;
+    }
+
+    this._disposed = false;
+    fetcher.request(opts).then(function (data) {
+      if (!_this._disposed) _this._setData(data);
+    });
+    throw new this.constructor.WaitError((opts.method || 'GET') + " " + opts.fullUrl);
+  };
+
+  _proto._setData = function _setData(data) {
+    throw new Error('implement');
+  };
+
+  _proto.destructor = function destructor() {
+    this._disposed = true;
+  };
+
+  _proto.json = function json(next) {
+    var state = this._getState();
+
+    if (state !== undefined) {
+      if (typeof state !== 'object') throw new Error(this._options.url + " state need an object");
+      return state;
+    }
+
+    var text = this.text(next === undefined ? undefined : JSON.stringify(next, null, '\t'));
+    return JSON.parse(text);
+  };
+
+  return FetcherResponse;
+}(), _class$3.WaitError = Error, _temp$2);
+FetcherResponse._r = [0, [String, String, String, "IFetcher"]];
+FetcherResponse.displayName = "FetcherResponse";
+
+var _class$2;
+var _temp$1;
+
+var Fetcher = (_temp$1 = _class$2 =
+/*#__PURE__*/
+function () {
+  function Fetcher(opts) {
+    if (opts === void 0) {
+      opts = {};
+    }
+
+    var baseUrl = opts.baseUrl;
+    this._baseUrl = baseUrl instanceof Array ? baseUrl.map(function (rec) {
+      return [new RegExp(rec[0]), rec[1]];
+    }) : [[new RegExp('.*'), baseUrl || '']];
+    this.state = opts.state;
+    this._init = opts.init;
+    this._timeout = opts.timeout || 120000;
+    this._collector = opts.collector;
+  }
+
+  var _proto = Fetcher.prototype;
+
+  _proto.normalizeResponse = function normalizeResponse(response, opts) {
+    var _this = this;
+
+    if (response.status >= 400) {
+      return response.text().then(function (data) {
+        return new _this.constructor.HttpError({
+          opts: opts,
+          parent: null,
+          response: response,
+          data: data
+        });
+      });
+    }
+
+    return response.status === 204 ? Promise.resolve('') : response.text();
+  };
+
+  _proto.fetch = function (_fetch) {
+    function fetch(_x, _x2) {
+      return _fetch.apply(this, arguments);
+    }
+
+    fetch.toString = function () {
+      return _fetch.toString();
+    };
+
+    return fetch;
+  }(function (url, opts) {
+    return fetch(url, opts);
+  });
+
+  _proto.request = function request(opts) {
+    var _this2 = this;
+
+    var collector = this._collector;
+    if (collector) collector.beginFetch(opts);
+    var HttpError$$1 = this.constructor.HttpError;
+    return timeoutPromise(this.fetch(opts.fullUrl, opts), this._timeout).then(function (response) {
+      return _this2.normalizeResponse(response, opts).catch(function (err) {
+        return new HttpError$$1({
+          opts: opts,
+          parent: err,
+          response: response
+        });
+      });
+    }).catch(function (err) {
+      return new HttpError$$1({
+        opts: opts,
+        parent: err
+      });
+    }).then(function (result) {
+      if (collector) collector.endFetch(result, opts);
+      return result;
+    });
+  };
+
+  _proto.getFullUrl = function getFullUrl(url) {
+    var bu = this._baseUrl;
+    var baseUrl = '';
+
+    for (var i = 0; i < bu.length; i++) {
+      var _bu$i = bu[i],
+          mask = _bu$i[0],
+          base = _bu$i[1];
+
+      if (mask.test(url)) {
+        baseUrl = base;
+        break;
+      }
+    }
+
+    return baseUrl + url;
+  };
+
+  _proto.mergeOptions = function mergeOptions(init) {
+    return _extends({}, this._init, init);
+  };
+
+  _proto._request = function _request(_ref) {
+    var method = _ref[0],
+        url = _ref[1];
+    throw new Error('implement');
+  };
+
+  _proto.post = function post(url) {
+    return this._request(['POST', url]);
+  };
+
+  _proto.get = function get(url) {
+    return this._request(['GET', url]);
+  };
+
+  _proto.put = function put(url) {
+    return this._request(['PUT', url]);
+  };
+
+  _proto.delete = function _delete(url) {
+    return this._request(['DELETE', url]);
+  };
+
+  _proto.patch = function patch(url) {
+    return this._request(['PATCH', url]);
+  };
+
+  return Fetcher;
+}(), _class$2.HttpError = HttpError, _temp$1);
+Fetcher.displayName = "Fetcher";
+
+var _class$5;
+var _class2;
+var _temp$3;
 
 function _applyDecoratedDescriptor$3(target, property, decorators, descriptor, context) {
   var desc = {};
@@ -8352,70 +9030,118 @@ function _applyDecoratedDescriptor$3(target, property, decorators, descriptor, c
   return desc;
 }
 
-var KeyValueTheme = (_class$3 =
+var FetcherResponseLom = (_class$5 = (_temp$3 = _class2 =
 /*#__PURE__*/
-function () {
-  function KeyValueTheme() {}
+function (_FetcherResponse) {
+  _inheritsLoose(FetcherResponseLom, _FetcherResponse);
 
-  _createClass(KeyValueTheme, [{
-    key: "css",
-    get: function get() {
-      return {
-        item: {
-          display: 'flex'
-        },
-        key: {
-          width: '20%'
-        },
-        value: {
-          width: '80%'
-        }
-      };
-    }
-  }]);
-  return KeyValueTheme;
-}(), _applyDecoratedDescriptor$3(_class$3.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class$3.prototype, "css"), _class$3.prototype), _class$3);
-KeyValueTheme.displayName = "KeyValueTheme";
+  function FetcherResponseLom() {
+    return _FetcherResponse.apply(this, arguments) || this;
+  }
 
-function KeyView(_ref, _ref2) {
-  var children = _ref.children;
-  var css = _ref2.theme.css;
-  return lom_h("div", {
-    "class": css.key
-  }, children);
+  var _proto = FetcherResponseLom.prototype;
+
+  _proto.text = function text(next) {
+    return _FetcherResponse.prototype.text.call(this, next);
+  };
+
+  _proto._getRetry = function _getRetry() {
+    return mem.getRetry(this.text());
+  };
+
+  _proto._setData = function _setData(data) {
+    mem.cache(this.text(data));
+  };
+
+  return FetcherResponseLom;
+}(FetcherResponse), _class2.WaitError = AtomWait, _temp$3), _applyDecoratedDescriptor$3(_class$5.prototype, "text", [mem], Object.getOwnPropertyDescriptor(_class$5.prototype, "text"), _class$5.prototype), _class$5);
+FetcherResponseLom.displayName = "FetcherResponseLom";
+
+var _dec$1;
+var _class$4;
+
+function _applyDecoratedDescriptor$2(target, property, decorators, descriptor, context) {
+  var desc = {};
+  Object['ke' + 'ys'](descriptor).forEach(function (key) {
+    desc[key] = descriptor[key];
+  });
+  desc.enumerable = !!desc.enumerable;
+  desc.configurable = !!desc.configurable;
+
+  if ('value' in desc || desc.initializer) {
+    desc.writable = true;
+  }
+
+  desc = decorators.slice().reverse().reduce(function (desc, decorator) {
+    return decorator(target, property, desc) || desc;
+  }, desc);
+
+  if (context && desc.initializer !== void 0) {
+    desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
+    desc.initializer = undefined;
+  }
+
+  if (desc.initializer === void 0) {
+    Object['define' + 'Property'](target, property, desc);
+    desc = null;
+  }
+
+  return desc;
 }
 
-KeyView._r = [1, [{
-  theme: KeyValueTheme
-}]];
-KeyView.displayName = "KeyView";
+var FetcherLom = (_dec$1 = mem.key, _class$4 =
+/*#__PURE__*/
+function (_Fetcher) {
+  _inheritsLoose(FetcherLom, _Fetcher);
 
-function ValueView(_ref3, _ref4) {
-  var children = _ref3.children;
-  var css = _ref4.theme.css;
-  return lom_h("div", {
-    "class": css.value
-  }, children);
+  function FetcherLom() {
+    return _Fetcher.apply(this, arguments) || this;
+  }
+
+  var _proto = FetcherLom.prototype;
+
+  _proto._request = function _request(_ref) {
+    var method = _ref[0],
+        url = _ref[1];
+    return new FetcherResponseLom(method, url, this.getFullUrl(url), this);
+  };
+
+  return FetcherLom;
+}(Fetcher), _applyDecoratedDescriptor$2(_class$4.prototype, "_request", [_dec$1], Object.getOwnPropertyDescriptor(_class$4.prototype, "_request"), _class$4.prototype), _class$4);
+FetcherLom.displayName = "FetcherLom";
+
+var _class$6;
+
+function _applyDecoratedDescriptor$4(target, property, decorators, descriptor, context) {
+  var desc = {};
+  Object['ke' + 'ys'](descriptor).forEach(function (key) {
+    desc[key] = descriptor[key];
+  });
+  desc.enumerable = !!desc.enumerable;
+  desc.configurable = !!desc.configurable;
+
+  if ('value' in desc || desc.initializer) {
+    desc.writable = true;
+  }
+
+  desc = decorators.slice().reverse().reduce(function (desc, decorator) {
+    return decorator(target, property, desc) || desc;
+  }, desc);
+
+  if (context && desc.initializer !== void 0) {
+    desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
+    desc.initializer = undefined;
+  }
+
+  if (desc.initializer === void 0) {
+    Object['define' + 'Property'](target, property, desc);
+    desc = null;
+  }
+
+  return desc;
 }
 
-ValueView._r = [1, [{
-  theme: KeyValueTheme
-}]];
-ValueView.displayName = "ValueView";
-function ItemView(_ref5, _ref6) {
-  var children = _ref5.children;
-  var css = _ref6.theme.css;
-  return lom_h("div", {
-    "class": css.item
-  }, children);
-}
-ItemView._r = [1, [{
-  theme: KeyValueTheme
-}]];
-ItemView.displayName = "ItemView";
-ItemView.Key = KeyView;
-ItemView.Value = ValueView;
-var SpinnerTheme = (_class2$1 =
+var SpinnerTheme = (_class$6 =
 /*#__PURE__*/
 function () {
   function SpinnerTheme() {}
@@ -8453,13 +9179,12 @@ function () {
     }
   }]);
   return SpinnerTheme;
-}(), _applyDecoratedDescriptor$3(_class2$1.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class2$1.prototype, "css"), _class2$1.prototype), _class2$1);
+}(), _applyDecoratedDescriptor$4(_class$6.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class$6.prototype, "css"), _class$6.prototype), _class$6);
 SpinnerTheme.displayName = "SpinnerTheme";
-function SpinnerView(_ref7, _ref8) {
-  var children = _ref7.children,
-      isError = _ref7.isError,
-      enableEvents = _ref7.enableEvents;
-  var css = _ref8.theme.css;
+function SpinnerView(_ref, _ref2) {
+  var children = _ref.children,
+      isError = _ref.isError;
+  var css = _ref2.theme.css;
   return lom_h("div", {
     "class": isError ? css.spinnerError : css.spinner
   }, children);
@@ -8468,429 +9193,8 @@ SpinnerView._r = [1, [{
   theme: SpinnerTheme
 }]];
 SpinnerView.displayName = "SpinnerView";
-var Locale = (_class3 =
-/*#__PURE__*/
-function () {
-  _createClass(Locale, [{
-    key: "lang",
-    get: function get() {
-      var _this = this;
 
-      setTimeout(function () {
-        _this.lang = 'gb';
-      }, 400);
-      return this._defaultLang;
-    },
-    set: function set(lang) {}
-  }]);
-
-  function Locale(lang) {
-    this._defaultLang = lang;
-  }
-
-  return Locale;
-}(), _applyDecoratedDescriptor$3(_class3.prototype, "lang", [mem], Object.getOwnPropertyDescriptor(_class3.prototype, "lang"), _class3.prototype), _applyDecoratedDescriptor$3(_class3.prototype, "lang", [mem], Object.getOwnPropertyDescriptor(_class3.prototype, "lang"), _class3.prototype), _class3);
-Locale._r = [0, [String]];
-Locale.displayName = "Locale";
-var BrowserLocalStorage =
-/*#__PURE__*/
-function () {
-  function BrowserLocalStorage(storage, key) {
-    this._storage = storage;
-    this._key = key;
-  }
-
-  var _proto = BrowserLocalStorage.prototype;
-
-  _proto.get = function get() {
-    var value = this._storage.getItem(this._key);
-
-    return !value ? null : JSON.parse(value || '');
-  };
-
-  _proto.set = function set(value) {
-    this._storage.setItem(this._key, JSON.stringify(value));
-  };
-
-  _proto.clear = function clear() {
-    this._storage.removeItem(this._key);
-  };
-
-  _proto.clearAll = function clearAll() {
-    this._storage.clear();
-  };
-
-  return BrowserLocalStorage;
-}();
-BrowserLocalStorage._r = [0, [Storage, String]];
-BrowserLocalStorage.displayName = "BrowserLocalStorage";
-global$1['rdi_fetch_error_rate'] = undefined;
-
-function delayed(v, delay, errorRate) {
-  return function resp(url, params) {
-    return new Promise(function (resolve, reject) {
-      setTimeout(function () {
-        var globalRate = global$1['rdi_fetch_error_rate'];
-        var rate = 100 - (globalRate == undefined ? errorRate : globalRate);
-        if (Math.floor(Math.random() * 100) > rate) reject(new Error('500 Fake HTTP Error'));else resolve(v);
-      }, delay);
-    });
-  };
-}
-
-delayed._r = [2, ["V", Number, Number]];
-delayed.displayName = "delayed";
-function mockFetch(storage, delay, errorRate, mocks) {
-  if (delay === void 0) {
-    delay = 500;
-  }
-
-  if (errorRate === void 0) {
-    errorRate = 30;
-  }
-
-  mocks.forEach(function (createMock) {
-    createMock(storage).forEach(function (data) {
-      client.mock(_extends({}, data, {
-        response: delayed(data.response, delay, errorRate)
-      }));
-    });
-  });
-}
-mockFetch._r = [2, [Storage]];
-mockFetch.displayName = "mockFetch";
-
-var TimeoutError =
-/*#__PURE__*/
-function (_Error) {
-  _inheritsLoose(TimeoutError, _Error);
-
-  function TimeoutError(timeout) {
-    var _this;
-
-    _this = _Error.call(this, 'Request timeout client emulation: ' + timeout / 1000 + 's') || this // $FlowFixMe new.target
-    ;
-    _this['__proto__'] = new.target.prototype;
-    _this.statusCode = 408;
-    return _this;
-  }
-
-  return TimeoutError;
-}(Error);
-
-TimeoutError._r = [0, [Number]];
-TimeoutError.displayName = "TimeoutError";
-function timeoutPromise(promise, timeout) {
-  if (!timeout) return promise;
-  var tm = timeout;
-  return Promise.race([promise, new Promise(function (resolve, reject) {
-    setTimeout(function () {
-      return reject(new TimeoutError(tm));
-    }, tm);
-  })]);
-}
-timeoutPromise._r = [2, [null]];
-timeoutPromise.displayName = "timeoutPromise";
-
-var HttpError =
-/*#__PURE__*/
-function (_Error) {
-  _inheritsLoose(HttpError, _Error);
-
-  function HttpError(parent, opts) {
-    var _this;
-
-    _this = _Error.call(this, parent.message || parent.stack) || this // $FlowFixMe new.target
-    ;
-    _this['__proto__'] = new.target.prototype;
-    _this.stack = parent.stack;
-    _this.uid = parent.uid || '' + Date.now();
-    _this._opts = opts;
-    _this.statusCode = parent.statusCode || null;
-    _this.retry = opts.retry;
-    return _this;
-  }
-
-  var _proto = HttpError.prototype;
-
-  _proto.toString = function toString() {
-    return JSON.stringify(this.toJSON(), null, '\t');
-  };
-
-  _proto.toJSON = function toJSON() {
-    var opts = this._opts;
-    return {
-      request: {
-        requestId: opts.requestId,
-        url: opts.fullUrl,
-        method: opts.method || 'GET',
-        body: opts.body ? String(opts.body) : null
-      },
-      error: {
-        uid: this.uid,
-        message: this.message,
-        stack: this.stack,
-        statusCode: this.statusCode
-      }
-    };
-  };
-
-  _createClass(HttpError, [{
-    key: "displayName",
-    get: function get() {
-      return this.toString();
-    }
-  }]);
-  return HttpError;
-}(Error);
-
-HttpError._r = [0, [Error, "IRequestOptions"]];
-HttpError.displayName = "HttpError";
-
-var _class$5;
-
-function _applyDecoratedDescriptor$5(target, property, decorators, descriptor, context) {
-  var desc = {};
-  Object['ke' + 'ys'](descriptor).forEach(function (key) {
-    desc[key] = descriptor[key];
-  });
-  desc.enumerable = !!desc.enumerable;
-  desc.configurable = !!desc.configurable;
-
-  if ('value' in desc || desc.initializer) {
-    desc.writable = true;
-  }
-
-  desc = decorators.slice().reverse().reduce(function (desc, decorator) {
-    return decorator(target, property, desc) || desc;
-  }, desc);
-
-  if (context && desc.initializer !== void 0) {
-    desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
-    desc.initializer = undefined;
-  }
-
-  if (desc.initializer === void 0) {
-    Object['define' + 'Property'](target, property, desc);
-    desc = null;
-  }
-
-  return desc;
-}
-
-var FetcherResponse = (_class$5 =
-/*#__PURE__*/
-function () {
-  function FetcherResponse(method, url, fullUrl, fetcher) {
-    this._disposed = false;
-    this._options = {
-      method: method,
-      url: url,
-      fullUrl: fullUrl,
-      requestId: '' + Date.now(),
-      retry: mem.getRetry(this.text())
-    };
-    this._fetcher = fetcher;
-  }
-
-  var _proto = FetcherResponse.prototype;
-
-  _proto._getState = function _getState() {
-    var state = this._fetcher.state,
-        url = this._options.url;
-
-    if (state !== undefined) {
-      var apiData = state[url];
-      state[url] = undefined;
-      return apiData;
-    }
-  };
-
-  _proto.options = function options(opts) {
-    Object.assign(this._options, opts);
-    return this;
-  };
-
-  _proto.text = function text(next) {
-    var _this = this;
-
-    if (next instanceof Error) throw new Error('Need a string');
-    var fetcher = this._fetcher;
-    var opts = fetcher.mergeOptions(_extends({}, this._options, {
-      body: next === undefined ? undefined : next
-    }));
-
-    var state = this._getState();
-
-    if (state !== undefined) {
-      if (typeof state !== 'string') throw new Error("fetch.text " + this._options.url + ", string expected");
-      return state;
-    }
-
-    this._disposed = false;
-    fetcher.request(opts).then(function (data) {
-      if (!_this._disposed) mem.cache(_this.text(data));
-    });
-    throw new AtomWait((opts.method || 'GET') + " " + opts.fullUrl);
-  };
-
-  _proto.destructor = function destructor() {
-    this._disposed = true;
-  };
-
-  _proto.json = function json(next) {
-    var state = this._getState();
-
-    if (state !== undefined) {
-      if (typeof state !== 'object') throw new Error(this._options.url + " state need an object");
-      return state;
-    }
-
-    var text = this.text(next === undefined ? undefined : JSON.stringify(next, null, '\t'));
-    return JSON.parse(text);
-  };
-
-  return FetcherResponse;
-}(), _applyDecoratedDescriptor$5(_class$5.prototype, "text", [mem], Object.getOwnPropertyDescriptor(_class$5.prototype, "text"), _class$5.prototype), _class$5);
-FetcherResponse._r = [0, [String, String, String, "IFetcher"]];
-FetcherResponse.displayName = "FetcherResponse";
-
-var _dec$1;
-var _class$4;
-
-function _applyDecoratedDescriptor$4(target, property, decorators, descriptor, context) {
-  var desc = {};
-  Object['ke' + 'ys'](descriptor).forEach(function (key) {
-    desc[key] = descriptor[key];
-  });
-  desc.enumerable = !!desc.enumerable;
-  desc.configurable = !!desc.configurable;
-
-  if ('value' in desc || desc.initializer) {
-    desc.writable = true;
-  }
-
-  desc = decorators.slice().reverse().reduce(function (desc, decorator) {
-    return decorator(target, property, desc) || desc;
-  }, desc);
-
-  if (context && desc.initializer !== void 0) {
-    desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
-    desc.initializer = undefined;
-  }
-
-  if (desc.initializer === void 0) {
-    Object['define' + 'Property'](target, property, desc);
-    desc = null;
-  }
-
-  return desc;
-}
-
-var Fetcher = (_dec$1 = mem.key, _class$4 =
-/*#__PURE__*/
-function () {
-  function Fetcher(opts) {
-    if (opts === void 0) {
-      opts = {};
-    }
-
-    var baseUrl = opts.baseUrl;
-    this._baseUrl = baseUrl instanceof Array ? baseUrl.map(function (rec) {
-      return [new RegExp(rec[0]), rec[1]];
-    }) : [[new RegExp('.*'), baseUrl || '']];
-    this.state = opts.state;
-    this._init = opts.init;
-    this._timeout = opts.timeout || 120000;
-    this._collector = opts.collector;
-  }
-
-  var _proto = Fetcher.prototype;
-
-  _proto._normalizeResponse = function _normalizeResponse(r, opts) {
-    return r.status === 204 ? Promise.resolve('') : r.text();
-  };
-
-  _proto._normalizeError = function _normalizeError(err, opts) {
-    return Promise.resolve(new HttpError(err, opts));
-  };
-
-  _proto._fetch = function _fetch(url, opts) {
-    return timeoutPromise(fetch(url, opts), this._timeout);
-  };
-
-  _proto.request = function request(opts) {
-    var _this = this;
-
-    var collector = this._collector;
-    if (collector) collector.beginFetch(opts);
-    return this._fetch(opts.fullUrl, opts).then(function (r) {
-      return _this._normalizeResponse(r, opts);
-    }).catch(function (err) {
-      return _this._normalizeError(err, opts);
-    }).catch(function (err) {
-      return new HttpError(err, opts);
-    }).then(function (result) {
-      if (collector) collector.endFetch(result, opts);
-      return result;
-    });
-  };
-
-  _proto._getFullUrl = function _getFullUrl(url) {
-    var bu = this._baseUrl;
-    var baseUrl = '';
-
-    for (var i = 0; i < bu.length; i++) {
-      var _bu$i = bu[i],
-          mask = _bu$i[0],
-          base = _bu$i[1];
-
-      if (mask.test(url)) {
-        baseUrl = base;
-        break;
-      }
-    }
-
-    return baseUrl + url;
-  };
-
-  _proto.mergeOptions = function mergeOptions(init) {
-    return _extends({}, this._init, init);
-  };
-
-  _proto._request = function _request(_ref) {
-    var method = _ref[0],
-        url = _ref[1];
-    return new FetcherResponse(method, url, this._getFullUrl(url), this);
-  };
-
-  _proto.post = function post(url) {
-    return this._request(['POST', url]);
-  };
-
-  _proto.get = function get(url) {
-    return this._request(['GET', url]);
-  };
-
-  _proto.put = function put(url) {
-    return this._request(['PUT', url]);
-  };
-
-  _proto.delete = function _delete(url) {
-    return this._request(['DELETE', url]);
-  };
-
-  _proto.patch = function patch(url) {
-    return this._request(['PATCH', url]);
-  };
-
-  return Fetcher;
-}(), _applyDecoratedDescriptor$4(_class$4.prototype, "_request", [_dec$1], Object.getOwnPropertyDescriptor(_class$4.prototype, "_request"), _class$4.prototype), _class$4);
-Fetcher.displayName = "Fetcher";
-
-defaultContext.setLogger(new ConsoleLogger());
 var stackId = Symbol('stack_id');
-
 function ErrorableView(_ref) {
   var error = _ref.error,
       children = _ref.children;
@@ -8922,19 +9226,10 @@ function ErrorableView(_ref) {
     onClick: error.retry
   }, "Retry")) : null));
 }
-
 ErrorableView._r = [1];
 ErrorableView.displayName = "ErrorableView";
-var jss = lib_1({
-  plugins: [jssNested(), jssCamel(), jssGlobal()]
-});
-var injector = new Injector([[Fetcher, new Fetcher({
-  baseUrl: '/api'
-})], [AbstractLocationStore, new BrowserLocationStore(location, history)]], jss);
-var lomCreateElement = createCreateElement(createReactWrapper(Component, ErrorableView, detached, injector), h, true);
-global$1['lom_h'] = lomCreateElement;
 
-var _class$6;
+var _class$8;
 
 function _applyDecoratedDescriptor$6(target, property, decorators, descriptor, context) {
   var desc = {};
@@ -8965,7 +9260,7 @@ function _applyDecoratedDescriptor$6(target, property, decorators, descriptor, c
   return desc;
 }
 
-var FirstCounterService = (_class$6 =
+var FirstCounterService = (_class$8 =
 /*#__PURE__*/
 function () {
   function FirstCounterService() {
@@ -8992,7 +9287,7 @@ function () {
     }
   }]);
   return FirstCounterService;
-}(), _applyDecoratedDescriptor$6(_class$6.prototype, "value", [mem], Object.getOwnPropertyDescriptor(_class$6.prototype, "value"), _class$6.prototype), _applyDecoratedDescriptor$6(_class$6.prototype, "value", [mem], Object.getOwnPropertyDescriptor(_class$6.prototype, "value"), _class$6.prototype), _class$6);
+}(), _applyDecoratedDescriptor$6(_class$8.prototype, "value", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "value"), _class$8.prototype), _applyDecoratedDescriptor$6(_class$8.prototype, "value", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "value"), _class$8.prototype), _class$8);
 FirstCounterService.displayName = "FirstCounterService";
 
 function CounterMessageView(_ref) {
@@ -9099,7 +9394,7 @@ function CounterView() {
 CounterView._r = [1];
 CounterView.displayName = "CounterView";
 
-var _class$7;
+var _class$9;
 var _descriptor$1;
 
 function _initDefineProp$1(target, property, descriptor, context) {
@@ -9141,7 +9436,7 @@ function _applyDecoratedDescriptor$7(target, property, decorators, descriptor, c
   return desc;
 }
 
-var HelloContext = (_class$7 =
+var HelloContext = (_class$9 =
 /*#__PURE__*/
 function () {
   function HelloContext() {
@@ -9151,8 +9446,8 @@ function () {
   _createClass(HelloContext, [{
     key: "props",
     set: function set(_ref) {
-      var name = _ref.name;
-      this.name = name;
+      var initialValue = _ref.initialValue;
+      this.name = initialValue;
     }
   }, {
     key: "greet",
@@ -9161,10 +9456,10 @@ function () {
     }
   }]);
   return HelloContext;
-}(), _descriptor$1 = _applyDecoratedDescriptor$7(_class$7.prototype, "name", [mem], {
+}(), _descriptor$1 = _applyDecoratedDescriptor$7(_class$9.prototype, "name", [mem], {
   enumerable: true,
   initializer: null
-}), _applyDecoratedDescriptor$7(_class$7.prototype, "props", [props], Object.getOwnPropertyDescriptor(_class$7.prototype, "props"), _class$7.prototype), _applyDecoratedDescriptor$7(_class$7.prototype, "greet", [mem], Object.getOwnPropertyDescriptor(_class$7.prototype, "greet"), _class$7.prototype), _class$7);
+}), _applyDecoratedDescriptor$7(_class$9.prototype, "props", [props], Object.getOwnPropertyDescriptor(_class$9.prototype, "props"), _class$9.prototype), _applyDecoratedDescriptor$7(_class$9.prototype, "greet", [mem], Object.getOwnPropertyDescriptor(_class$9.prototype, "greet"), _class$9.prototype), _class$9);
 HelloContext.displayName = "HelloContext";
 function HelloView(_, _ref2) {
   var context = _ref2.context;
@@ -9184,166 +9479,7 @@ HelloView._r = [1, [{
 }]];
 HelloView.displayName = "HelloView";
 
-function getBody(body) {
-  return typeof body === 'string' ? JSON.parse(body) : body || {};
-}
-
-getBody._r = [2];
-getBody.displayName = "getBody";
-
-function sortByDate(el1, el2) {
-  if (!el2.created || el1.created) {
-    return 0;
-  }
-
-  if (String(el1.created) > String(el2.created)) {
-    return 1;
-  }
-
-  if (String(el1.created) < String(el2.created)) {
-    return -1;
-  }
-
-  return 0;
-}
-
-sortByDate._r = [2, [{
-  id: String,
-  title: String,
-  completed: Boolean
-}, {
-  id: String,
-  title: String,
-  completed: Boolean
-}]];
-sortByDate.displayName = "sortByDate";
-function todoMocks(rawStorage) {
-  var storage = new BrowserLocalStorage(rawStorage, 'lom_todomvc');
-  var infos = new BrowserLocalStorage(rawStorage, 'lom_todomvc_info');
-  var defaultTodos = [{
-    id: 't1',
-    title: 'test todo #1',
-    completed: false
-  }, {
-    id: 't2',
-    title: 'test todo #2',
-    completed: true
-  }];
-  return [{
-    method: 'GET',
-    matcher: new RegExp('/api/todos'),
-    response: function response(url, params) {
-      // eslint-disable-line
-      var newTodos = storage.get();
-
-      if (!newTodos) {
-        newTodos = defaultTodos;
-        storage.set(newTodos);
-      }
-
-      return newTodos.sort(sortByDate);
-    }
-  }, {
-    method: 'GET',
-    matcher: new RegExp('/api/todo/(.*)/info'),
-    response: function response(url, params) {
-      // eslint-disable-line
-      var data = infos.get() || [];
-      var id = url.match(new RegExp('/api/todo/(.+)/info'))[1];
-      var i = data.find(function (inf) {
-        return inf.id === id;
-      });
-      return {
-        id: id,
-        description: i ? i.description : 'desc'
-      };
-    }
-  }, {
-    method: 'PUT',
-    matcher: new RegExp('/api/todos'),
-    response: function response(url, params) {
-      // eslint-disable-line
-      var data = storage.get();
-      var todos = data || defaultTodos;
-      var updates = new Map(getBody(params.body));
-      var newTodos = todos.map(function (todo) {
-        return _extends({}, todo, updates.get(todo.id));
-      }).sort(sortByDate);
-      storage.set(newTodos);
-      return newTodos;
-    }
-  }, {
-    method: 'DELETE',
-    matcher: new RegExp('/api/todos'),
-    response: function response(url, params) {
-      // eslint-disable-line
-      var data = storage.get();
-      var todos = data || defaultTodos;
-      var ids = getBody(params.body);
-      var newTodos = todos.filter(function (todo) {
-        return ids.indexOf(todo.id) === -1;
-      });
-      storage.set(newTodos);
-      return newTodos.map(function (_ref) {
-        var id = _ref.id;
-        return id;
-      });
-    }
-  }, {
-    method: 'DELETE',
-    matcher: new RegExp('/api/todo/(.*)'),
-    response: function response(url, params) {
-      // eslint-disable-line
-      var data = storage.get();
-      var todos = data || [];
-      var id = url.match(new RegExp('/api/todo/(.+)'))[1];
-      var newTodos = todos.filter(function (todo) {
-        return todo.id !== id;
-      });
-      storage.set(newTodos.sort(sortByDate));
-      return {
-        id: id
-      };
-    }
-  }, {
-    method: 'POST',
-    matcher: new RegExp('/api/todo/(.*)'),
-    response: function response(url, params) {
-      // eslint-disable-line
-      var data = storage.get();
-      var id = url.match(new RegExp('/api/todo/(.+)'))[1];
-      var newTodo = getBody(params.body);
-      var newTodos = (data || []).map(function (todo) {
-        return todo.id === id ? newTodo : todo;
-      });
-      storage.set(newTodos);
-      return newTodo;
-    }
-  }, {
-    method: 'PUT',
-    matcher: new RegExp('/api/todo'),
-    response: function response(url, params) {
-      // eslint-disable-line
-      var todos = storage.get();
-      var body = getBody(params.body);
-      var id = uuid();
-      var newTodo = _extends({}, body, {
-        id: id
-      });
-      todos.push(newTodo);
-      storage.set(todos);
-      infos.set((infos.get() || []).concat([{
-        id: id,
-        description: 'desc#' + id
-      }]));
-      return newTodo;
-    }
-  }];
-}
-todoMocks._r = [2, [Storage]];
-todoMocks.displayName = "todoMocks";
-
-var _class$10;
+var _class$12;
 
 function _applyDecoratedDescriptor$10(target, property, decorators, descriptor, context) {
   var desc = {};
@@ -9374,7 +9510,7 @@ function _applyDecoratedDescriptor$10(target, property, decorators, descriptor, 
   return desc;
 }
 
-var Todo = (_class$10 =
+var Todo = (_class$12 =
 /*#__PURE__*/
 function () {
   function Todo(todo, store) {
@@ -9438,11 +9574,11 @@ function () {
     }
   }]);
   return Todo;
-}(), _applyDecoratedDescriptor$10(_class$10.prototype, "update", [action], Object.getOwnPropertyDescriptor(_class$10.prototype, "update"), _class$10.prototype), _applyDecoratedDescriptor$10(_class$10.prototype, "saving", [mem], Object.getOwnPropertyDescriptor(_class$10.prototype, "saving"), _class$10.prototype), _applyDecoratedDescriptor$10(_class$10.prototype, "saving", [mem], Object.getOwnPropertyDescriptor(_class$10.prototype, "saving"), _class$10.prototype), _applyDecoratedDescriptor$10(_class$10.prototype, "removing", [mem], Object.getOwnPropertyDescriptor(_class$10.prototype, "removing"), _class$10.prototype), _applyDecoratedDescriptor$10(_class$10.prototype, "removing", [mem], Object.getOwnPropertyDescriptor(_class$10.prototype, "removing"), _class$10.prototype), _applyDecoratedDescriptor$10(_class$10.prototype, "remove", [action], Object.getOwnPropertyDescriptor(_class$10.prototype, "remove"), _class$10.prototype), _applyDecoratedDescriptor$10(_class$10.prototype, "toggle", [action], Object.getOwnPropertyDescriptor(_class$10.prototype, "toggle"), _class$10.prototype), _class$10);
+}(), _applyDecoratedDescriptor$10(_class$12.prototype, "update", [action], Object.getOwnPropertyDescriptor(_class$12.prototype, "update"), _class$12.prototype), _applyDecoratedDescriptor$10(_class$12.prototype, "saving", [mem], Object.getOwnPropertyDescriptor(_class$12.prototype, "saving"), _class$12.prototype), _applyDecoratedDescriptor$10(_class$12.prototype, "saving", [mem], Object.getOwnPropertyDescriptor(_class$12.prototype, "saving"), _class$12.prototype), _applyDecoratedDescriptor$10(_class$12.prototype, "removing", [mem], Object.getOwnPropertyDescriptor(_class$12.prototype, "removing"), _class$12.prototype), _applyDecoratedDescriptor$10(_class$12.prototype, "removing", [mem], Object.getOwnPropertyDescriptor(_class$12.prototype, "removing"), _class$12.prototype), _applyDecoratedDescriptor$10(_class$12.prototype, "remove", [action], Object.getOwnPropertyDescriptor(_class$12.prototype, "remove"), _class$12.prototype), _applyDecoratedDescriptor$10(_class$12.prototype, "toggle", [action], Object.getOwnPropertyDescriptor(_class$12.prototype, "toggle"), _class$12.prototype), _class$12);
 Todo._r = [0, ["ITodoRepository"]];
 Todo.displayName = "Todo";
 
-var _class$9;
+var _class$11;
 
 function _applyDecoratedDescriptor$9(target, property, decorators, descriptor, context) {
   var desc = {};
@@ -9478,7 +9614,7 @@ var TODO_FILTER = {
   COMPLETE: 'complete',
   ACTIVE: 'active'
 };
-var TodoRepository = (_class$9 =
+var TodoRepository = (_class$11 =
 /*#__PURE__*/
 function () {
   function TodoRepository(fetcher, location) {
@@ -9624,14 +9760,14 @@ function () {
     }
   }]);
   return TodoRepository;
-}(), _applyDecoratedDescriptor$9(_class$9.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class$9.prototype, "todos"), _class$9.prototype), _applyDecoratedDescriptor$9(_class$9.prototype, "activeTodoCount", [mem], Object.getOwnPropertyDescriptor(_class$9.prototype, "activeTodoCount"), _class$9.prototype), _applyDecoratedDescriptor$9(_class$9.prototype, "adding", [mem], Object.getOwnPropertyDescriptor(_class$9.prototype, "adding"), _class$9.prototype), _applyDecoratedDescriptor$9(_class$9.prototype, "adding", [mem], Object.getOwnPropertyDescriptor(_class$9.prototype, "adding"), _class$9.prototype), _applyDecoratedDescriptor$9(_class$9.prototype, "addTodo", [action], Object.getOwnPropertyDescriptor(_class$9.prototype, "addTodo"), _class$9.prototype), _applyDecoratedDescriptor$9(_class$9.prototype, "patching", [mem], Object.getOwnPropertyDescriptor(_class$9.prototype, "patching"), _class$9.prototype), _applyDecoratedDescriptor$9(_class$9.prototype, "patching", [mem], Object.getOwnPropertyDescriptor(_class$9.prototype, "patching"), _class$9.prototype), _applyDecoratedDescriptor$9(_class$9.prototype, "toggleAll", [action], Object.getOwnPropertyDescriptor(_class$9.prototype, "toggleAll"), _class$9.prototype), _applyDecoratedDescriptor$9(_class$9.prototype, "clearing", [mem], Object.getOwnPropertyDescriptor(_class$9.prototype, "clearing"), _class$9.prototype), _applyDecoratedDescriptor$9(_class$9.prototype, "clearing", [mem], Object.getOwnPropertyDescriptor(_class$9.prototype, "clearing"), _class$9.prototype), _applyDecoratedDescriptor$9(_class$9.prototype, "clearCompleted", [action], Object.getOwnPropertyDescriptor(_class$9.prototype, "clearCompleted"), _class$9.prototype), _applyDecoratedDescriptor$9(_class$9.prototype, "filteredTodos", [mem], Object.getOwnPropertyDescriptor(_class$9.prototype, "filteredTodos"), _class$9.prototype), _class$9);
+}(), _applyDecoratedDescriptor$9(_class$11.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class$11.prototype, "todos"), _class$11.prototype), _applyDecoratedDescriptor$9(_class$11.prototype, "activeTodoCount", [mem], Object.getOwnPropertyDescriptor(_class$11.prototype, "activeTodoCount"), _class$11.prototype), _applyDecoratedDescriptor$9(_class$11.prototype, "adding", [mem], Object.getOwnPropertyDescriptor(_class$11.prototype, "adding"), _class$11.prototype), _applyDecoratedDescriptor$9(_class$11.prototype, "adding", [mem], Object.getOwnPropertyDescriptor(_class$11.prototype, "adding"), _class$11.prototype), _applyDecoratedDescriptor$9(_class$11.prototype, "addTodo", [action], Object.getOwnPropertyDescriptor(_class$11.prototype, "addTodo"), _class$11.prototype), _applyDecoratedDescriptor$9(_class$11.prototype, "patching", [mem], Object.getOwnPropertyDescriptor(_class$11.prototype, "patching"), _class$11.prototype), _applyDecoratedDescriptor$9(_class$11.prototype, "patching", [mem], Object.getOwnPropertyDescriptor(_class$11.prototype, "patching"), _class$11.prototype), _applyDecoratedDescriptor$9(_class$11.prototype, "toggleAll", [action], Object.getOwnPropertyDescriptor(_class$11.prototype, "toggleAll"), _class$11.prototype), _applyDecoratedDescriptor$9(_class$11.prototype, "clearing", [mem], Object.getOwnPropertyDescriptor(_class$11.prototype, "clearing"), _class$11.prototype), _applyDecoratedDescriptor$9(_class$11.prototype, "clearing", [mem], Object.getOwnPropertyDescriptor(_class$11.prototype, "clearing"), _class$11.prototype), _applyDecoratedDescriptor$9(_class$11.prototype, "clearCompleted", [action], Object.getOwnPropertyDescriptor(_class$11.prototype, "clearCompleted"), _class$11.prototype), _applyDecoratedDescriptor$9(_class$11.prototype, "filteredTodos", [mem], Object.getOwnPropertyDescriptor(_class$11.prototype, "filteredTodos"), _class$11.prototype), _class$11);
 TodoRepository._r = [0, [Fetcher, AbstractLocationStore]];
 TodoRepository.displayName = "TodoRepository";
 
 var _dec$2;
-var _class$11;
+var _class$13;
 var _descriptor$2;
-var _class3$1;
+var _class3;
 
 function _initDefineProp$2(target, property, descriptor, context) {
   if (!descriptor) return;
@@ -9672,7 +9808,7 @@ function _applyDecoratedDescriptor$11(target, property, decorators, descriptor, 
   return desc;
 }
 
-var TodoToAdd = (_dec$2 = action.defer, _class$11 =
+var TodoToAdd = (_dec$2 = action.defer, _class$13 =
 /*#__PURE__*/
 function () {
   function TodoToAdd(todoRepository) {
@@ -9708,15 +9844,15 @@ function () {
     }
   }]);
   return TodoToAdd;
-}(), _descriptor$2 = _applyDecoratedDescriptor$11(_class$11.prototype, "title", [mem], {
+}(), _descriptor$2 = _applyDecoratedDescriptor$11(_class$13.prototype, "title", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return '';
   }
-}), _applyDecoratedDescriptor$11(_class$11.prototype, "setRef", [_dec$2], Object.getOwnPropertyDescriptor(_class$11.prototype, "setRef"), _class$11.prototype), _applyDecoratedDescriptor$11(_class$11.prototype, "onInput", [action], Object.getOwnPropertyDescriptor(_class$11.prototype, "onInput"), _class$11.prototype), _applyDecoratedDescriptor$11(_class$11.prototype, "onKeyDown", [action], Object.getOwnPropertyDescriptor(_class$11.prototype, "onKeyDown"), _class$11.prototype), _class$11);
+}), _applyDecoratedDescriptor$11(_class$13.prototype, "setRef", [_dec$2], Object.getOwnPropertyDescriptor(_class$13.prototype, "setRef"), _class$13.prototype), _applyDecoratedDescriptor$11(_class$13.prototype, "onInput", [action], Object.getOwnPropertyDescriptor(_class$13.prototype, "onInput"), _class$13.prototype), _applyDecoratedDescriptor$11(_class$13.prototype, "onKeyDown", [action], Object.getOwnPropertyDescriptor(_class$13.prototype, "onKeyDown"), _class$13.prototype), _class$13);
 TodoToAdd._r = [0, [TodoRepository]];
 TodoToAdd.displayName = "TodoToAdd";
-var TodoHeaderTheme = (_class3$1 =
+var TodoHeaderTheme = (_class3 =
 /*#__PURE__*/
 function () {
   function TodoHeaderTheme() {}
@@ -9743,7 +9879,7 @@ function () {
     }
   }]);
   return TodoHeaderTheme;
-}(), _applyDecoratedDescriptor$11(_class3$1.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class3$1.prototype, "css"), _class3$1.prototype), _class3$1);
+}(), _applyDecoratedDescriptor$11(_class3.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class3.prototype, "css"), _class3.prototype), _class3);
 TodoHeaderTheme.displayName = "TodoHeaderTheme";
 function TodoHeaderView(_, _ref2) {
   var todoToAdd = _ref2.todoToAdd,
@@ -9766,11 +9902,11 @@ TodoHeaderView._r = [1, [{
 TodoHeaderView.displayName = "TodoHeaderView";
 
 var _dec$3;
-var _class$13;
+var _class$15;
 var _descriptor$3;
 var _descriptor2;
 var _descriptor3;
-var _class3$2;
+var _class3$1;
 
 function _initDefineProp$3(target, property, descriptor, context) {
   if (!descriptor) return;
@@ -9813,7 +9949,7 @@ function _applyDecoratedDescriptor$13(target, property, decorators, descriptor, 
 
 var ESCAPE_KEY = 27;
 var ENTER_KEY = 13;
-var TodoItemEdit = (_dec$3 = action.defer, _class$13 =
+var TodoItemEdit = (_dec$3 = action.defer, _class$15 =
 /*#__PURE__*/
 function () {
   function TodoItemEdit() {
@@ -9888,22 +10024,22 @@ function () {
   };
 
   return TodoItemEdit;
-}(), _descriptor$3 = _applyDecoratedDescriptor$13(_class$13.prototype, "todoBeingEditedId", [mem], {
+}(), _descriptor$3 = _applyDecoratedDescriptor$13(_class$15.prototype, "todoBeingEditedId", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return null;
   }
-}), _descriptor2 = _applyDecoratedDescriptor$13(_class$13.prototype, "editText", [mem], {
+}), _descriptor2 = _applyDecoratedDescriptor$13(_class$15.prototype, "editText", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return '';
   }
-}), _descriptor3 = _applyDecoratedDescriptor$13(_class$13.prototype, "props", [props], {
+}), _descriptor3 = _applyDecoratedDescriptor$13(_class$15.prototype, "props", [props], {
   enumerable: true,
   initializer: null
-}), _applyDecoratedDescriptor$13(_class$13.prototype, "beginEdit", [action], Object.getOwnPropertyDescriptor(_class$13.prototype, "beginEdit"), _class$13.prototype), _applyDecoratedDescriptor$13(_class$13.prototype, "setText", [action], Object.getOwnPropertyDescriptor(_class$13.prototype, "setText"), _class$13.prototype), _applyDecoratedDescriptor$13(_class$13.prototype, "setEditInputRef", [_dec$3], Object.getOwnPropertyDescriptor(_class$13.prototype, "setEditInputRef"), _class$13.prototype), _applyDecoratedDescriptor$13(_class$13.prototype, "submit", [action], Object.getOwnPropertyDescriptor(_class$13.prototype, "submit"), _class$13.prototype), _applyDecoratedDescriptor$13(_class$13.prototype, "keyDown", [action], Object.getOwnPropertyDescriptor(_class$13.prototype, "keyDown"), _class$13.prototype), _applyDecoratedDescriptor$13(_class$13.prototype, "toggle", [action], Object.getOwnPropertyDescriptor(_class$13.prototype, "toggle"), _class$13.prototype), _applyDecoratedDescriptor$13(_class$13.prototype, "remove", [action], Object.getOwnPropertyDescriptor(_class$13.prototype, "remove"), _class$13.prototype), _class$13);
+}), _applyDecoratedDescriptor$13(_class$15.prototype, "beginEdit", [action], Object.getOwnPropertyDescriptor(_class$15.prototype, "beginEdit"), _class$15.prototype), _applyDecoratedDescriptor$13(_class$15.prototype, "setText", [action], Object.getOwnPropertyDescriptor(_class$15.prototype, "setText"), _class$15.prototype), _applyDecoratedDescriptor$13(_class$15.prototype, "setEditInputRef", [_dec$3], Object.getOwnPropertyDescriptor(_class$15.prototype, "setEditInputRef"), _class$15.prototype), _applyDecoratedDescriptor$13(_class$15.prototype, "submit", [action], Object.getOwnPropertyDescriptor(_class$15.prototype, "submit"), _class$15.prototype), _applyDecoratedDescriptor$13(_class$15.prototype, "keyDown", [action], Object.getOwnPropertyDescriptor(_class$15.prototype, "keyDown"), _class$15.prototype), _applyDecoratedDescriptor$13(_class$15.prototype, "toggle", [action], Object.getOwnPropertyDescriptor(_class$15.prototype, "toggle"), _class$15.prototype), _applyDecoratedDescriptor$13(_class$15.prototype, "remove", [action], Object.getOwnPropertyDescriptor(_class$15.prototype, "remove"), _class$15.prototype), _class$15);
 TodoItemEdit.displayName = "TodoItemEdit";
-var TodoItemTheme = (_class3$2 =
+var TodoItemTheme = (_class3$1 =
 /*#__PURE__*/
 function () {
   function TodoItemTheme() {}
@@ -10026,7 +10162,7 @@ function () {
     }
   }]);
   return TodoItemTheme;
-}(), _applyDecoratedDescriptor$13(_class3$2.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class3$2.prototype, "css"), _class3$2.prototype), _class3$2);
+}(), _applyDecoratedDescriptor$13(_class3$1.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class3$1.prototype, "css"), _class3$1.prototype), _class3$1);
 TodoItemTheme.displayName = "TodoItemTheme";
 function TodoItemView(_ref2, _ref3) {
   var todo = _ref2.todo;
@@ -10076,7 +10212,7 @@ TodoItemView._r = [1, [{
 }]];
 TodoItemView.displayName = "TodoItemView";
 
-var _class$12;
+var _class$14;
 
 function _applyDecoratedDescriptor$12(target, property, decorators, descriptor, context) {
   var desc = {};
@@ -10107,7 +10243,7 @@ function _applyDecoratedDescriptor$12(target, property, decorators, descriptor, 
   return desc;
 }
 
-var TodoMainTheme = (_class$12 =
+var TodoMainTheme = (_class$14 =
 /*#__PURE__*/
 function () {
   function TodoMainTheme() {}
@@ -10164,7 +10300,7 @@ function () {
     }
   }]);
   return TodoMainTheme;
-}(), _applyDecoratedDescriptor$12(_class$12.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class$12.prototype, "css"), _class$12.prototype), _class$12);
+}(), _applyDecoratedDescriptor$12(_class$14.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class$14.prototype, "css"), _class$14.prototype), _class$14);
 TodoMainTheme.displayName = "TodoMainTheme";
 function TodoMainView(_, _ref) {
   var _ref$todoRepository = _ref.todoRepository,
@@ -10201,8 +10337,8 @@ TodoMainView._r = [1, [{
 }]];
 TodoMainView.displayName = "TodoMainView";
 
-var _class$14;
-var _class3$3;
+var _class$16;
+var _class3$2;
 
 function _applyDecoratedDescriptor$14(target, property, decorators, descriptor, context) {
   var desc = {};
@@ -10233,7 +10369,7 @@ function _applyDecoratedDescriptor$14(target, property, decorators, descriptor, 
   return desc;
 }
 
-var TodoFooterService = (_class$14 =
+var TodoFooterService = (_class$16 =
 /*#__PURE__*/
 function () {
   function TodoFooterService(repository) {
@@ -10258,10 +10394,10 @@ function () {
   };
 
   return TodoFooterService;
-}(), _applyDecoratedDescriptor$14(_class$14.prototype, "clickLink", [action], Object.getOwnPropertyDescriptor(_class$14.prototype, "clickLink"), _class$14.prototype), _class$14);
+}(), _applyDecoratedDescriptor$14(_class$16.prototype, "clickLink", [action], Object.getOwnPropertyDescriptor(_class$16.prototype, "clickLink"), _class$16.prototype), _class$16);
 TodoFooterService._r = [0, [TodoRepository]];
 TodoFooterService.displayName = "TodoFooterService";
-var TodoFooterTheme = (_class3$3 =
+var TodoFooterTheme = (_class3$2 =
 /*#__PURE__*/
 function () {
   function TodoFooterTheme() {}
@@ -10344,7 +10480,7 @@ function () {
     }
   }]);
   return TodoFooterTheme;
-}(), _applyDecoratedDescriptor$14(_class3$3.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class3$3.prototype, "css"), _class3$3.prototype), _class3$3);
+}(), _applyDecoratedDescriptor$14(_class3$2.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class3$2.prototype, "css"), _class3$2.prototype), _class3$2);
 TodoFooterTheme.displayName = "TodoFooterTheme";
 function TodoFooterView(_, _ref) {
   var _ref$todoRepository = _ref.todoRepository,
@@ -10399,7 +10535,7 @@ TodoFooterView._r = [1, [{
 }]];
 TodoFooterView.displayName = "TodoFooterView";
 
-var _class$8;
+var _class$10;
 
 function _applyDecoratedDescriptor$8(target, property, decorators, descriptor, context) {
   var desc = {};
@@ -10430,7 +10566,7 @@ function _applyDecoratedDescriptor$8(target, property, decorators, descriptor, c
   return desc;
 }
 
-var TodoAppTheme = (_class$8 =
+var TodoAppTheme = (_class$10 =
 /*#__PURE__*/
 function () {
   function TodoAppTheme() {}
@@ -10444,34 +10580,12 @@ function () {
           position: 'relative',
           border: '1px solid #ededed',
           boxShadow: '0 2px 4px 0 rgba(0, 0, 0, 0.2), 0 25px 50px 0 rgba(0, 0, 0, 0.1)'
-        },
-        '@global': {
-          ':focus': {
-            outline: 0
-          },
-          html: {
-            margin: 0,
-            padding: 0
-          },
-          body: {
-            font: '14px "Helvetica Neue", Helvetica, Arial, sans-serif',
-            lineHeight: '1.4em',
-            background: '#f5f5f5',
-            color: '#4d4d4d',
-            minWidth: '230px',
-            maxWidth: '550px',
-            margin: '0 auto',
-            padding: 0,
-            '-webkit-font-smoothing': 'antialiased',
-            '-moz-osx-font-smoothing': 'grayscale',
-            fontWeight: '300'
-          }
         }
       };
     }
   }]);
   return TodoAppTheme;
-}(), _applyDecoratedDescriptor$8(_class$8.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class$8.prototype, "css"), _class$8.prototype), _class$8);
+}(), _applyDecoratedDescriptor$8(_class$10.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class$10.prototype, "css"), _class$10.prototype), _class$10);
 TodoAppTheme.displayName = "TodoAppTheme";
 function TodoAppView(_, _ref) {
   var css = _ref.theme.css;
@@ -10491,8 +10605,8 @@ TodoAppView._r = [1, [{
 }]];
 TodoAppView.displayName = "TodoAppView";
 
-var _class$15;
-var _class3$4;
+var _class$17;
+var _class3$3;
 var _descriptor$4;
 
 function _initDefineProp$4(target, property, descriptor, context) {
@@ -10534,7 +10648,7 @@ function _applyDecoratedDescriptor$15(target, property, decorators, descriptor, 
   return desc;
 }
 
-var DebouncedValue = (_class$15 =
+var DebouncedValue = (_class$17 =
 /*#__PURE__*/
 function () {
   function DebouncedValue(timeout) {
@@ -10559,10 +10673,10 @@ function () {
   };
 
   return DebouncedValue;
-}(), _applyDecoratedDescriptor$15(_class$15.prototype, "value", [mem], Object.getOwnPropertyDescriptor(_class$15.prototype, "value"), _class$15.prototype), _class$15);
+}(), _applyDecoratedDescriptor$15(_class$17.prototype, "value", [mem], Object.getOwnPropertyDescriptor(_class$17.prototype, "value"), _class$17.prototype), _class$17);
 DebouncedValue._r = [0, [Number]];
 DebouncedValue.displayName = "DebouncedValue";
-var AutocompleteService = (_class3$4 =
+var AutocompleteService = (_class3$3 =
 /*#__PURE__*/
 function () {
   _createClass(AutocompleteService, [{
@@ -10596,12 +10710,12 @@ function () {
     }
   }]);
   return AutocompleteService;
-}(), _descriptor$4 = _applyDecoratedDescriptor$15(_class3$4.prototype, "nameToSearch", [mem], {
+}(), _descriptor$4 = _applyDecoratedDescriptor$15(_class3$3.prototype, "nameToSearch", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return '';
   }
-}), _applyDecoratedDescriptor$15(_class3$4.prototype, "props", [props], Object.getOwnPropertyDescriptor(_class3$4.prototype, "props"), _class3$4.prototype), _applyDecoratedDescriptor$15(_class3$4.prototype, "searchResults", [mem], Object.getOwnPropertyDescriptor(_class3$4.prototype, "searchResults"), _class3$4.prototype), _applyDecoratedDescriptor$15(_class3$4.prototype, "setValue", [action], Object.getOwnPropertyDescriptor(_class3$4.prototype, "setValue"), _class3$4.prototype), _class3$4);
+}), _applyDecoratedDescriptor$15(_class3$3.prototype, "props", [props], Object.getOwnPropertyDescriptor(_class3$3.prototype, "props"), _class3$3.prototype), _applyDecoratedDescriptor$15(_class3$3.prototype, "searchResults", [mem], Object.getOwnPropertyDescriptor(_class3$3.prototype, "searchResults"), _class3$3.prototype), _applyDecoratedDescriptor$15(_class3$3.prototype, "setValue", [action], Object.getOwnPropertyDescriptor(_class3$3.prototype, "setValue"), _class3$3.prototype), _class3$3);
 AutocompleteService._r = [0, [Fetcher]];
 AutocompleteService.displayName = "AutocompleteService";
 
@@ -10632,28 +10746,11 @@ function AutocompleteView(_, _ref4) {
 }
 AutocompleteView._r = [1, [AutocompleteService]];
 AutocompleteView.displayName = "AutocompleteView";
-function autocompleteMocks(rawStorage) {
-  var fixture = ['John Doe', 'Vasia Pupkin'];
-  return [{
-    method: 'GET',
-    matcher: new RegExp('/api/autocomplete'),
-    response: function response(url, params) {
-      // eslint-disable-line
-      var names = url.match(new RegExp('/api/autocomplete\\?q=(.+)'));
-      var name = names && names.length ? names[1] : '';
-      return name ? fixture.filter(function (userName) {
-        return userName.indexOf(name) === 0;
-      }) : fixture;
-    }
-  }];
-}
-autocompleteMocks._r = [2, [Storage]];
-autocompleteMocks.displayName = "autocompleteMocks";
 
-var _class$16;
+var _class$18;
 var _descriptor$5;
 var _dec$4;
-var _class3$5;
+var _class3$4;
 
 function _initDefineProp$5(target, property, descriptor, context) {
   if (!descriptor) return;
@@ -10694,16 +10791,16 @@ function _applyDecoratedDescriptor$16(target, property, decorators, descriptor, 
   return desc;
 }
 
-var Store$1 = (_class$16 = function Store() {
+var Store$1 = (_class$18 = function Store() {
   _initDefineProp$5(this, "red", _descriptor$5, this);
-}, _descriptor$5 = _applyDecoratedDescriptor$16(_class$16.prototype, "red", [mem], {
+}, _descriptor$5 = _applyDecoratedDescriptor$16(_class$18.prototype, "red", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return 140;
   }
-}), _class$16);
+}), _class$18);
 Store$1.displayName = "Store";
-var CssChangeTheme = (_dec$4 = theme.self, _class3$5 =
+var CssChangeTheme = (_dec$4 = theme.self, _class3$4 =
 /*#__PURE__*/
 function () {
   function CssChangeTheme(store) {
@@ -10722,7 +10819,7 @@ function () {
     }
   }]);
   return CssChangeTheme;
-}(), _applyDecoratedDescriptor$16(_class3$5.prototype, "css", [mem, _dec$4], Object.getOwnPropertyDescriptor(_class3$5.prototype, "css"), _class3$5.prototype), _class3$5);
+}(), _applyDecoratedDescriptor$16(_class3$4.prototype, "css", [mem, _dec$4], Object.getOwnPropertyDescriptor(_class3$4.prototype, "css"), _class3$4.prototype), _class3$4);
 CssChangeTheme._r = [0, [Store$1]];
 CssChangeTheme.displayName = "CssChangeTheme";
 function CssChangeView(_, _ref) {
@@ -10748,22 +10845,9 @@ CssChangeView._r = [1, [{
 }]];
 CssChangeView.displayName = "CssChangeView";
 
-var _class;
-var _descriptor;
-var _class2;
-var _temp;
+var _class$19;
 
-function _initDefineProp(target, property, descriptor, context) {
-  if (!descriptor) return;
-  Object.defineProperty(target, property, {
-    enumerable: descriptor.enumerable,
-    configurable: descriptor.configurable,
-    writable: descriptor.writable,
-    value: descriptor.initializer ? descriptor.initializer.call(context) : void 0
-  });
-}
-
-function _applyDecoratedDescriptor(target, property, decorators, descriptor, context) {
+function _applyDecoratedDescriptor$17(target, property, decorators, descriptor, context) {
   var desc = {};
   Object['ke' + 'ys'](descriptor).forEach(function (key) {
     desc[key] = descriptor[key];
@@ -10792,12 +10876,176 @@ function _applyDecoratedDescriptor(target, property, decorators, descriptor, con
   return desc;
 }
 
-mockFetch(localStorage, 500, 30, [todoMocks, autocompleteMocks]);
-var Store = (_class = (_temp = _class2 =
+var KeyValueTheme = (_class$19 =
+/*#__PURE__*/
+function () {
+  function KeyValueTheme() {}
+
+  _createClass(KeyValueTheme, [{
+    key: "css",
+    get: function get() {
+      return {
+        item: {
+          display: 'flex'
+        },
+        key: {
+          width: '20%'
+        },
+        value: {
+          width: '80%'
+        }
+      };
+    }
+  }]);
+  return KeyValueTheme;
+}(), _applyDecoratedDescriptor$17(_class$19.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class$19.prototype, "css"), _class$19.prototype), _class$19);
+KeyValueTheme.displayName = "KeyValueTheme";
+
+function KeyView(_ref, _ref2) {
+  var children = _ref.children;
+  var css = _ref2.theme.css;
+  return lom_h("div", {
+    "class": css.key
+  }, children);
+}
+
+KeyView._r = [1, [{
+  theme: KeyValueTheme
+}]];
+KeyView.displayName = "KeyView";
+
+function ValueView(_ref3, _ref4) {
+  var children = _ref3.children;
+  var css = _ref4.theme.css;
+  return lom_h("div", {
+    "class": css.value
+  }, children);
+}
+
+ValueView._r = [1, [{
+  theme: KeyValueTheme
+}]];
+ValueView.displayName = "ValueView";
+function ItemView(_ref5, _ref6) {
+  var children = _ref5.children;
+  var css = _ref6.theme.css;
+  return lom_h("div", {
+    "class": css.item
+  }, children);
+}
+ItemView._r = [1, [{
+  theme: KeyValueTheme
+}]];
+ItemView.displayName = "ItemView";
+ItemView.Key = KeyView;
+ItemView.Value = ValueView;
+
+var PageMap =
+/*#__PURE__*/
+function () {
+  function PageMap(pages, extra, suffix) {
+    if (extra === void 0) {
+      extra = {};
+    }
+
+    if (suffix === void 0) {
+      suffix = 'View';
+    }
+
+    var keys = Object.keys(pages);
+    var result = this._pages = [];
+
+    for (var i = 0; i < keys.length; i++) {
+      var key = keys[i];
+      var _id = key;
+      var suffixPos = suffix ? key.length - suffix.length : 0;
+
+      var _slug = suffix && key.indexOf(suffix) === suffixPos ? key.substring(0, suffixPos).toLowerCase() : key.toLowerCase();
+
+      var page = _extends({
+        id: _id,
+        slug: _slug,
+        component: pages[_id]
+      }, extra[_id]);
+      result.push(page);
+    }
+  }
+
+  var _proto = PageMap.prototype;
+
+  _proto.map = function map(cb) {
+    return this._pages.map(cb);
+  };
+
+  _proto.get = function get(slugOrId) {
+    var page = slugOrId ? this._pages.find(function (page) {
+      return page.slug === slugOrId || page.id === slugOrId;
+    }) : this._pages[0];
+    if (!page) throw new Error("Page " + String(slugOrId) + " not found");
+    return page;
+  };
+
+  return PageMap;
+}();
+
+PageMap._r = [0, ["Pages"]];
+PageMap.displayName = "PageMap";
+
+var _class$7;
+var _descriptor;
+var _class2$1;
+var _temp$4;
+
+function _initDefineProp(target, property, descriptor, context) {
+  if (!descriptor) return;
+  Object.defineProperty(target, property, {
+    enumerable: descriptor.enumerable,
+    configurable: descriptor.configurable,
+    writable: descriptor.writable,
+    value: descriptor.initializer ? descriptor.initializer.call(context) : void 0
+  });
+}
+
+function _applyDecoratedDescriptor$5(target, property, decorators, descriptor, context) {
+  var desc = {};
+  Object['ke' + 'ys'](descriptor).forEach(function (key) {
+    desc[key] = descriptor[key];
+  });
+  desc.enumerable = !!desc.enumerable;
+  desc.configurable = !!desc.configurable;
+
+  if ('value' in desc || desc.initializer) {
+    desc.writable = true;
+  }
+
+  desc = decorators.slice().reverse().reduce(function (desc, decorator) {
+    return decorator(target, property, desc) || desc;
+  }, desc);
+
+  if (context && desc.initializer !== void 0) {
+    desc.value = desc.initializer ? desc.initializer.call(context) : void 0;
+    desc.initializer = undefined;
+  }
+
+  if (desc.initializer === void 0) {
+    Object['define' + 'Property'](target, property, desc);
+    desc = null;
+  }
+
+  return desc;
+}
+
+var Store = (_class$7 = (_temp$4 = _class2$1 =
 /*#__PURE__*/
 function () {
   function Store(locationStore) {
-    this.pages = ['hello', 'counter', 'error', 'todomvc', 'autocomplete', 'css-change'];
+    this.pages = new PageMap({
+      HelloView: HelloView,
+      CounterView: CounterView,
+      AutocompleteView: AutocompleteView,
+      TodoAppView: TodoAppView,
+      CssChangeView: CssChangeView
+    });
 
     _initDefineProp(this, "name", _descriptor, this);
 
@@ -10805,103 +11053,99 @@ function () {
   }
 
   _createClass(Store, [{
+    key: "css",
+    get: function get() {
+      return {
+        main: {
+          display: 'flex',
+          padding: '1em'
+        },
+        '@global': {
+          ':focus': {
+            outline: 0
+          },
+          html: {
+            margin: 0,
+            padding: 0
+          },
+          body: {
+            font: '14px "Helvetica Neue", Helvetica, Arial, sans-serif',
+            lineHeight: '1.4em',
+            background: '#f5f5f5',
+            color: '#4d4d4d',
+            margin: '0 auto',
+            padding: 0,
+            '-webkit-font-smoothing': 'antialiased',
+            '-moz-osx-font-smoothing': 'grayscale',
+            fontWeight: '300'
+          }
+        }
+      };
+    }
+  }, {
     key: "page",
     get: function get() {
-      return this._locationStore.location('page') || this.pages[0];
+      return this.pages.get(this._locationStore.location('page'));
     },
     set: function set(page) {
       return this._locationStore.location('page', page);
     }
   }]);
   return Store;
-}(), _class2.deps = [AbstractLocationStore], _temp), _descriptor = _applyDecoratedDescriptor(_class.prototype, "name", [mem], {
+}(), _class2$1.deps = [AbstractLocationStore], _temp$4), _applyDecoratedDescriptor$5(_class$7.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class$7.prototype, "css"), _class$7.prototype), _descriptor = _applyDecoratedDescriptor$5(_class$7.prototype, "name", [mem], {
   enumerable: true,
   initializer: function initializer() {
     return 'John';
   }
-}), _class);
+}), _class$7);
 Store._r = [0, [AbstractLocationStore]];
 Store.displayName = "Store";
-
 function AppView(_ref, _ref2) {
   var lang = _ref.lang;
   var store = _ref2.store;
-  var page;
-
-  switch (store.page) {
-    case 'hello':
-      page = lom_h(HelloView, {
-        id: "hello_app",
-        name: store.name
-      });
-      break;
-
-    case 'counter':
-      page = lom_h(CounterView, {
-        id: "counter_app"
-      });
-      break;
-
-    case 'autocomplete':
-      page = lom_h(AutocompleteView, {
-        id: "autocomplete_app",
-        initialValue: store.name
-      });
-      break;
-
-    case 'todomvc':
-      page = lom_h(TodoAppView, {
-        id: "todo_app"
-      });
-      break;
-
-    case 'css-change':
-      page = lom_h(CssChangeView, {
-        id: "css_change_app"
-      });
-      break;
-
-    default:
-      page = lom_h("div", {
-        id: "unknown"
-      }, "Unknown page");
-  }
-
+  var css = store.css;
+  var page = store.page;
   return lom_h("div", {
-    style: {
-      dislay: 'flex',
-      justifyContent: 'center'
-    }
-  }, lom_h("div", {
-    id: "menu",
-    style: {
-      padding: '1em'
-    }
-  }, store.pages.map(function (link) {
-    return lom_h("button", {
-      key: link,
+    "class": css.main
+  }, lom_h("ul", {
+    id: "menu"
+  }, store.pages.map(function (item) {
+    return lom_h("li", {
+      id: "item(" + item.id + ")",
+      key: item.id,
       style: {
-        margin: '0.3em'
-      },
-      id: "button(" + link + ")",
-      onClick: function onClick() {
-        return store.page = link;
+        marginBottom: '0.3em',
+        display: 'block'
       }
-    }, link);
+    }, lom_h("button", {
+      id: "button(" + item.id + ")",
+      style: {
+        width: '150px',
+        background: 'none'
+      },
+      onClick: function onClick() {
+        return store.page = item.slug;
+      }
+    }, item.id));
   })), lom_h("div", {
+    id: "apps"
+  }, lom_h("div", {
     id: "layout",
     style: {
       border: '1px solid gray',
       padding: '1em',
-      margin: '0 1em'
+      margin: '0 0 1em 1em'
     }
   }, lom_h("h1", {
     id: "title"
-  }, store.page), page), lom_h(ItemView, {
+  }, page.id), lom_h(page.component, {
+    id: page.id,
+    initialValue: store.name
+  })), lom_h(ItemView, {
     id: "inital"
   }, lom_h(ItemView.Key, {
     id: "key"
-  }, "Some initial value:"), lom_h(ItemView.Value, {
+  }, "Some value:"), lom_h(ItemView.Value, {
     id: "value"
   }, lom_h("input", {
     id: "value-input",
@@ -10916,13 +11160,22 @@ function AppView(_ref, _ref2) {
     id: "code-1"
   }, "rdi_fetch_error_rate = 0"), " in console for disabling server error emulation. ", lom_h("strong", {
     id: "code-2"
-  }, "rdi_fetch_error_rate = 100"), " for 100% errors."));
+  }, "rdi_fetch_error_rate = 100"), " for 100% errors.")));
 }
-
 AppView._r = [1, [{
   store: Store
 }]];
 AppView.displayName = "AppView";
+
+defaultContext.setLogger(new ConsoleLogger());
+var jss = lib_1({
+  plugins: [jssNested(), jssCamel(), jssGlobal()]
+});
+var injector = new Injector([[Fetcher, new FetcherLom({
+  baseUrl: '/api'
+})], [AbstractLocationStore, new BrowserLocationStore(location, history, 'rdi_demos')]], jss);
+var lomCreateElement = createCreateElement(createReactWrapper(Component, ErrorableView, detached, injector), h, true);
+global$1['lom_h'] = lomCreateElement;
 var el = document.getElementById('app');
 if (!el) throw new Error('Document has no #app container');
 render(lom_h(AppView, {

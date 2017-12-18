@@ -1,110 +1,56 @@
 // @flow
-import './setupReact'
-import {mem} from 'lom_atom'
 
-import {render} from 'preact'
+import './mocks'
 
-import {CounterView} from './counter'
-import {HelloView} from './hello'
-import {TodoAppView, todoMocks} from './todomvc'
-import {AutocompleteView, autocompleteMocks} from './autocomplete'
+import {mem, AtomWait, detached, ConsoleLogger, defaultContext} from 'lom_atom'
+import {createReactWrapper, createCreateElement, Injector} from 'reactive-di'
 
-import {ItemView, Locale, mockFetch} from './common'
-import {AbstractLocationStore} from './common-todomvc'
-import {CssChangeView} from './cssChange'
+import {render, h, Component} from 'preact'
+import 'preact/devtools'
 
-mockFetch(localStorage, 500, 30, [
-    todoMocks,
-    autocompleteMocks
-])
+import {create as createJss} from 'jss'
+import jssCamel from 'jss-camel-case'
+import jssGlobal from 'jss-global'
+import jssNested from 'jss-nested'
 
-class Store {
-    static deps = [AbstractLocationStore]
-    _locationStore: AbstractLocationStore
+import BrowserLocationStore from '../rdi/BrowserLocationStore'
+import AbstractLocationStore from '../rdi/AbstractLocationStore'
 
-    constructor(locationStore: AbstractLocationStore) {
-        this._locationStore = locationStore
-    }
+import {Fetcher, HttpError} from '../fetcher'
+import {FetcherLom} from '../fetcher/lom'
+import ErrorableView from './ErrorableView'
+import AppView from './AppView'
 
-    pages = ['hello', 'counter', 'error', 'todomvc', 'autocomplete', 'css-change']
+defaultContext.setLogger(new ConsoleLogger())
 
-    get page(): string {
-        return this._locationStore.location('page') || this.pages[0]
-    }
+const jss = createJss({
+    plugins: [
+        jssNested(),
+        jssCamel(),
+        jssGlobal()
+    ]
+})
 
-    set page(page: string) {
-        return this._locationStore.location('page', page)
-    }
+const injector = new Injector(
+    [
+        [Fetcher, new FetcherLom({baseUrl: '/api'})],
+        [AbstractLocationStore, new BrowserLocationStore(location, history, 'rdi_demos')]
+    ],
+    (jss: any)
+)
 
-    @mem name = 'John'
-}
+const lomCreateElement = createCreateElement(
+    createReactWrapper(
+        Component,
+        ErrorableView,
+        detached,
+        injector
+    ),
+    (h: React$CreateElement),
+    true
+)
+global['lom_h'] = lomCreateElement
 
-function AppView(
-    {lang}: {
-        lang: string;
-    },
-    {store}: {
-        store: Store;
-    }
-) {
-    let page
-    switch (store.page) {
-        case 'hello':
-            page = <HelloView id="hello_app" name={store.name} />
-            break
-
-        case 'counter':
-            page = <CounterView id="counter_app" />
-            break
-
-        case 'autocomplete':
-            page = <AutocompleteView id="autocomplete_app" initialValue={store.name} />
-            break
-
-        case 'todomvc':
-            page = <TodoAppView id="todo_app" />
-            break
-
-        case 'css-change':
-            page = <CssChangeView id="css_change_app" />
-            break
-
-        default:
-            page = <div id="unknown">Unknown page</div>
-    }
-
-    return <div style={{dislay: 'flex', justifyContent: 'center'}}>
-        <div id="menu" style={{padding: '1em'}}>
-            {store.pages.map((link: string) =>
-                <button
-                    key={link}
-                    style={{margin: '0.3em'}}
-                    id={`button(${link})`}
-                    onClick={() => store.page = link }
-                >{link}</button>
-            )}
-        </div>
-        <div id="layout" style={{border: '1px solid gray', padding: '1em', margin: '0 1em'}}>
-            <h1 id="title">{store.page}</h1>
-            {page}
-        </div>
-
-        <ItemView id="inital">
-            <ItemView.Key id="key">Some initial value:</ItemView.Key>
-            <ItemView.Value id="value">
-                <input
-                    id="value-input"
-                    value={store.name}
-                    onInput={({target}: Event) => { store.name = (target: any).value }}
-                />
-            </ItemView.Value>
-        </ItemView>
-        <div id="emulate-message">
-            Type <strong id="code-1">rdi_fetch_error_rate = 0</strong> in console
-            for disabling server error emulation. <strong id="code-2">rdi_fetch_error_rate = 100</strong> for 100% errors.
-        </div>
-    </div>
-}
 const el = document.getElementById('app')
 if (!el) throw new Error('Document has no #app container')
 
