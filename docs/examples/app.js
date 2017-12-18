@@ -3302,7 +3302,7 @@ function createReactWrapper(BaseComponent, ErrorComponent, detached, rootInjecto
 createReactWrapper._r = [2];
 createReactWrapper.displayName = "createReactWrapper";
 
-function createCreateElement(atomize, createElement) {
+function createCreateElement(atomize, createElement, modifyId) {
   function lomCreateElement() {
     var args = arguments;
     var attrs = args[1];
@@ -3340,8 +3340,8 @@ function createCreateElement(atomize, createElement) {
           }
         }
 
-        attrs.id = pid;
-      } else if (pid !== '' && attrs.id !== undefined) {
+        if (modifyId) attrs.id = pid;
+      } else if (modifyId && pid !== '' && attrs.id !== undefined) {
         attrs.id = pid + '.' + attrs.id;
       }
     }
@@ -11282,7 +11282,7 @@ var jss = lib_1({
 var injector = new Injector([[Fetcher, new FetcherLom({
   baseUrl: '/api'
 })], [AbstractLocationStore, new BrowserLocationStore(location, history, 'rdi_demos')]], jss);
-var lomCreateElement = createCreateElement(createReactWrapper(Component, ErrorableView, detached, injector), h);
+var lomCreateElement = createCreateElement(createReactWrapper(Component, ErrorableView, detached, injector), h, true);
 global$1['lom_h'] = lomCreateElement;
 var el = document.getElementById('app');
 if (!el) throw new Error('Document has no #app container');
