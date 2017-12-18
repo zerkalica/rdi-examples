@@ -28,7 +28,7 @@ function CounterMessageView(
     {value}: {
         value: number
 }) {
-    return <div>
+    return <div rdi_theme>
         Count: {value}
     </div>
 }
@@ -37,7 +37,7 @@ function FirstCounterView(
     _: {},
     counter: FirstCounterService
 ) {
-    return <div>
+    return <div rdi_theme>
         <CounterMessageView id="message" value={counter.value}/>
         <button id="add" onClick={() => { counter.value++ }}>{counter.lang.add}</button>
         <button id="error" onClick={() => { counter.value = ('someStr': any) }}>{counter.lang.error}</button>
@@ -52,7 +52,7 @@ class SecondCounterService extends FirstCounterService {
 }
 
 function SecondCounterMessageView({value}: {value: number}) {
-    return <div>
+    return <div rdi_theme>
         SecondCounter Count: {value}
     </div>
 }
@@ -81,7 +81,7 @@ function ThirdCounterAddButtonView(
         children: string
     }
 ) {
-    return <button id={id} onClick={onClick}>ThirdCounterAddButton: {children}</button>
+    return <button rdi_theme id={id} onClick={onClick}>ThirdCounterAddButton: {children}</button>
 }
 
 const ThirdCounterView = cloneComponent(SecondCounterView, [

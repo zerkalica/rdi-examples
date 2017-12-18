@@ -21,14 +21,14 @@ function KeyView(
     {children}: {children?: any},
     {theme: {css}}: {theme: KeyValueTheme}
 ) {
-    return <div class={css.key}>{children}</div>
+    return <div rdi_theme class={css.key}>{children}</div>
 }
 
 function ValueView(
     {children}: {children?: any},
     {theme: {css}}: {theme: KeyValueTheme}
 ) {
-    return <div class={css.value}>{children}</div>
+    return <div rdi_theme class={css.value}>{children}</div>
 }
 
 export default function ItemView(

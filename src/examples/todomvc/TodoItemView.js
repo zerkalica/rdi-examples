@@ -211,7 +211,7 @@ export default function TodoItemView(
 ) {
     const css = theme.css
     if (todoItemEdit.todoBeingEditedId === todo.id) {
-        return <li class={css.editing}>
+        return <li rdi_theme class={css.editing}>
             <input
                 id="editing"
                 ref={todoItemEdit.setEditInputRef}
@@ -225,7 +225,7 @@ export default function TodoItemView(
         </li>
     }
 
-    return <li class={theme.editable(todo.completed)}>
+    return <li rdi_theme class={theme.editable(todo.completed)}>
         <input
             id="toggle"
             class={css.toggle}

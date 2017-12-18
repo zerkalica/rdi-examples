@@ -27,7 +27,7 @@ export function CssChangeView(
     _: {},
     {store, theme: {css}}: { theme: CssChangeTheme, store: Store}
 ) {
-    return <div className={css.wrapper}>
+    return <div rdi_theme className={css.wrapper}>
         color via css {store.red}: <input
             id="range"
             type="range"

@@ -65,7 +65,7 @@ export default function TodoHeaderView(
         todoToAdd: TodoToAdd;
     }
 ) {
-    return <header>
+    return <header rdi_theme>
         <input
             id="input"
             class={css.newTodo}

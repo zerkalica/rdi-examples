@@ -60,7 +60,7 @@ function AutocompleteResultsView(
     _: {},
     {searchResults}: AutocompleteService
 ) {
-    return <ul>
+    return <ul rdi_theme>
         {searchResults.map((result: string, i: number) =>
             <li key={i} id={`list(${i})`}>
                 {result}
@@ -73,7 +73,7 @@ export function AutocompleteView(
     _: IAutocompleteProps,
     {nameToSearch, setValue}: AutocompleteService
 ) {
-    return <div>
+    return <div rdi_theme>
         <div id="filter">
             Filter: <input value={nameToSearch} id="value" onInput={setValue}/>
         </div>

@@ -2,6 +2,7 @@
 import {action} from 'lom_atom'
 import {theme} from 'reactive-di'
 import TodoRepository, {TODO_FILTER} from './models/TodoRepository'
+import AbstractLocationStore from '../../rdi/AbstractLocationStore'
 
 class TodoFooterService {
     _repository: TodoRepository
@@ -28,9 +29,7 @@ class TodoFooterService {
         e.preventDefault()
         this._repository.filter = (e.target: any).dataset.linkid
     }
-}
 
-class TodoFooterTheme {
     @theme get css() {
         const linkBase = {
             color: 'inherit',
@@ -125,20 +124,20 @@ export default function TodoFooterView(
     _: {},
     {
         todoRepository: {completedCount, activeTodoCount, filter, clearing, clearCompleted},
-        todoFooterService: {links, clickLink},
-        theme
+        todoFooterService,
+        locationStore
     }: {
+        locationStore: AbstractLocationStore;
         todoRepository: TodoRepository;
         todoFooterService: TodoFooterService;
-        theme: TodoFooterTheme;
     }
 ) {
-    const css = theme.css
+    const {links, clickLink, css} = todoFooterService
     if (activeTodoCount === 0 && completedCount === 0) {
         return null
     }
 
-    return <footer class={css.footer}>
+    return <footer rdi_theme class={css.footer}>
         <span class={css.todoCount} id="count">
             <strong id="number">{activeTodoCount}</strong> item(s) left
         </span>
@@ -149,8 +148,8 @@ export default function TodoFooterView(
                     id={`link(${link.id})`}
                 ><a
                     id={`link(${link.id}).a`}
-                    class={theme.link(filter === link.id)}
-                    href={`?todo_filter=${link.id}`}
+                    class={todoFooterService.link(filter === link.id)}
+                    href={locationStore.toUrl({todo_filter: link.id})}
                     data-linkid={link.id}
                     onClick={clickLink}
                 >{link.title}</a>

@@ -18,6 +18,26 @@ export default class BrowserLocationStore extends AbstractLocationStore {
         return new URLSearchParams(this._location.search)
     }
 
+    toUrl(newParams?: {[id: string]: string} = {}, hash?: string): string {
+        const params = this._params()
+        const keys = Object.keys(newParams)
+        for (let i = 0; i < keys.length; i++) {
+            const key = keys[i]
+            const val = newParams[key]
+            if (val === null || val === undefined) {
+                params.delete(key)
+            } else {
+                params.set(key, val)
+            }
+        }
+        const q = params.toString()
+        return `${this._location.origin}${q ? `?${q}` : ''}${hash ? `#${hash}` : ''}`
+    }
+
+    toString() {
+        return this.toUrl()
+    }
+
     @mem.key.manual location(key: string, value?: string): string {
         const params = this._params()
         if (value === undefined) return params.get(key)

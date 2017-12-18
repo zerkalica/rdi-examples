@@ -1,6 +1,6 @@
 // @flow
 import {action, mem} from 'lom_atom'
-
+import {props} from 'reactive-di'
 import {Fetcher} from '../../../fetcher'
 import AbstractLocationStore from '../../../rdi/AbstractLocationStore'
 import Todo from './Todo'
@@ -19,7 +19,7 @@ export type IFilter = $Values<typeof TODO_FILTER>
 export default class TodoRepository implements ITodoRepository {
     _fetcher: Fetcher
     _location: AbstractLocationStore
-
+    // @props props: {}
     constructor(fetcher: Fetcher, location: AbstractLocationStore) {
         this._fetcher = fetcher
         this._location = location

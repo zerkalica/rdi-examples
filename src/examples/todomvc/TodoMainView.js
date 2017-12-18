@@ -70,7 +70,7 @@ export default function TodoMainView(
     }
 ) {
     if (!filteredTodos.length) return null
-    return <section class={css.main}>
+    return <section rdi_theme class={css.main}>
         <input
             id="input"
             class={css.toggleAll}

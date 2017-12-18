@@ -1,6 +1,6 @@
 // @flow
 
-import {mem, action} from 'lom_atom'
+import {mem} from 'lom_atom'
 import {props} from 'reactive-di'
 
 interface IHelloProps {
@@ -21,7 +21,7 @@ export function HelloView(
     _: IHelloProps,
     {context}: {context: HelloContext}
 ) {
-    return <div>
+    return <div rdi_theme>
         {context.greet}
         <br id="br"/><input id="input" value={context.name} onInput={({target}) => {
             context.name = (target: any).value

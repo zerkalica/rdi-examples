@@ -12,6 +12,9 @@ import TodoFooterView from './TodoFooterView'
 class TodoAppTheme {
     @theme get css() {
         return {
+            customized: {
+                background: '#ffffef'
+            },
             todoapp: {
                 background: '#fff',
                 position: 'relative',
@@ -33,9 +36,9 @@ export default function TodoAppView(
         theme: TodoAppTheme;
     }
 ) {
-    return <div class={css.todoapp}>
+    return <div rdi_theme class={css.todoapp}>
         <TodoHeaderView id="header" />
-        <TodoMainView id="main" />
+        <TodoMainView class={css.customized} id="main" />
         <TodoFooterView id="footer" />
     </div>
 }

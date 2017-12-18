@@ -14,7 +14,7 @@ export default function ErrorableView({
     const errorWasShowed = (error: Object)[stackId]
     ;(error: Object)[stackId] = true
     const isWait = error instanceof AtomWait
-    return <SpinnerView id="errorable" isError={!isWait}>
+    return <SpinnerView rdi_theme isError={!isWait}>
         {isWait || errorWasShowed
             ? <div id="content" style={{pointerEvents: 'none'}}>{children}</div>
             : <div id="error" style={{padding: '0.1em 1em'}}>

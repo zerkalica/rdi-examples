@@ -1,6 +1,6 @@
 // @flow
 
-import {mem} from 'lom_atom'
+import {action, mem} from 'lom_atom'
 import {theme} from 'reactive-di'
 import {CounterView} from './counter'
 import {HelloView} from './hello'
@@ -13,7 +13,6 @@ import AbstractLocationStore from '../rdi/AbstractLocationStore'
 import PageMap from '../rdi/PageMap'
 
 class Store {
-    static deps = [AbstractLocationStore]
     _locationStore: AbstractLocationStore
 
     pages = new PageMap({
@@ -29,10 +28,48 @@ class Store {
     }
 
     @theme get css() {
+        const menuButton = {
+            margin: 0,
+            display: 'block',
+            width: '100%',
+            textAlign: 'left',
+            padding: '5px',
+            border: '1px solid #eee',
+            background: 'none',
+            appearance: 'none',
+            lineHeight: '20px',
+            textDecoration: 'none',
+            cursor: 'pointer',
+            '&:hover': {
+                textDecoration: 'underline'
+            }
+        }
+
         return {
             main: {
                 display: 'flex',
                 padding: '1em'
+            },
+
+            menu: {
+
+            },
+            menuItem: {
+                marginBottom: '0.3em',
+                display: 'block'
+            },
+            menuButton,
+            menuButtonActive: {
+                ...menuButton,
+                background: '#ddd'
+            },
+
+            layout: {
+                margin: '0 0 1em 1em'
+            },
+            apps: {
+                padding: '1em',
+                margin: '0 0 1em 1em'
             },
             '@global': {
                 ':focus': {
@@ -57,12 +94,20 @@ class Store {
         }
     }
 
-    get page() {
+    displayName: string
+
+    @action setPageSlug(e: Event) {
+        const slug = (e.target: any).dataset.slug || null
+        if (!slug) mem.cache(this.page = new Error(`Provide data-slug attribute for ${String(this.displayName)}.setPageSlug`))
+        this.page = this.pages.get(slug)
+    }
+
+    @mem get page() {
         return this.pages.get(this._locationStore.location('page'))
     }
 
-    set page(page: string) {
-        return this._locationStore.location('page', page)
+    @mem set page(page: *) {
+        this._locationStore.location('page', page.slug)
     }
 
     @mem name = 'John'
@@ -76,31 +121,24 @@ export default function AppView(
         store: Store;
     }
 ) {
-    const css = store.css
-    const page = store.page
-    return <div class={css.main}>
-        <ul id="menu">
+    const {css, page} = store
+    return <div rdi_theme class={css.main}>
+        <ul id="menu" class={css.menu}>
             {store.pages.map(item =>
                 <li
                     id={`item(${item.id})`}
                     key={item.id}
-                    style={{marginBottom: '0.3em', display: 'block'}}
+                    class={css.menuItem}
                 ><button
                     id={`button(${item.id})`}
-                    style={{
-                        width: '150px',
-                        background: 'none'
-                    }}
-                    onClick={() => store.page = item.slug }
+                    class={page === item ? css.menuButtonActive : css.menuButton}
+                    data-slug={item.slug}
+                    onClick={store.setPageSlug}
                 >{item.id}</button></li>
             )}
         </ul>
-        <div id="apps">
-            <div id="layout" style={{
-                border: '1px solid gray',
-                padding: '1em',
-                margin: '0 0 1em 1em'
-            }}>
+        <div id="apps" class={css.apps}>
+            <div id="layout" class={css.layout}>
                 <h1 id="title">{page.id}</h1>
                 <page.component id={page.id} initialValue={store.name} />
             </div>

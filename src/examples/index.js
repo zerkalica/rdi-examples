@@ -46,8 +46,7 @@ const lomCreateElement = createCreateElement(
         detached,
         injector
     ),
-    (h: React$CreateElement),
-    true
+    (h: React$CreateElement)
 )
 global['lom_h'] = lomCreateElement
 
