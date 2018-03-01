@@ -35,25 +35,22 @@ class TodoMainTheme {
                 borderTop: '1px solid #e6e6e6'
             },
             toggleAll: {
-                ...toggleAll
+                ...toggleAll,
+                /*
+                Hack to remove background from Mobile Safari.
+                Can't use it globally since it destroys checkboxes in Firefox
+                */
+                '@media screen and (-webkit-min-device-pixel-ratio:0)': {
+                    ...toggleAll,
+                    transform: 'rotate(90deg)',
+                    appearance: 'none',
+                    '-webkit-appearance': 'none'
+                }
             },
             todoList: {
                 margin: 0,
                 padding: 0,
                 listStyle: 'none'
-            },
-
-            /*
-            Hack to remove background from Mobile Safari.
-            Can't use it globally since it destroys checkboxes in Firefox
-            */
-            '@media screen and (-webkit-min-device-pixel-ratio:0)': {
-                toggleAll: {
-                    ...toggleAll,
-                    transform: 'rotate(90deg)',
-                    appearance: 'none',
-                    '-webkit-appearance': 'none',
-                }
             }
         }
     }

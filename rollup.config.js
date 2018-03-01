@@ -9,6 +9,7 @@ import commonjs from 'rollup-plugin-commonjs'
 import sourcemaps from 'rollup-plugin-sourcemaps'
 // import visualizer from 'rollup-plugin-visualizer'
 import alias from 'rollup-plugin-alias'
+import builtins from 'rollup-plugin-node-builtins'
 
 import fs from 'fs'
 import path from 'path'
@@ -21,6 +22,9 @@ babelrc.babelrc = false
 babelrc.plugins = babelrc.plugins.map(
     plugin => (Array.isArray(plugin) ? (plugin[0] || ''): plugin).indexOf(magic) >= 0 ? null : plugin
 ).filter(Boolean)
+
+babelrc.runtimeHelpers = true
+//babelrc.externalHelpers = true
 
 const uglifyOpts = {
     warnings: true,
@@ -41,8 +45,13 @@ const isUglify = process.env.UGLIFY !== undefined
     ? process.env.UGLIFY === '1'
     : process.env.NODE_ENV === 'production'
 
+const aliases = {
+    'babel-runtime': '@babel/runtime'
+}
+
+if (process.env.NODE_ENV === 'production') aliases['preact/devtools'] = 'empty/object'
+
 const baseConfig = {
-    sourcemap: true,
     plugins: [
         resolve({
             browser: true,
@@ -51,6 +60,8 @@ const baseConfig = {
         replace({
             'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development')
         }),
+        alias(aliases),
+        builtins(),
         commonjs({
             include: 'node_modules/**',
             exclude: [
@@ -61,7 +72,7 @@ const baseConfig = {
 
         sourcemaps(),
         babel(babelrc),
-        globals()
+        globals(),
     ].concat(isUglify ? [uglify(uglifyOpts, minify)] : [])
 }
 
@@ -69,11 +80,13 @@ const baseConfig = {
 const examplesConfig = Object.assign({}, baseConfig, {
     input: 'src/examples/index.js',
     output: [
-        {file: pkg['iife:main'], format: 'iife', name: pkg.name.replace('-', '_').replace('-', '_')}
-    ],
-    plugins: process.env.NODE_ENV === 'production'
-        ? baseConfig.plugins.concat([ alias({ 'preact/devtools': 'empty/object'  }) ])
-        : baseConfig.plugins
+        {
+            sourcemap: true,
+            file: pkg['iife:main'],
+            format: 'iife',
+            name: pkg.name.replace('-', '_').replace('-', '_')
+        }
+    ]
 })
 
 console.log(process.env.NODE_ENV)

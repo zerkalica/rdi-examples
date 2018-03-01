@@ -17,7 +17,7 @@ function delayed(
     mock: Mock,
     delay: number,
     errorRate: number,
-    fakeError: Error
+    fakeErrorText: string
 ): (url: string, params: RequestOptions) => Promise<MockResponse> {
     return function resp(url: string, params: RequestOptions) {
         return new Promise((resolve: (v: MockResponse) => void, reject: (e: Error) => void) => {
@@ -25,7 +25,7 @@ function delayed(
                 const globalRate: number | void = global['rdi_fetch_error_rate']
                 const rate = 100 - (globalRate == undefined ? errorRate : globalRate)
                 if (Math.floor(Math.random() * 100) > rate) {
-                    reject(fakeError)
+                    reject(new Error(fakeErrorText))
                 } else {
                     resolve((url: string, params: RequestOptions) =>
                         mock.response(
@@ -47,21 +47,21 @@ export default function apiMocker(
         storage = localStorage,
         delay = 500,
         errorRate = 30,
-        fakeError = new Error('500 Fake HTTP Error')
+        fakeErrorText = '500 Fake HTTP Error'
     }: {
         fetchMock: FetchMock;
         mocks: MockCreator[];
         storage?: Storage;
         delay?: number;
         errorRate?: number;
-        fakeError?: Error;
+        fakeErrorText?: string;
     }
 ): void {
     mocks.forEach(createMock => {
         createMock(storage).forEach(data => {
             fetchMock.mock({
                 ...data,
-                response: delayed(data, delay, errorRate, fakeError)
+                response: delayed(data, delay, errorRate, fakeErrorText)
             })
         })
     })

@@ -10,7 +10,7 @@ interface IAutocompleteProps {
 }
 
 class DebouncedValue {
-    _handler: ?number = null
+    _handler: ?any = null
     _timeout: number
 
     constructor(timeout: number) {
@@ -18,7 +18,7 @@ class DebouncedValue {
     }
 
     @mem value<V>(next?: V): V {
-        clearTimeout(this._handler)
+        this.destructor()
         this._handler = setTimeout(
             () => mem.cache(this.value(next)),
             this._timeout
@@ -27,7 +27,7 @@ class DebouncedValue {
     }
 
     destructor() {
-        clearTimeout(this._handler)
+        if (this._handler) clearTimeout(this._handler)
     }
 }
 

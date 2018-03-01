@@ -62,7 +62,7 @@ class TodoFooterService {
                         0 8px 0 -3px #f6f6f6,
                         0 9px 1px -3px rgba(0, 0, 0, 0.2),
                         0 16px 0 -6px #f6f6f6,
-                        0 17px 2px -6px rgba(0, 0, 0, 0.2)`,
+                        0 17px 2px -6px rgba(0, 0, 0, 0.2)`
                 }
             },
 
@@ -100,7 +100,7 @@ class TodoFooterService {
                 background: 'none',
                 fontSize: '100%',
                 verticalAlign: 'baseline',
-                appearance: 'none',
+                // appearance: 'none',
 
                 float: 'right',
                 position: 'relative',

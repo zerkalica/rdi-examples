@@ -14,23 +14,22 @@ export interface ITodoRepository {
 }
 
 export default class Todo implements ITodoData {
-    completed: boolean
-    title: string
-    id: string
+    completed: boolean = false
+    title: string = ''
+    id: string = uuid()
 
     _store: ITodoRepository
 
-    constructor(todo?: $Shape<ITodoData> = {}, store: ITodoRepository) {
-        this.title = todo.title || ''
-        this.id = todo.id || uuid()
-        this.completed = todo.completed || false
-        this._store = store
+    constructor(todo?: $Shape<ITodoData>, store: ITodoRepository) {
+        Object.assign(this, todo)
+        // Hide from JSON.stringify
+        Object.defineProperties(this, {
+            _store: {value: store}
+        })
     }
 
-    copy(data?: ?$Shape<ITodoData>): Todo {
-        return data
-            ? new Todo({...this.toJSON(), ...data}, this._store)
-            : this
+    copy(data: ?$Shape<ITodoData>): Todo {
+        return new Todo({...(this: ITodoData), ...data}, this._store)
     }
 
     @action update(data?: $Shape<ITodoData>) {
@@ -61,13 +60,5 @@ export default class Todo implements ITodoData {
 
     @action toggle() {
         this.update({completed: !this.completed})
-    }
-
-    toJSON(): ITodoData {
-        return {
-            completed: this.completed,
-            title: this.title,
-            id: this.id
-        }
     }
 }

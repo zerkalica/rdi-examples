@@ -11,23 +11,22 @@ class SpinnerTheme {
             minWidth: '28px',
             minHeight: '28px'
         }
-
         return {
-            '@keyframes rdi_spinner_wait_move': {
-                from: {
-                    backgroundPosition: '0 0'
-                },
-                to: {
-                    backgroundPosition: '-28px 0'
-                }
-            },
             spinner: {
+                '@keyframes @.spinner_move': {
+                    from: {
+                        backgroundPosition: '0 0'
+                    },
+                    to: {
+                        backgroundPosition: '-28px 0'
+                    }
+                },
                 ...spinner,
                 '& *': {
                     opacity: '0.8'
                 },
                 backgroundImage: `repeating-linear-gradient(45deg, rgba(0,0,0, 0.05), rgba(0,0,0,0.05) 9px, rgba(255,255,255,.015) 10px, rgba(255,255,255,.015) 20px)`,
-                animation: 'rdi_spinner_wait_move .25s steps(6) infinite'
+                animation: '@.spinner_move .25s steps(6) infinite'
             },
             spinnerError: {
                 ...spinner,

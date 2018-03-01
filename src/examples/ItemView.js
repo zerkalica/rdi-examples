@@ -35,7 +35,7 @@ export default function ItemView(
     {children}: {children?: any},
     {theme: {css}}: {theme: KeyValueTheme}
 ) {
-    return <div class={css.item}>{children}</div>
+    return <div rdi_theme class={css.item}>{children}</div>
 }
 ItemView.Key = KeyView
 ItemView.Value = ValueView

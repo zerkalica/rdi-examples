@@ -11,7 +11,7 @@ export default function autocompleteMocks(
     return [
         {
             method: 'GET',
-            matcher: new RegExp('/api/autocomplete\\?q=(.+)'),
+            matcher: new RegExp('/api/autocomplete\\?q=(.+)?'),
             response(url: string, params: RequestOptions, name: string) { // eslint-disable-line
                 return name
                     ? fixture.filter((userName: string) => userName.indexOf(name) === 0)

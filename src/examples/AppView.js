@@ -3,7 +3,7 @@
 import {action, mem} from 'lom_atom'
 import {theme} from 'reactive-di'
 import {CounterView} from './counter'
-import {HelloView} from './hello'
+import {HelloView, HelloAsyncView} from './hello'
 import {TodoAppView} from './todomvc'
 import {AutocompleteView} from './autocomplete'
 import {CssChangeView} from './cssChange'
@@ -17,6 +17,7 @@ class Store {
 
     pages = new PageMap({
         HelloView,
+        HelloAsyncView,
         CounterView,
         AutocompleteView,
         TodoAppView,
@@ -36,7 +37,6 @@ class Store {
             padding: '5px',
             border: '1px solid #eee',
             background: 'none',
-            appearance: 'none',
             lineHeight: '20px',
             textDecoration: 'none',
             cursor: 'pointer',
@@ -48,7 +48,18 @@ class Store {
         return {
             main: {
                 display: 'flex',
-                padding: '1em'
+                width: '100%',
+                height: '100%',
+                padding: '1em',
+                font: '14px "Helvetica Neue", Helvetica, Arial, sans-serif',
+                lineHeight: '1.4em',
+                background: '#f5f5f5',
+                color: '#4d4d4d',
+                margin: '0 auto',
+                padding: 0,
+                '-webkit-font-smoothing': 'antialiased',
+                '-moz-osx-font-smoothing': 'grayscale',
+                fontWeight: '300'
             },
 
             menu: {
@@ -70,26 +81,6 @@ class Store {
             apps: {
                 padding: '1em',
                 margin: '0 0 1em 1em'
-            },
-            '@global': {
-                ':focus': {
-                    outline: 0
-                },
-                html: {
-                    margin: 0,
-                    padding: 0
-                },
-                body: {
-                    font: '14px "Helvetica Neue", Helvetica, Arial, sans-serif',
-                    lineHeight: '1.4em',
-                    background: '#f5f5f5',
-                    color: '#4d4d4d',
-                    margin: '0 auto',
-                    padding: 0,
-                    '-webkit-font-smoothing': 'antialiased',
-                    '-moz-osx-font-smoothing': 'grayscale',
-                    fontWeight: '300'
-                }
             }
         }
     }

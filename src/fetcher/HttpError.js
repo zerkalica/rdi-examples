@@ -12,7 +12,11 @@ function safeToJson(v: string): Object {
     return data
 }
 
-export default class HttpError extends Error {
+/**
+ * Can't extend Error
+ * @see https://github.com/babel/babel/issues/7447
+ */
+class HttpError {
     status: ?number
     message: string
     stack: string
@@ -30,43 +34,51 @@ export default class HttpError extends Error {
             uid?: string
         }
     ) {
-        super((parent
+        const t: HttpError = (Error.call(this, (parent
             ? (parent.message || parent.stack)
             : (response ? response.statusText : null)
-        ) || 'unknown')
+        ) || 'unknown'): any)
         if (parent) {
-            this.status = (parent: Object).status || null
-            this.stack = parent.stack
+            t.status = (parent: Object).status || null
+            t.stack = parent.stack
         } else if (response) {
-            this.status = response.status || null
+            t.status = response.status || null
         } else {
-            this.status = null
+            t.status = null
         }
-        this.uid = uid ? uid :  ('' + Date.now())
-        this.data = data
+        t.uid = uid ? uid :  ('' + Date.now())
+        t.data = data
             ? typeof data === 'object' ? data : safeToJson(data)
             : null
 
         // $FlowFixMe new.target
-        ;(this: Object)['__proto__'] = new.target.prototype
-        this._opts = opts
-        this.retry = opts.retry
-    }
+        ;(t: Object)['__proto__'] = new.target.prototype
+        t._opts = opts
+        t.retry = opts.retry
 
-    toJSON() {
-        const opts = this._opts
-        return {
-            uid: this.uid,
-            message: this.message,
-            stack: this.stack,
-            status: this.status,
-            request: {
-                requestId: opts.requestId,
-                url: opts.fullUrl,
-                method: opts.method || 'GET',
-                body: opts.body ? String(opts.body) : null,
-            },
-            data: this.data
-        }
+        return t
     }
 }
+
+function toJSON() {
+    const opts = this._opts
+    return {
+        uid: this.uid,
+        message: this.message,
+        stack: this.stack,
+        status: this.status,
+        request: {
+            requestId: opts.requestId,
+            url: opts.fullUrl,
+            method: opts.method || 'GET',
+            body: opts.body ? String(opts.body) : null,
+        },
+        data: this.data
+    }
+}
+
+;(HttpError: any).prototype = Object.create(Error.prototype)
+;(HttpError: any).prototype.constructor = HttpError
+;(HttpError: any).prototype.toJSON = toJSON
+
+export default ((HttpError: any): Class<HttpError & Error>)

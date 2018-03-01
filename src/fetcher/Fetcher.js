@@ -34,8 +34,9 @@ export default class Fetcher implements IFetcher {
 
     normalizeResponse(response: Response, opts: IRequestOptions): Promise<string | HttpError> {
         if (response.status >= 400) {
+            const HttpError: any = this.constructor.HttpError
             return response.text()
-                .then((data: string) => new this.constructor.HttpError({opts, parent: null, response, data}))
+                .then((data: string) => new HttpError({opts, parent: null, response, data}))
         }
 
         return response.status === 204

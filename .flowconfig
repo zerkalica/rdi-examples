@@ -1,9 +1,10 @@
 [ignore]
 .*/node_modules/conventional-changelog-core/.*
 .*/node_modules/preact/src/preact.*
+.*/node_modules/preact/src/jss.*
 
 [libs]
-node_modules/jss/flow-typed
+;node_modules/jss/flow-typed
 node_modules/reactive-di/flow-typed
 
 [options]
@@ -12,4 +13,3 @@ esproposal.decorators=ignore
 esproposal.class_static_fields=enable
 esproposal.class_instance_fields=enable
 module.name_mapper='^rdi-ui' -> '<PROJECT_ROOT>/src/index.js'
-unsafe.enable_getters_and_setters=true
