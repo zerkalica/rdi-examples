@@ -1,5 +1,8 @@
+(function(l, i, v, e) { v = l.createElement(i); v.async = 1; v.src = '//' + (location.host || 'localhost').split(':')[0] + ':35729/livereload.js?snipver=1'; e = l.getElementsByTagName(i)[0]; e.parentNode.insertBefore(v, e)})(document, 'script');
 (function () {
 'use strict';
+
+var global$1 = typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {};
 
 function _defineProperties(target, props) {
   for (var i = 0; i < props.length; i++) {
@@ -87,8 +90,6 @@ function _applyDecoratedDescriptor(target, property, decorators, descriptor, con
 
   return desc;
 }
-
-var global$1 = typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {};
 
 global$1['rdi_fetch_error_rate'] = undefined;
 
@@ -1720,9 +1721,11 @@ function todoMocks(rawStorage) {
       var todos = storage.get() || [];
       var body = getBody(params.body);
       var id = uuid();
+
       var newTodo = _extends({}, body, {
         id: id
       });
+
       todos.push(newTodo);
       storage.set(todos);
       infos.set((infos.get() || []).concat([{
@@ -1788,7 +1791,7 @@ var defer = new Defer();
 function reap(atom, key, reaping) {
   reaping.delete(atom);
 
-  if (!atom.slaves) {
+  if (!atom._slaves) {
     atom.destructor();
   }
 }
@@ -1927,21 +1930,27 @@ function () {
 
 var defaultContext = new Context();
 var catchedId = Symbol('lom_cached');
+var atomId = Symbol('lom_atom');
+
+function isPromise(target) {
+  return target !== null && typeof target === 'object' && typeof target.then === 'function';
+}
 /**
  * Can't extend Error
  * @see https://github.com/babel/babel/issues/7447
  */
 
-var AtomWait = function AtomWait(message) {
-  if (message === void 0) {
-    message = '[Pending]';
-  }
 
-  var t = Error.call(this, message) // super(message)
+isPromise._r = [2];
+isPromise.displayName = "isPromise";
+
+var AtomWait = function AtomWait(message, promise) {
+  var t = Error.call(this, message || '[Pending]') // super(message)
   // $FlowFixMe new.target
   ;
   t['__proto__'] = new.target.prototype;
-  t[catchedId] = true;
+  t[catchedId] = undefined;
+  t.promise = promise;
   return t;
 };
 
@@ -2073,6 +2082,7 @@ function () {
   function Atom(displayName, handler, keyHash, hostAtoms, manualReset) {
     this._masters = null;
     this._slaves = null;
+    this._setForced = undefined;
     this._retry = undefined;
     this.displayName = displayName;
     this._handler = handler;
@@ -2122,6 +2132,7 @@ function () {
   };
 
   _proto.value = function value(next, forceCache) {
+    if (this.status === ATOM_STATUS_DESTROYED) return this.current;
     var context = defaultContext;
     var current = this.current;
     var slave = context.current;
@@ -2216,6 +2227,7 @@ function () {
 
     if (nextRaw instanceof Error) {
       next = nextRaw[origId] === undefined ? nextRaw : nextRaw[origId];
+      if (next[atomId] === undefined) next[atomId] = this;
     } else {
       next = this._conform(nextRaw, prev);
       this._suggested = this._next;
@@ -2234,6 +2246,8 @@ function () {
   };
 
   _proto.refresh = function refresh() {
+    var _this = this;
+
     var masters = this._masters;
 
     if (masters) {
@@ -2251,11 +2265,22 @@ function () {
       newValue = this._handler(this._next);
     } catch (error) {
       if (error[catchedId] === undefined) {
-        error[catchedId] = true;
-        console.error(error.stack || error);
-      }
+        newValue = isPromise(error) ? new AtomWaitInt(undefined, error) : error;
+        newValue[catchedId] = true;
 
-      newValue = error;
+        if (newValue instanceof AtomWaitInt) {
+          var promise = newValue.promise;
+
+          if (promise) {
+            if (this._setForced === undefined) this._setForced = function (value) {
+              return _this.value(value, ATOM_FORCE_CACHE);
+            };
+            promise.then(this._setForced).catch(this._setForced);
+          }
+        } else {
+          console.error(newValue.stack || newValue);
+        }
+      } else newValue = error;
     }
 
     context.current = slave;
@@ -2308,11 +2333,11 @@ function () {
   };
 
   _proto.getRetry = function getRetry() {
-    var _this = this;
+    var _this2 = this;
 
     if (this._retry === undefined) {
       var fn = function fn() {
-        return _this.refresh();
+        return _this2.refresh();
       };
 
       fn._r = [2];
@@ -2358,9 +2383,12 @@ function (_Atom) {
     var _this;
 
     _this = _Atom.call(this, displayName, function (next) {
-      return _assertThisInitialized$1(_this)._update(next);
+      return t._update(next);
     }) || this;
     _this._propsChanged = true;
+
+    var t = _assertThisInitialized$1(_this);
+
     _this._owner = owner;
     return _this;
   }
@@ -2368,7 +2396,7 @@ function (_Atom) {
   var _proto = ReactAtom.prototype;
 
   _proto._update = function _update(next) {
-    return this._owner.value(this._propsChanged);
+    return this._owner.__value(this._propsChanged);
   };
 
   _proto.reset = function reset() {
@@ -2666,6 +2694,14 @@ function getRetryResult(atom) {
 
 getRetryResult._r = [2];
 getRetryResult.displayName = "getRetryResult";
+
+function getRetry(error) {
+  var atom = error[atomId];
+  return atom ? atom.getRetry() : undefined;
+}
+
+getRetry._r = [2];
+getRetry.displayName = "getRetry";
 Object.defineProperties(mem, {
   cache: {
     get: function get() {
@@ -2678,6 +2714,9 @@ Object.defineProperties(mem, {
       forceCache = ATOM_FORCE_RETRY;
       return getRetryResult;
     }
+  },
+  retry: {
+    value: getRetry
   },
   async: {
     get: function get() {
@@ -2756,16 +2795,207 @@ function _inheritsLoose$2(subClass, superClass) {
 _inheritsLoose$2._r = [2];
 _inheritsLoose$2.displayName = "_inheritsLoose";
 
-function _assertThisInitialized$2(self) {
-  if (self === void 0) {
-    throw new ReferenceError("this hasn't been initialised - super() hasn't been called");
+var ObserverComponent =
+/*#__PURE__*/
+function () {
+  function ObserverComponent() {}
+
+  var _proto = ObserverComponent.prototype;
+
+  _proto.componentWillMount = function componentWillMount() {
+    var props = this.props;
+    if (this.__componentWillMount) this.__componentWillMount();
+    this.__atom = new ObserverComponent.ReactAtom(props && props.id ? props.id : this.constructor.displayName, this);
+  };
+
+  _proto.shouldComponentUpdate = function shouldComponentUpdate(props, state, context) {
+    var oldProps = this.props;
+    var count = 0;
+
+    for (var k in oldProps) {
+      count++;
+
+      if (oldProps[k] !== props[k]) {
+        this.__atom.reset();
+
+        return true;
+      }
+    }
+
+    for (var _k in props) {
+      count--;
+
+      if (oldProps[_k] !== props[_k]) {
+        this.__atom.reset();
+
+        return true;
+      }
+    }
+
+    if (count !== 0) {
+      this.__atom.reset();
+
+      return true;
+    }
+
+    return this.__shouldComponentUpdate ? this.__shouldComponentUpdate(props, state, context) : false;
+  };
+
+  _proto.componentWillUnmount = function componentWillUnmount() {
+    if (this.__componentWillUnmount) this.__componentWillUnmount();
+
+    this.__atom.destructor();
+
+    this.__atom = null;
+  };
+
+  _proto._getContext = function _getContext(key, propsChanged) {
+    return this.context;
+  };
+
+  _proto.__value = function __value(propsChanged) {
+    return this.__render(this.props, this._getContext(this.constructor, propsChanged));
+  };
+
+  _proto.render = function render() {
+    return this.__atom.value();
+  };
+
+  return ObserverComponent;
+}();
+
+var CatchableComponent =
+/*#__PURE__*/
+function (_ObserverComponent) {
+  _inheritsLoose$2(CatchableComponent, _ObserverComponent);
+
+  function CatchableComponent() {
+    return _ObserverComponent.apply(this, arguments) || this;
   }
 
-  return self;
+  var _proto = CatchableComponent.prototype;
+
+  _proto.componentWillUnmount = function componentWillUnmount() {
+    _ObserverComponent.prototype.componentWillMount.call(this);
+
+    this._lastData = null;
+    this._lastError = null;
+  };
+
+  _proto.componentDidCatch = function componentDidCatch(error, init) {
+    if (this.__componentDidCatch) {
+      this.__componentDidCatch(error, init);
+    } else if (this._renderError) {
+      this._lastError = error;
+      this.forceUpdate();
+    }
+  };
+
+  _proto.render = function render() {
+    var data = null;
+
+    try {
+      if (this._lastError) throw this._lastError;
+      data = this.__atom.value().valueOf();
+      this._lastData = data;
+    } catch (error) {
+      this._lastError = null;
+
+      if (this._renderError) {
+        data = this._renderError({
+          error: error,
+          children: this._lastData,
+          origProps: this.props
+        }, this._getContext(this._renderError, false));
+      } else {
+        throw error;
+      }
+    }
+
+    return data;
+  };
+
+  return CatchableComponent;
+}(ObserverComponent);
+
+function getPropertyNamesDeep(proto) {
+  var next = proto;
+  var dest = [];
+
+  do {
+    var src = Object.getOwnPropertyNames(next);
+
+    for (var i = 0; i < src.length; i++) {
+      var key = src[i];
+      if (key !== 'constructor' && dest.indexOf(key) === -1) dest.push(key);
+    }
+
+    next = Object.getPrototypeOf(next);
+  } while (next && next.constructor !== Object);
+
+  return dest;
 }
 
-_assertThisInitialized$2._r = [2];
-_assertThisInitialized$2.displayName = "_assertThisInitialized";
+getPropertyNamesDeep._r = [2];
+getPropertyNamesDeep.displayName = "getPropertyNamesDeep";
+
+function createConnect(_ref) {
+  var ReactAtom = _ref.ReactAtom,
+      renderError = _ref.renderError,
+      BaseComponent = _ref.BaseComponent,
+      MixinComponent = _ref.MixinComponent,
+      normalizeClass = _ref.normalizeClass;
+  ObserverComponent.ReactAtom = ReactAtom;
+  var replacement = (MixinComponent || (renderError ? CatchableComponent : ObserverComponent)).prototype;
+  if (renderError && !replacement._renderError) replacement._renderError = renderError;
+  var replacementKeys = getPropertyNamesDeep(replacement);
+  return function reactConnect(Parent) {
+    if (Parent.isConnected) throw new Error((Parent.displayName || Parent.name) + " already connected");
+    Parent.isConnected = true;
+    var cls = Parent;
+
+    if ((!cls.prototype || typeof cls.prototype.render !== 'function') && typeof Parent === 'function') {
+      if (!BaseComponent) throw new Error('Setup createConnect with BaseComponent');
+
+      cls = function ConnectedComponent(props, context) {
+        return BaseComponent.call(this, props, context) || this;
+      };
+
+      cls.prototype = Object.create(BaseComponent.prototype);
+      cls.prototype.constructor = cls;
+      cls.prototype.render = Parent;
+      cls.displayName = Parent.displayName || Parent.name;
+      var props = Object.getOwnPropertyNames(Parent);
+
+      for (var i = 0; i < props.length; i++) {
+        var key = props[i];
+        if (!(key in cls)) cls[key] = Parent[key];
+      }
+    }
+
+    var target = cls.prototype;
+
+    for (var _i = 0; _i < replacementKeys.length; _i++) {
+      var _key = replacementKeys[_i];
+      if (_key in target) target['__' + _key] = target[_key];
+      target[_key] = replacement[_key];
+    }
+
+    return normalizeClass ? normalizeClass(cls) : cls;
+  };
+}
+
+createConnect._r = [2];
+createConnect.displayName = "createConnect";
+
+function _inheritsLoose$3(subClass, superClass) {
+  subClass.prototype = Object.create(superClass.prototype);
+  subClass.prototype.constructor = subClass;
+  subClass.__proto__ = superClass;
+}
+
+_inheritsLoose$3._r = [2];
+_inheritsLoose$3.displayName = "_inheritsLoose";
 var rdiInst = Symbol('rdi_inst');
 var rdiProp = Symbol('rdi_prop');
 var depId = 0;
@@ -2782,7 +3012,7 @@ Alias.displayName = "Alias";
 var Injector =
 /*#__PURE__*/
 function () {
-  function Injector(aliases, sheetManager, state, displayName, instance, cache, flags) {
+  function Injector(contextAliases, sheetManager, state, displayName, instance, cache, flags) {
     this.id = '';
     this.props = undefined;
     this._sheet = undefined;
@@ -2800,9 +3030,9 @@ function () {
     this._flags = flags;
     var map = this._cache = cache || Object.create(null);
 
-    if (aliases !== undefined) {
-      for (var i = 0; i < aliases.length; i++) {
-        var item = aliases[i];
+    if (contextAliases !== undefined) {
+      for (var i = 0; i < contextAliases.length; i++) {
+        var item = contextAliases[i];
 
         if (item instanceof Array) {
           var src = item[0];
@@ -2973,17 +3203,13 @@ function () {
     return newKey;
   };
 
-  _proto.invokeWithProps = function invokeWithProps(key, props, propsChanged) {
+  _proto.getContext = function getContext(key, props) {
     var deps = key.deps || (key._r === undefined ? undefined : key._r[1]);
-
-    if (deps === undefined) {
-      return key(props);
-    }
-
+    if (deps === undefined) return undefined;
     var a = this.resolve(deps);
     var listeners = this._listeners;
 
-    if (propsChanged === true && listeners !== undefined) {
+    if (props !== undefined && listeners !== undefined) {
       for (var i = 0; i < listeners.length; i++) {
         var listener = listeners[i];
         listener[listener.constructor[rdiProp]] = props;
@@ -2991,39 +3217,11 @@ function () {
     }
 
     this._resolved = true;
-
-    switch (a.length) {
-      case 0:
-        return key(props);
-
-      case 1:
-        return key(props, a[0]);
-
-      case 2:
-        return key(props, a[0], a[1]);
-
-      case 3:
-        return key(props, a[0], a[1], a[2]);
-
-      case 4:
-        return key(props, a[0], a[1], a[2], a[3]);
-
-      case 5:
-        return key(props, a[0], a[1], a[2], a[3], a[4]);
-
-      case 6:
-        return key(props, a[0], a[1], a[2], a[3], a[4], a[5]);
-
-      case 7:
-        return key(props, a[0], a[1], a[2], a[3], a[4], a[5], a[6]);
-
-      default:
-        return key.apply(void 0, [props].concat(a));
-    }
+    return a[0];
   };
 
   _proto.copy = function copy(flags) {
-    return new Injector(flags.aliases, null, this._state, flags.displayName, flags.instance, Object.create(this._cache), flags);
+    return new Injector(flags.contextAliases, null, this._state, flags.displayName, flags.instance, Object.create(this._cache), flags);
   };
 
   _proto.resolve = function resolve(argDeps) {
@@ -3076,162 +3274,89 @@ function () {
   return Injector;
 }();
 
-function setFunctionName$1(fn, name) {
-  Object.defineProperty(fn, 'name', {
-    value: name,
-    writable: false
-  });
-  fn.displayName = name;
-}
-
-setFunctionName$1._r = [2];
-setFunctionName$1.displayName = "setFunctionName";
-
-function createReactWrapper(BaseComponent, ErrorComponent, Reaction, rootInjector, isFullEqual) {
+function createReactWrapper(BaseComponent, renderError, ReactAtom, rootInjector) {
   if (rootInjector === void 0) {
     rootInjector = new Injector();
   }
 
-  if (isFullEqual === void 0) {
-    isFullEqual = false;
-  }
+  var names = new Map();
 
-  var AtomizedComponent =
-  /*#__PURE__*/
-  function (_BaseComponent) {
-    _inheritsLoose$2(AtomizedComponent, _BaseComponent);
+  function normalizeClass(cls) {
+    var prefix = names.get(cls.displayName);
 
-    function AtomizedComponent(props, reactContext) {
-      var _this;
-
-      _this = _BaseComponent.call(this, props, reactContext) || this;
-      _this._lastData = null;
-      var injector = rootInjector;
-      var cns = _this.constructor;
-      var name = cns.displayName;
-
-      if (props) {
-        if (props.__lom_ctx !== undefined) injector = props.__lom_ctx;
-        if (props.id) name = props.id;
-      }
-
-      _this._render = cns.render;
-      _this._injector = injector.copy(cns);
-      _this._injector.id = name;
-      _this._injector.props = props;
-      cns.instance++;
-      _this._reaction = new Reaction(name, _assertThisInitialized$2(_this));
-      return _this;
+    if (prefix !== undefined) {
+      prefix++;
+      names.set(cls.displayName, prefix);
+      cls.displayName = cls.displayName + prefix;
+    } else {
+      names.set(cls.displayName, 0);
     }
 
-    var _proto = AtomizedComponent.prototype;
+    return cls;
+  }
 
-    _proto.toString = function toString() {
-      return this._injector.toString();
-    }; // get displayName() {
-    //     return this.toString()
-    // }
-    //
+  var MixinComponent =
+  /*#__PURE__*/
+  function (_CatchableComponent) {
+    _inheritsLoose$3(MixinComponent, _CatchableComponent);
 
+    function MixinComponent() {
+      return _CatchableComponent.apply(this, arguments) || this;
+    }
 
-    _proto.shouldComponentUpdate = function shouldComponentUpdate(props) {
-      var oldProps = this.props;
+    var _proto = MixinComponent.prototype;
+
+    _proto.componentWillMount = function componentWillMount() {
+      _CatchableComponent.prototype.componentWillMount.call(this);
+
+      var cns = this.constructor;
+
+      if (cns.instance === undefined) {
+        cns.instance = 0;
+        cns.isDynamic = false;
+      }
+
+      cns.instance++;
+      var injector = rootInjector;
+      var props = this.props;
+      if (props && props.__lom_ctx !== undefined) injector = props.__lom_ctx;
+      this._injector = injector.copy(cns);
+      this._injector.id = cns.displayName;
       this._injector.props = props;
-      var count = 0;
-
-      for (var k in oldProps) {
-        count++;
-
-        if (oldProps[k] !== props[k]) {
-          this._reaction.reset();
-
-          return true;
-        }
-      }
-
-      for (var _k in props) {
-        count--;
-
-        if (oldProps[_k] !== props[_k]) {
-          this._reaction.reset();
-
-          return true;
-        }
-      }
-
-      if (count !== 0) {
-        this._reaction.reset();
-
-        return true;
-      }
-
-      return false;
     };
 
     _proto.componentWillUnmount = function componentWillUnmount() {
-      this._reaction.destructor();
+      this.constructor.instance--;
 
-      this.props = undefined;
-      this._lastData = null;
+      this._injector.destructor();
 
-      if (this._render !== undefined) {
-        this.constructor.instance--;
-
-        this._injector.destructor();
-
-        this._injector = undefined;
-      }
+      _CatchableComponent.prototype.componentWillUnmount.call(this);
     };
 
-    _proto.value = function value(propsChanged) {
-      var data = null;
-      var prevContext = Injector.parentContext;
-      var injector = Injector.parentContext = this._injector;
+    _proto.__value = function __value(isPropsChanged) {
+      var oldInjector = Injector.parentContext;
+      Injector.parentContext = this._injector;
 
-      try {
-        data = injector.invokeWithProps(this._render, this.props, propsChanged);
-        this._lastData = data;
-      } catch (error) {
-        data = injector.invokeWithProps(this._render.onError || ErrorComponent, {
-          error: error,
-          children: this._lastData
-        });
-      }
+      var value = _CatchableComponent.prototype.__value.call(this, isPropsChanged);
 
-      Injector.parentContext = prevContext;
-      return data;
+      Injector.parentContext = oldInjector;
+      return value;
     };
 
-    _proto.render = function render() {
-      return this._reaction.value();
+    _proto._getContext = function _getContext(key, propsChanged) {
+      return this._injector.getContext(key, propsChanged ? this.props : undefined);
     };
 
-    return AtomizedComponent;
-  }(BaseComponent);
+    return MixinComponent;
+  }(CatchableComponent);
 
-  AtomizedComponent.isFullEqual = isFullEqual;
-  var names = new Map();
-  return function reactWrapper(render) {
-    var WrappedComponent = function WrappedComponent(props, context) {
-      AtomizedComponent.call(this, props, context);
-    };
-
-    WrappedComponent._r = [2];
-    WrappedComponent.displayName = "WrappedComponent";
-    WrappedComponent.instance = 0;
-    WrappedComponent.render = render;
-    WrappedComponent.isFullEqual = render.isFullEqual || isFullEqual;
-    WrappedComponent.isDynamic = false;
-    WrappedComponent.aliases = render.aliases;
-    WrappedComponent.prototype = Object.create(AtomizedComponent.prototype);
-    WrappedComponent.prototype.constructor = WrappedComponent;
-    var name = render.displayName || render.name;
-    var id = names.get(name) || 0;
-    names.set(name, id + 1);
-    if (id > 0) name = name + "_" + id;
-    setFunctionName$1(WrappedComponent, name);
-    return WrappedComponent;
-  };
+  return createConnect({
+    ReactAtom: ReactAtom,
+    renderError: renderError,
+    BaseComponent: BaseComponent,
+    MixinComponent: MixinComponent,
+    normalizeClass: normalizeClass
+  });
 }
 
 createReactWrapper._r = [2];
@@ -3388,7 +3513,7 @@ function provideMap(item) {
 provideMap._r = [2];
 provideMap.displayName = "provideMap";
 
-function cloneComponent(fn, aliases, name) {
+function cloneComponent(fn, contextAliases, name) {
   var cloned = function cloned() {
     var a = arguments;
 
@@ -3417,8 +3542,8 @@ function cloneComponent(fn, aliases, name) {
   cloned.displayName = "cloned";
   cloned.deps = fn.deps;
   cloned._r = fn._r;
-  cloned.aliases = fn.aliases ? fn.aliases.concat(aliases) : aliases;
-  cloned.displayName = name || "cloneComponent(" + dn(fn) + ", [" + aliases.map(provideMap).join(', ') + "])";
+  cloned.contextAliases = fn.contextAliases ? fn.contextAliases.concat(contextAliases) : contextAliases;
+  cloned.displayName = name || "cloneComponent(" + dn(fn) + ", [" + contextAliases.map(provideMap).join(', ') + "])";
   return cloned;
 }
 
@@ -4802,7 +4927,7 @@ var preact = {
   rerender: rerender,
   options: options
 };
-
+ 
 
 var preact_esm = Object.freeze({
 	h: h,
@@ -5259,7 +5384,7 @@ var getDynamicStyles = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _typeof$$1 = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
+  var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
     return typeof obj;
   } : function (obj) {
     return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
@@ -5276,7 +5401,7 @@ var getDynamicStyles = createCommonjsModule(function (module, exports) {
 
       for (var key in styles) {
         var value = styles[key];
-        var type = typeof value === 'undefined' ? 'undefined' : _typeof$$1(value);
+        var type = typeof value === 'undefined' ? 'undefined' : _typeof(value);
 
         if (type === 'function') {
           if (!to) to = {};
@@ -5360,7 +5485,7 @@ var SheetsRegistry_1 = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _createClass$$1 = function () {
+  var _createClass = function () {
     function defineProperties(target, props) {
       for (var i = 0; i < props.length; i++) {
         var descriptor = props[i];
@@ -5378,7 +5503,7 @@ var SheetsRegistry_1 = createCommonjsModule(function (module, exports) {
     };
   }();
 
-  function _classCallCheck$$1(instance, Constructor) {
+  function _classCallCheck(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
       throw new TypeError("Cannot call a class as a function");
     }
@@ -5390,12 +5515,12 @@ var SheetsRegistry_1 = createCommonjsModule(function (module, exports) {
 
   var SheetsRegistry = function () {
     function SheetsRegistry() {
-      _classCallCheck$$1(this, SheetsRegistry);
+      _classCallCheck(this, SheetsRegistry);
 
       this.registry = [];
     }
 
-    _createClass$$1(SheetsRegistry, [{
+    _createClass(SheetsRegistry, [{
       key: 'add',
 
       /**
@@ -5533,7 +5658,7 @@ var SheetsManager_1 = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _createClass$$1 = function () {
+  var _createClass = function () {
     function defineProperties(target, props) {
       for (var i = 0; i < props.length; i++) {
         var descriptor = props[i];
@@ -5551,15 +5676,15 @@ var SheetsManager_1 = createCommonjsModule(function (module, exports) {
     };
   }();
 
-  var _warning2 = _interopRequireDefault$$1(browser);
+  var _warning2 = _interopRequireDefault(browser);
 
-  function _interopRequireDefault$$1(obj) {
+  function _interopRequireDefault(obj) {
     return obj && obj.__esModule ? obj : {
       'default': obj
     };
   }
 
-  function _classCallCheck$$1(instance, Constructor) {
+  function _classCallCheck(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
       throw new TypeError("Cannot call a class as a function");
     }
@@ -5572,14 +5697,14 @@ var SheetsManager_1 = createCommonjsModule(function (module, exports) {
 
   var SheetsManager = function () {
     function SheetsManager() {
-      _classCallCheck$$1(this, SheetsManager);
+      _classCallCheck(this, SheetsManager);
 
       this.sheets = [];
       this.refs = [];
       this.keys = [];
     }
 
-    _createClass$$1(SheetsManager, [{
+    _createClass(SheetsManager, [{
       key: 'get',
       value: function get(key) {
         var index = this.keys.indexOf(key);
@@ -5645,9 +5770,9 @@ var toCss_1 = createCommonjsModule(function (module, exports) {
   });
   exports['default'] = toCss;
 
-  var _toCssValue2 = _interopRequireDefault$$1(toCssValue_1);
+  var _toCssValue2 = _interopRequireDefault(toCssValue_1);
 
-  function _interopRequireDefault$$1(obj) {
+  function _interopRequireDefault(obj) {
     return obj && obj.__esModule ? obj : {
       'default': obj
     };
@@ -5730,7 +5855,7 @@ var StyleRule_1 = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _extends$$1 = Object.assign || function (target) {
+  var _extends = Object.assign || function (target) {
     for (var i = 1; i < arguments.length; i++) {
       var source = arguments[i];
 
@@ -5744,13 +5869,13 @@ var StyleRule_1 = createCommonjsModule(function (module, exports) {
     return target;
   };
 
-  var _typeof$$1 = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
+  var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
     return typeof obj;
   } : function (obj) {
     return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
   };
 
-  var _createClass$$1 = function () {
+  var _createClass = function () {
     function defineProperties(target, props) {
       for (var i = 0; i < props.length; i++) {
         var descriptor = props[i];
@@ -5768,19 +5893,19 @@ var StyleRule_1 = createCommonjsModule(function (module, exports) {
     };
   }();
 
-  var _warning2 = _interopRequireDefault$$1(browser);
+  var _warning2 = _interopRequireDefault(browser);
 
-  var _toCss2 = _interopRequireDefault$$1(toCss_1);
+  var _toCss2 = _interopRequireDefault(toCss_1);
 
-  var _toCssValue2 = _interopRequireDefault$$1(toCssValue_1);
+  var _toCssValue2 = _interopRequireDefault(toCssValue_1);
 
-  function _interopRequireDefault$$1(obj) {
+  function _interopRequireDefault(obj) {
     return obj && obj.__esModule ? obj : {
       'default': obj
     };
   }
 
-  function _classCallCheck$$1(instance, Constructor) {
+  function _classCallCheck(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
       throw new TypeError("Cannot call a class as a function");
     }
@@ -5788,7 +5913,7 @@ var StyleRule_1 = createCommonjsModule(function (module, exports) {
 
   var StyleRule = function () {
     function StyleRule(key, style, options) {
-      _classCallCheck$$1(this, StyleRule);
+      _classCallCheck(this, StyleRule);
 
       this.type = 'style';
       this.isProcessed = false;
@@ -5808,7 +5933,7 @@ var StyleRule_1 = createCommonjsModule(function (module, exports) {
      */
 
 
-    _createClass$$1(StyleRule, [{
+    _createClass(StyleRule, [{
       key: 'prop',
 
       /**
@@ -5869,7 +5994,7 @@ var StyleRule_1 = createCommonjsModule(function (module, exports) {
 
         for (var prop in this.style) {
           var value = this.style[prop];
-          if ((typeof value === 'undefined' ? 'undefined' : _typeof$$1(value)) !== 'object') json[prop] = value;else if (Array.isArray(value)) json[prop] = (0, _toCssValue2['default'])(value);
+          if ((typeof value === 'undefined' ? 'undefined' : _typeof(value)) !== 'object') json[prop] = value;else if (Array.isArray(value)) json[prop] = (0, _toCssValue2['default'])(value);
         }
 
         return json;
@@ -5883,7 +6008,7 @@ var StyleRule_1 = createCommonjsModule(function (module, exports) {
       value: function toString(options) {
         var sheet = this.options.sheet;
         var link = sheet ? sheet.options.link : false;
-        var opts = link ? _extends$$1({}, options, {
+        var opts = link ? _extends({}, options, {
           allowEmpty: true
         }) : options;
         return (0, _toCss2['default'])(this.selector, this.style, opts);
@@ -5966,9 +6091,9 @@ var isObservable = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _symbolObservable2 = _interopRequireDefault$$1(_symbolObservable);
+  var _symbolObservable2 = _interopRequireDefault(_symbolObservable);
 
-  function _interopRequireDefault$$1(obj) {
+  function _interopRequireDefault(obj) {
     return obj && obj.__esModule ? obj : {
       'default': obj
     };
@@ -5986,7 +6111,7 @@ var cloneStyle_1 = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _typeof$$1 = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
+  var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
     return typeof obj;
   } : function (obj) {
     return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
@@ -5994,9 +6119,9 @@ var cloneStyle_1 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = cloneStyle;
 
-  var _isObservable2 = _interopRequireDefault$$1(isObservable);
+  var _isObservable2 = _interopRequireDefault(isObservable);
 
-  function _interopRequireDefault$$1(obj) {
+  function _interopRequireDefault(obj) {
     return obj && obj.__esModule ? obj : {
       'default': obj
     };
@@ -6008,7 +6133,7 @@ var cloneStyle_1 = createCommonjsModule(function (module, exports) {
     // Support empty values in case user ends up with them by accident.
     if (style == null) return style; // Support string value for SimpleRule.
 
-    var typeOfStyle = typeof style === 'undefined' ? 'undefined' : _typeof$$1(style);
+    var typeOfStyle = typeof style === 'undefined' ? 'undefined' : _typeof(style);
 
     if (typeOfStyle === 'string' || typeOfStyle === 'number' || typeOfStyle === 'function') {
       return style;
@@ -6024,7 +6149,7 @@ var cloneStyle_1 = createCommonjsModule(function (module, exports) {
     for (var name in style) {
       var value = style[name];
 
-      if ((typeof value === 'undefined' ? 'undefined' : _typeof$$1(value)) === 'object') {
+      if ((typeof value === 'undefined' ? 'undefined' : _typeof(value)) === 'object') {
         newStyle[name] = cloneStyle(value);
         continue;
       }
@@ -6044,13 +6169,13 @@ var createRule_1 = createCommonjsModule(function (module, exports) {
   });
   exports['default'] = createRule;
 
-  var _warning2 = _interopRequireDefault$$1(browser);
+  var _warning2 = _interopRequireDefault(browser);
 
-  var _StyleRule2 = _interopRequireDefault$$1(StyleRule_1);
+  var _StyleRule2 = _interopRequireDefault(StyleRule_1);
 
-  var _cloneStyle2 = _interopRequireDefault$$1(cloneStyle_1);
+  var _cloneStyle2 = _interopRequireDefault(cloneStyle_1);
 
-  function _interopRequireDefault$$1(obj) {
+  function _interopRequireDefault(obj) {
     return obj && obj.__esModule ? obj : {
       'default': obj
     };
@@ -6125,7 +6250,7 @@ var RuleList_1 = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _extends$$1 = Object.assign || function (target) {
+  var _extends = Object.assign || function (target) {
     for (var i = 1; i < arguments.length; i++) {
       var source = arguments[i];
 
@@ -6139,7 +6264,7 @@ var RuleList_1 = createCommonjsModule(function (module, exports) {
     return target;
   };
 
-  var _createClass$$1 = function () {
+  var _createClass = function () {
     function defineProperties(target, props) {
       for (var i = 0; i < props.length; i++) {
         var descriptor = props[i];
@@ -6157,21 +6282,21 @@ var RuleList_1 = createCommonjsModule(function (module, exports) {
     };
   }();
 
-  var _createRule2 = _interopRequireDefault$$1(createRule_1);
+  var _createRule2 = _interopRequireDefault(createRule_1);
 
-  var _linkRule2 = _interopRequireDefault$$1(linkRule_1);
+  var _linkRule2 = _interopRequireDefault(linkRule_1);
 
-  var _StyleRule2 = _interopRequireDefault$$1(StyleRule_1);
+  var _StyleRule2 = _interopRequireDefault(StyleRule_1);
 
-  var _escape2 = _interopRequireDefault$$1(_escape);
+  var _escape2 = _interopRequireDefault(_escape);
 
-  function _interopRequireDefault$$1(obj) {
+  function _interopRequireDefault(obj) {
     return obj && obj.__esModule ? obj : {
       'default': obj
     };
   }
 
-  function _classCallCheck$$1(instance, Constructor) {
+  function _classCallCheck(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
       throw new TypeError("Cannot call a class as a function");
     }
@@ -6185,7 +6310,7 @@ var RuleList_1 = createCommonjsModule(function (module, exports) {
   var RuleList = function () {
     // Original styles object.
     function RuleList(options) {
-      _classCallCheck$$1(this, RuleList);
+      _classCallCheck(this, RuleList);
 
       this.map = {};
       this.raw = {};
@@ -6203,7 +6328,7 @@ var RuleList_1 = createCommonjsModule(function (module, exports) {
     // It contains the same rule registered by name and by selector.
 
 
-    _createClass$$1(RuleList, [{
+    _createClass(RuleList, [{
       key: 'add',
       value: function add(name, decl, options) {
         var _options = this.options,
@@ -6212,7 +6337,7 @@ var RuleList_1 = createCommonjsModule(function (module, exports) {
             jss = _options.jss,
             Renderer = _options.Renderer,
             generateClassName = _options.generateClassName;
-        options = _extends$$1({
+        options = _extends({
           classes: this.classes,
           parent: parent,
           sheet: sheet,
@@ -6383,9 +6508,9 @@ var sheets = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _SheetsRegistry2 = _interopRequireDefault$$1(SheetsRegistry_1);
+  var _SheetsRegistry2 = _interopRequireDefault(SheetsRegistry_1);
 
-  function _interopRequireDefault$$1(obj) {
+  function _interopRequireDefault(obj) {
     return obj && obj.__esModule ? obj : {
       'default': obj
     };
@@ -6408,7 +6533,7 @@ var StyleSheet_1 = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _extends$$1 = Object.assign || function (target) {
+  var _extends = Object.assign || function (target) {
     for (var i = 1; i < arguments.length; i++) {
       var source = arguments[i];
 
@@ -6422,7 +6547,7 @@ var StyleSheet_1 = createCommonjsModule(function (module, exports) {
     return target;
   };
 
-  var _createClass$$1 = function () {
+  var _createClass = function () {
     function defineProperties(target, props) {
       for (var i = 0; i < props.length; i++) {
         var descriptor = props[i];
@@ -6440,17 +6565,17 @@ var StyleSheet_1 = createCommonjsModule(function (module, exports) {
     };
   }();
 
-  var _linkRule2 = _interopRequireDefault$$1(linkRule_1);
+  var _linkRule2 = _interopRequireDefault(linkRule_1);
 
-  var _RuleList2 = _interopRequireDefault$$1(RuleList_1);
+  var _RuleList2 = _interopRequireDefault(RuleList_1);
 
-  function _interopRequireDefault$$1(obj) {
+  function _interopRequireDefault(obj) {
     return obj && obj.__esModule ? obj : {
       'default': obj
     };
   }
 
-  function _classCallCheck$$1(instance, Constructor) {
+  function _classCallCheck(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
       throw new TypeError("Cannot call a class as a function");
     }
@@ -6458,13 +6583,13 @@ var StyleSheet_1 = createCommonjsModule(function (module, exports) {
 
   var StyleSheet = function () {
     function StyleSheet(styles, options) {
-      _classCallCheck$$1(this, StyleSheet);
+      _classCallCheck(this, StyleSheet);
 
       this.attached = false;
       this.deployed = false;
       this.linked = false;
       this.classes = {};
-      this.options = _extends$$1({}, options, {
+      this.options = _extends({}, options, {
         sheet: this,
         parent: this,
         classes: this.classes
@@ -6483,7 +6608,7 @@ var StyleSheet_1 = createCommonjsModule(function (module, exports) {
      */
 
 
-    _createClass$$1(StyleSheet, [{
+    _createClass(StyleSheet, [{
       key: 'attach',
       value: function attach() {
         if (this.attached) return this;
@@ -6676,13 +6801,13 @@ var createGenerateClassName = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _warning2 = _interopRequireDefault$$1(browser);
+  var _warning2 = _interopRequireDefault(browser);
 
-  var _StyleSheet2 = _interopRequireDefault$$1(StyleSheet_1);
+  var _StyleSheet2 = _interopRequireDefault(StyleSheet_1);
 
-  var _moduleId2 = _interopRequireDefault$$1(moduleId);
+  var _moduleId2 = _interopRequireDefault(moduleId);
 
-  function _interopRequireDefault$$1(obj) {
+  function _interopRequireDefault(obj) {
     return obj && obj.__esModule ? obj : {
       'default': obj
     };
@@ -6744,7 +6869,7 @@ var PluginsRegistry_1 = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _createClass$$1 = function () {
+  var _createClass = function () {
     function defineProperties(target, props) {
       for (var i = 0; i < props.length; i++) {
         var descriptor = props[i];
@@ -6762,15 +6887,15 @@ var PluginsRegistry_1 = createCommonjsModule(function (module, exports) {
     };
   }();
 
-  var _warning2 = _interopRequireDefault$$1(browser);
+  var _warning2 = _interopRequireDefault(browser);
 
-  function _interopRequireDefault$$1(obj) {
+  function _interopRequireDefault(obj) {
     return obj && obj.__esModule ? obj : {
       'default': obj
     };
   }
 
-  function _classCallCheck$$1(instance, Constructor) {
+  function _classCallCheck(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
       throw new TypeError("Cannot call a class as a function");
     }
@@ -6778,7 +6903,7 @@ var PluginsRegistry_1 = createCommonjsModule(function (module, exports) {
 
   var PluginsRegistry = function () {
     function PluginsRegistry() {
-      _classCallCheck$$1(this, PluginsRegistry);
+      _classCallCheck(this, PluginsRegistry);
 
       this.hooks = {
         onCreateRule: [],
@@ -6794,7 +6919,7 @@ var PluginsRegistry_1 = createCommonjsModule(function (module, exports) {
       };
     }
 
-    _createClass$$1(PluginsRegistry, [{
+    _createClass(PluginsRegistry, [{
       key: 'onCreateRule',
       value: function onCreateRule(name, decl, options) {
         for (var i = 0; i < this.hooks.onCreateRule.length; i++) {
@@ -6901,7 +7026,7 @@ var SimpleRule_1 = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _createClass$$1 = function () {
+  var _createClass = function () {
     function defineProperties(target, props) {
       for (var i = 0; i < props.length; i++) {
         var descriptor = props[i];
@@ -6919,7 +7044,7 @@ var SimpleRule_1 = createCommonjsModule(function (module, exports) {
     };
   }();
 
-  function _classCallCheck$$1(instance, Constructor) {
+  function _classCallCheck(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
       throw new TypeError("Cannot call a class as a function");
     }
@@ -6927,7 +7052,7 @@ var SimpleRule_1 = createCommonjsModule(function (module, exports) {
 
   var SimpleRule = function () {
     function SimpleRule(key, value, options) {
-      _classCallCheck$$1(this, SimpleRule);
+      _classCallCheck(this, SimpleRule);
 
       this.type = 'simple';
       this.isProcessed = false;
@@ -6941,7 +7066,7 @@ var SimpleRule_1 = createCommonjsModule(function (module, exports) {
     // eslint-disable-next-line no-unused-vars
 
 
-    _createClass$$1(SimpleRule, [{
+    _createClass(SimpleRule, [{
       key: 'toString',
       value: function toString(options) {
         if (Array.isArray(this.value)) {
@@ -6972,7 +7097,7 @@ var KeyframesRule_1 = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _extends$$1 = Object.assign || function (target) {
+  var _extends = Object.assign || function (target) {
     for (var i = 1; i < arguments.length; i++) {
       var source = arguments[i];
 
@@ -6986,7 +7111,7 @@ var KeyframesRule_1 = createCommonjsModule(function (module, exports) {
     return target;
   };
 
-  var _createClass$$1 = function () {
+  var _createClass = function () {
     function defineProperties(target, props) {
       for (var i = 0; i < props.length; i++) {
         var descriptor = props[i];
@@ -7004,15 +7129,15 @@ var KeyframesRule_1 = createCommonjsModule(function (module, exports) {
     };
   }();
 
-  var _RuleList2 = _interopRequireDefault$$1(RuleList_1);
+  var _RuleList2 = _interopRequireDefault(RuleList_1);
 
-  function _interopRequireDefault$$1(obj) {
+  function _interopRequireDefault(obj) {
     return obj && obj.__esModule ? obj : {
       'default': obj
     };
   }
 
-  function _classCallCheck$$1(instance, Constructor) {
+  function _classCallCheck(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
       throw new TypeError("Cannot call a class as a function");
     }
@@ -7024,18 +7149,18 @@ var KeyframesRule_1 = createCommonjsModule(function (module, exports) {
 
   var KeyframesRule = function () {
     function KeyframesRule(key, frames, options) {
-      _classCallCheck$$1(this, KeyframesRule);
+      _classCallCheck(this, KeyframesRule);
 
       this.type = 'keyframes';
       this.isProcessed = false;
       this.key = key;
       this.options = options;
-      this.rules = new _RuleList2['default'](_extends$$1({}, options, {
+      this.rules = new _RuleList2['default'](_extends({}, options, {
         parent: this
       }));
 
       for (var name in frames) {
-        this.rules.add(name, frames[name], _extends$$1({}, this.options, {
+        this.rules.add(name, frames[name], _extends({}, this.options, {
           parent: this,
           selector: name
         }));
@@ -7048,7 +7173,7 @@ var KeyframesRule_1 = createCommonjsModule(function (module, exports) {
      */
 
 
-    _createClass$$1(KeyframesRule, [{
+    _createClass(KeyframesRule, [{
       key: 'toString',
       value: function toString() {
         var options = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {
@@ -7073,7 +7198,7 @@ var ConditionalRule_1 = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _extends$$1 = Object.assign || function (target) {
+  var _extends = Object.assign || function (target) {
     for (var i = 1; i < arguments.length; i++) {
       var source = arguments[i];
 
@@ -7087,7 +7212,7 @@ var ConditionalRule_1 = createCommonjsModule(function (module, exports) {
     return target;
   };
 
-  var _createClass$$1 = function () {
+  var _createClass = function () {
     function defineProperties(target, props) {
       for (var i = 0; i < props.length; i++) {
         var descriptor = props[i];
@@ -7105,15 +7230,15 @@ var ConditionalRule_1 = createCommonjsModule(function (module, exports) {
     };
   }();
 
-  var _RuleList2 = _interopRequireDefault$$1(RuleList_1);
+  var _RuleList2 = _interopRequireDefault(RuleList_1);
 
-  function _interopRequireDefault$$1(obj) {
+  function _interopRequireDefault(obj) {
     return obj && obj.__esModule ? obj : {
       'default': obj
     };
   }
 
-  function _classCallCheck$$1(instance, Constructor) {
+  function _classCallCheck(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
       throw new TypeError("Cannot call a class as a function");
     }
@@ -7125,13 +7250,13 @@ var ConditionalRule_1 = createCommonjsModule(function (module, exports) {
 
   var ConditionalRule = function () {
     function ConditionalRule(key, styles, options) {
-      _classCallCheck$$1(this, ConditionalRule);
+      _classCallCheck(this, ConditionalRule);
 
       this.type = 'conditional';
       this.isProcessed = false;
       this.key = key;
       this.options = options;
-      this.rules = new _RuleList2['default'](_extends$$1({}, options, {
+      this.rules = new _RuleList2['default'](_extends({}, options, {
         parent: this
       }));
 
@@ -7146,7 +7271,7 @@ var ConditionalRule_1 = createCommonjsModule(function (module, exports) {
      */
 
 
-    _createClass$$1(ConditionalRule, [{
+    _createClass(ConditionalRule, [{
       key: 'getRule',
       value: function getRule(name) {
         return this.rules.get(name);
@@ -7199,7 +7324,7 @@ var FontFaceRule_1 = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _createClass$$1 = function () {
+  var _createClass = function () {
     function defineProperties(target, props) {
       for (var i = 0; i < props.length; i++) {
         var descriptor = props[i];
@@ -7217,15 +7342,15 @@ var FontFaceRule_1 = createCommonjsModule(function (module, exports) {
     };
   }();
 
-  var _toCss2 = _interopRequireDefault$$1(toCss_1);
+  var _toCss2 = _interopRequireDefault(toCss_1);
 
-  function _interopRequireDefault$$1(obj) {
+  function _interopRequireDefault(obj) {
     return obj && obj.__esModule ? obj : {
       'default': obj
     };
   }
 
-  function _classCallCheck$$1(instance, Constructor) {
+  function _classCallCheck(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
       throw new TypeError("Cannot call a class as a function");
     }
@@ -7233,7 +7358,7 @@ var FontFaceRule_1 = createCommonjsModule(function (module, exports) {
 
   var FontFaceRule = function () {
     function FontFaceRule(key, style, options) {
-      _classCallCheck$$1(this, FontFaceRule);
+      _classCallCheck(this, FontFaceRule);
 
       this.type = 'font-face';
       this.isProcessed = false;
@@ -7246,7 +7371,7 @@ var FontFaceRule_1 = createCommonjsModule(function (module, exports) {
      */
 
 
-    _createClass$$1(FontFaceRule, [{
+    _createClass(FontFaceRule, [{
       key: 'toString',
       value: function toString(options) {
         if (Array.isArray(this.style)) {
@@ -7277,7 +7402,7 @@ var ViewportRule_1 = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _createClass$$1 = function () {
+  var _createClass = function () {
     function defineProperties(target, props) {
       for (var i = 0; i < props.length; i++) {
         var descriptor = props[i];
@@ -7295,15 +7420,15 @@ var ViewportRule_1 = createCommonjsModule(function (module, exports) {
     };
   }();
 
-  var _toCss2 = _interopRequireDefault$$1(toCss_1);
+  var _toCss2 = _interopRequireDefault(toCss_1);
 
-  function _interopRequireDefault$$1(obj) {
+  function _interopRequireDefault(obj) {
     return obj && obj.__esModule ? obj : {
       'default': obj
     };
   }
 
-  function _classCallCheck$$1(instance, Constructor) {
+  function _classCallCheck(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
       throw new TypeError("Cannot call a class as a function");
     }
@@ -7311,7 +7436,7 @@ var ViewportRule_1 = createCommonjsModule(function (module, exports) {
 
   var ViewportRule = function () {
     function ViewportRule(key, style, options) {
-      _classCallCheck$$1(this, ViewportRule);
+      _classCallCheck(this, ViewportRule);
 
       this.type = 'viewport';
       this.isProcessed = false;
@@ -7324,7 +7449,7 @@ var ViewportRule_1 = createCommonjsModule(function (module, exports) {
      */
 
 
-    _createClass$$1(ViewportRule, [{
+    _createClass(ViewportRule, [{
       key: 'toString',
       value: function toString(options) {
         return (0, _toCss2['default'])(this.key, this.style, options);
@@ -7344,17 +7469,17 @@ var rules = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _SimpleRule2 = _interopRequireDefault$$1(SimpleRule_1);
+  var _SimpleRule2 = _interopRequireDefault(SimpleRule_1);
 
-  var _KeyframesRule2 = _interopRequireDefault$$1(KeyframesRule_1);
+  var _KeyframesRule2 = _interopRequireDefault(KeyframesRule_1);
 
-  var _ConditionalRule2 = _interopRequireDefault$$1(ConditionalRule_1);
+  var _ConditionalRule2 = _interopRequireDefault(ConditionalRule_1);
 
-  var _FontFaceRule2 = _interopRequireDefault$$1(FontFaceRule_1);
+  var _FontFaceRule2 = _interopRequireDefault(FontFaceRule_1);
 
-  var _ViewportRule2 = _interopRequireDefault$$1(ViewportRule_1);
+  var _ViewportRule2 = _interopRequireDefault(ViewportRule_1);
 
-  function _interopRequireDefault$$1(obj) {
+  function _interopRequireDefault(obj) {
     return obj && obj.__esModule ? obj : {
       'default': obj
     };
@@ -7398,13 +7523,13 @@ var observables = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _StyleRule2 = _interopRequireDefault$$1(StyleRule_1);
+  var _StyleRule2 = _interopRequireDefault(StyleRule_1);
 
-  var _createRule2 = _interopRequireDefault$$1(createRule_1);
+  var _createRule2 = _interopRequireDefault(createRule_1);
 
-  var _isObservable2 = _interopRequireDefault$$1(isObservable);
+  var _isObservable2 = _interopRequireDefault(isObservable);
 
-  function _interopRequireDefault$$1(obj) {
+  function _interopRequireDefault(obj) {
     return obj && obj.__esModule ? obj : {
       'default': obj
     };
@@ -7461,13 +7586,13 @@ var functions = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _RuleList2 = _interopRequireDefault$$1(RuleList_1);
+  var _RuleList2 = _interopRequireDefault(RuleList_1);
 
-  var _StyleRule2 = _interopRequireDefault$$1(StyleRule_1);
+  var _StyleRule2 = _interopRequireDefault(StyleRule_1);
 
-  var _createRule2 = _interopRequireDefault$$1(createRule_1);
+  var _createRule2 = _interopRequireDefault(createRule_1);
 
-  function _interopRequireDefault$$1(obj) {
+  function _interopRequireDefault(obj) {
     return obj && obj.__esModule ? obj : {
       'default': obj
     };
@@ -7536,7 +7661,7 @@ var DomRenderer_1 = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _createClass$$1 = function () {
+  var _createClass = function () {
     function defineProperties(target, props) {
       for (var i = 0; i < props.length; i++) {
         var descriptor = props[i];
@@ -7554,21 +7679,21 @@ var DomRenderer_1 = createCommonjsModule(function (module, exports) {
     };
   }();
 
-  var _warning2 = _interopRequireDefault$$1(browser);
+  var _warning2 = _interopRequireDefault(browser);
 
-  var _sheets2 = _interopRequireDefault$$1(sheets);
+  var _sheets2 = _interopRequireDefault(sheets);
 
-  var _StyleRule2 = _interopRequireDefault$$1(StyleRule_1);
+  var _StyleRule2 = _interopRequireDefault(StyleRule_1);
 
-  var _toCssValue2 = _interopRequireDefault$$1(toCssValue_1);
+  var _toCssValue2 = _interopRequireDefault(toCssValue_1);
 
-  function _interopRequireDefault$$1(obj) {
+  function _interopRequireDefault(obj) {
     return obj && obj.__esModule ? obj : {
       'default': obj
     };
   }
 
-  function _classCallCheck$$1(instance, Constructor) {
+  function _classCallCheck(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
       throw new TypeError("Cannot call a class as a function");
     }
@@ -7862,7 +7987,7 @@ var DomRenderer_1 = createCommonjsModule(function (module, exports) {
 
   var DomRenderer = function () {
     function DomRenderer(sheet) {
-      _classCallCheck$$1(this, DomRenderer);
+      _classCallCheck(this, DomRenderer);
 
       this.getPropertyValue = getPropertyValue;
       this.setProperty = setProperty;
@@ -7894,7 +8019,7 @@ var DomRenderer_1 = createCommonjsModule(function (module, exports) {
     // HTMLStyleElement needs fixing https://github.com/facebook/flow/issues/2696
 
 
-    _createClass$$1(DomRenderer, [{
+    _createClass(DomRenderer, [{
       key: 'attach',
       value: function attach() {
         // In the case the element node is external and it is already in the DOM.
@@ -8016,7 +8141,7 @@ var VirtualRenderer_1 = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _createClass$$1 = function () {
+  var _createClass = function () {
     function defineProperties(target, props) {
       for (var i = 0; i < props.length; i++) {
         var descriptor = props[i];
@@ -8034,7 +8159,7 @@ var VirtualRenderer_1 = createCommonjsModule(function (module, exports) {
     };
   }();
 
-  function _classCallCheck$$1(instance, Constructor) {
+  function _classCallCheck(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
       throw new TypeError("Cannot call a class as a function");
     }
@@ -8048,10 +8173,10 @@ var VirtualRenderer_1 = createCommonjsModule(function (module, exports) {
 
   var VirtualRenderer = function () {
     function VirtualRenderer() {
-      _classCallCheck$$1(this, VirtualRenderer);
+      _classCallCheck(this, VirtualRenderer);
     }
 
-    _createClass$$1(VirtualRenderer, [{
+    _createClass(VirtualRenderer, [{
       key: 'setProperty',
       value: function setProperty() {
         return true;
@@ -8123,13 +8248,13 @@ var Jss_1 = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _typeof$$1 = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
+  var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) {
     return typeof obj;
   } : function (obj) {
     return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj;
   };
 
-  var _extends$$1 = Object.assign || function (target) {
+  var _extends = Object.assign || function (target) {
     for (var i = 1; i < arguments.length; i++) {
       var source = arguments[i];
 
@@ -8143,7 +8268,7 @@ var Jss_1 = createCommonjsModule(function (module, exports) {
     return target;
   };
 
-  var _createClass$$1 = function () {
+  var _createClass = function () {
     function defineProperties(target, props) {
       for (var i = 0; i < props.length; i++) {
         var descriptor = props[i];
@@ -8161,37 +8286,37 @@ var Jss_1 = createCommonjsModule(function (module, exports) {
     };
   }();
 
-  var _isInBrowser2 = _interopRequireDefault$$1(_isInBrowser);
+  var _isInBrowser2 = _interopRequireDefault(_isInBrowser);
 
-  var _StyleSheet2 = _interopRequireDefault$$1(StyleSheet_1);
+  var _StyleSheet2 = _interopRequireDefault(StyleSheet_1);
 
-  var _PluginsRegistry2 = _interopRequireDefault$$1(PluginsRegistry_1);
+  var _PluginsRegistry2 = _interopRequireDefault(PluginsRegistry_1);
 
-  var _rules2 = _interopRequireDefault$$1(rules);
+  var _rules2 = _interopRequireDefault(rules);
 
-  var _observables2 = _interopRequireDefault$$1(observables);
+  var _observables2 = _interopRequireDefault(observables);
 
-  var _functions2 = _interopRequireDefault$$1(functions);
+  var _functions2 = _interopRequireDefault(functions);
 
-  var _sheets2 = _interopRequireDefault$$1(sheets);
+  var _sheets2 = _interopRequireDefault(sheets);
 
-  var _StyleRule2 = _interopRequireDefault$$1(StyleRule_1);
+  var _StyleRule2 = _interopRequireDefault(StyleRule_1);
 
-  var _createGenerateClassName2 = _interopRequireDefault$$1(createGenerateClassName);
+  var _createGenerateClassName2 = _interopRequireDefault(createGenerateClassName);
 
-  var _createRule3 = _interopRequireDefault$$1(createRule_1);
+  var _createRule3 = _interopRequireDefault(createRule_1);
 
-  var _DomRenderer2 = _interopRequireDefault$$1(DomRenderer_1);
+  var _DomRenderer2 = _interopRequireDefault(DomRenderer_1);
 
-  var _VirtualRenderer2 = _interopRequireDefault$$1(VirtualRenderer_1);
+  var _VirtualRenderer2 = _interopRequireDefault(VirtualRenderer_1);
 
-  function _interopRequireDefault$$1(obj) {
+  function _interopRequireDefault(obj) {
     return obj && obj.__esModule ? obj : {
       'default': obj
     };
   }
 
-  function _classCallCheck$$1(instance, Constructor) {
+  function _classCallCheck(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
       throw new TypeError("Cannot call a class as a function");
     }
@@ -8203,7 +8328,7 @@ var Jss_1 = createCommonjsModule(function (module, exports) {
 
   var Jss = function () {
     function Jss(options) {
-      _classCallCheck$$1(this, Jss);
+      _classCallCheck(this, Jss);
 
       this.id = instanceCounter++;
       this.version = "9.8.0";
@@ -8219,7 +8344,7 @@ var Jss_1 = createCommonjsModule(function (module, exports) {
       this.setup(options);
     }
 
-    _createClass$$1(Jss, [{
+    _createClass(Jss, [{
       key: 'setup',
       value: function setup() {
         var options = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
@@ -8254,7 +8379,7 @@ var Jss_1 = createCommonjsModule(function (module, exports) {
           index = _sheets2['default'].index === 0 ? 0 : _sheets2['default'].index + 1;
         }
 
-        var sheet = new _StyleSheet2['default'](styles, _extends$$1({}, options, {
+        var sheet = new _StyleSheet2['default'](styles, _extends({}, options, {
           jss: this,
           generateClassName: options.generateClassName || this.generateClassName,
           insertionPoint: this.options.insertionPoint,
@@ -8287,7 +8412,7 @@ var Jss_1 = createCommonjsModule(function (module, exports) {
         var style = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
         var options = arguments.length > 2 && arguments[2] !== undefined ? arguments[2] : {}; // Enable rule without name for inline styles.
 
-        if ((typeof name === 'undefined' ? 'undefined' : _typeof$$1(name)) === 'object') {
+        if ((typeof name === 'undefined' ? 'undefined' : _typeof(name)) === 'object') {
           options = style;
           style = name;
           name = undefined;
@@ -8350,49 +8475,49 @@ var lib = createCommonjsModule(function (module, exports) {
   Object.defineProperty(exports, 'getDynamicStyles', {
     enumerable: true,
     get: function get() {
-      return _interopRequireDefault$$1(getDynamicStyles)['default'];
+      return _interopRequireDefault(getDynamicStyles)['default'];
     }
   });
   Object.defineProperty(exports, 'toCssValue', {
     enumerable: true,
     get: function get() {
-      return _interopRequireDefault$$1(toCssValue_1)['default'];
+      return _interopRequireDefault(toCssValue_1)['default'];
     }
   });
   Object.defineProperty(exports, 'SheetsRegistry', {
     enumerable: true,
     get: function get() {
-      return _interopRequireDefault$$1(SheetsRegistry_1)['default'];
+      return _interopRequireDefault(SheetsRegistry_1)['default'];
     }
   });
   Object.defineProperty(exports, 'SheetsManager', {
     enumerable: true,
     get: function get() {
-      return _interopRequireDefault$$1(SheetsManager_1)['default'];
+      return _interopRequireDefault(SheetsManager_1)['default'];
     }
   });
   Object.defineProperty(exports, 'RuleList', {
     enumerable: true,
     get: function get() {
-      return _interopRequireDefault$$1(RuleList_1)['default'];
+      return _interopRequireDefault(RuleList_1)['default'];
     }
   });
   Object.defineProperty(exports, 'sheets', {
     enumerable: true,
     get: function get() {
-      return _interopRequireDefault$$1(sheets)['default'];
+      return _interopRequireDefault(sheets)['default'];
     }
   });
   Object.defineProperty(exports, 'createGenerateClassName', {
     enumerable: true,
     get: function get() {
-      return _interopRequireDefault$$1(createGenerateClassName)['default'];
+      return _interopRequireDefault(createGenerateClassName)['default'];
     }
   });
 
-  var _Jss2 = _interopRequireDefault$$1(Jss_1);
+  var _Jss2 = _interopRequireDefault(Jss_1);
 
-  function _interopRequireDefault$$1(obj) {
+  function _interopRequireDefault(obj) {
     return obj && obj.__esModule ? obj : {
       'default': obj
     };
@@ -8441,9 +8566,9 @@ var lib$1 = createCommonjsModule(function (module, exports) {
   });
   exports['default'] = camelCase;
 
-  var _hyphenateStyleName2 = _interopRequireDefault$$1(hyphenateStyleName_1);
+  var _hyphenateStyleName2 = _interopRequireDefault(hyphenateStyleName_1);
 
-  function _interopRequireDefault$$1(obj) {
+  function _interopRequireDefault(obj) {
     return obj && obj.__esModule ? obj : {
       'default': obj
     };
@@ -8513,7 +8638,7 @@ var lib$2 = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _extends$$1 = Object.assign || function (target) {
+  var _extends = Object.assign || function (target) {
     for (var i = 1; i < arguments.length; i++) {
       var source = arguments[i];
 
@@ -8527,7 +8652,7 @@ var lib$2 = createCommonjsModule(function (module, exports) {
     return target;
   };
 
-  var _createClass$$1 = function () {
+  var _createClass = function () {
     function defineProperties(target, props) {
       for (var i = 0; i < props.length; i++) {
         var descriptor = props[i];
@@ -8547,7 +8672,7 @@ var lib$2 = createCommonjsModule(function (module, exports) {
 
   exports['default'] = jssGlobal;
 
-  function _classCallCheck$$1(instance, Constructor) {
+  function _classCallCheck(instance, Constructor) {
     if (!(instance instanceof Constructor)) {
       throw new TypeError("Cannot call a class as a function");
     }
@@ -8558,12 +8683,12 @@ var lib$2 = createCommonjsModule(function (module, exports) {
 
   var GlobalContainerRule = function () {
     function GlobalContainerRule(key, styles, options) {
-      _classCallCheck$$1(this, GlobalContainerRule);
+      _classCallCheck(this, GlobalContainerRule);
 
       this.type = 'global';
       this.key = key;
       this.options = options;
-      this.rules = new lib.RuleList(_extends$$1({}, options, {
+      this.rules = new lib.RuleList(_extends({}, options, {
         parent: this
       }));
 
@@ -8580,7 +8705,7 @@ var lib$2 = createCommonjsModule(function (module, exports) {
      */
 
 
-    _createClass$$1(GlobalContainerRule, [{
+    _createClass(GlobalContainerRule, [{
       key: 'getRule',
       value: function getRule(name) {
         return this.rules.get(name);
@@ -8621,18 +8746,18 @@ var lib$2 = createCommonjsModule(function (module, exports) {
 
   var GlobalPrefixedRule = function () {
     function GlobalPrefixedRule(name, style, options) {
-      _classCallCheck$$1(this, GlobalPrefixedRule);
+      _classCallCheck(this, GlobalPrefixedRule);
 
       this.name = name;
       this.options = options;
       var selector = name.substr(prefixKey.length);
-      this.rule = options.jss.createRule(selector, style, _extends$$1({}, options, {
+      this.rule = options.jss.createRule(selector, style, _extends({}, options, {
         parent: this,
         selector: selector
       }));
     }
 
-    _createClass$$1(GlobalPrefixedRule, [{
+    _createClass(GlobalPrefixedRule, [{
       key: 'toString',
       value: function toString(options) {
         return this.rule.toString(options);
@@ -8663,7 +8788,7 @@ var lib$2 = createCommonjsModule(function (module, exports) {
     if (!rules) return;
 
     for (var name in rules) {
-      options.sheet.addRule(name, rules[name], _extends$$1({}, options, {
+      options.sheet.addRule(name, rules[name], _extends({}, options, {
         selector: addScope(name, rule.selector)
       }));
     }
@@ -8678,7 +8803,7 @@ var lib$2 = createCommonjsModule(function (module, exports) {
     for (var prop in style) {
       if (prop.substr(0, propKey.length) !== propKey) continue;
       var selector = addScope(prop.substr(propKey.length), rule.selector);
-      options.sheet.addRule(selector, style[prop], _extends$$1({}, options, {
+      options.sheet.addRule(selector, style[prop], _extends({}, options, {
         selector: selector
       }));
       delete style[prop];
@@ -8734,7 +8859,7 @@ var lib$3 = createCommonjsModule(function (module, exports) {
     value: true
   });
 
-  var _extends$$1 = Object.assign || function (target) {
+  var _extends = Object.assign || function (target) {
     for (var i = 1; i < arguments.length; i++) {
       var source = arguments[i];
 
@@ -8750,9 +8875,9 @@ var lib$3 = createCommonjsModule(function (module, exports) {
 
   exports.default = jssNested;
 
-  var _warning2 = _interopRequireDefault$$1(browser);
+  var _warning2 = _interopRequireDefault(browser);
 
-  function _interopRequireDefault$$1(obj) {
+  function _interopRequireDefault(obj) {
     return obj && obj.__esModule ? obj : {
       default: obj
     };
@@ -8807,12 +8932,12 @@ var lib$3 = createCommonjsModule(function (module, exports) {
 
     function getOptions(rule, container, options) {
       // Options has been already created, now we only increase index.
-      if (options) return _extends$$1({}, options, {
+      if (options) return _extends({}, options, {
         index: options.index + 1
       });
       var nestingLevel = rule.options.nestingLevel;
       nestingLevel = nestingLevel === undefined ? 1 : nestingLevel + 1;
-      return _extends$$1({}, rule.options, {
+      return _extends({}, rule.options, {
         nestingLevel: nestingLevel,
         index: container.indexOf(rule) + 1
       });
@@ -8837,7 +8962,7 @@ var lib$3 = createCommonjsModule(function (module, exports) {
           if (!replaceRef) replaceRef = getReplaceRef(container // Replace all $refs.
           );
           selector = selector.replace(refRegExp, replaceRef);
-          container.addRule(selector, style[prop], _extends$$1({}, options, {
+          container.addRule(selector, style[prop], _extends({}, options, {
             selector: selector
           }));
         } else if (isNestedConditional) {
@@ -9023,7 +9148,6 @@ var HttpError = function HttpError(_ref) {
   ;
   t['__proto__'] = new.target.prototype;
   t._opts = opts;
-  t.retry = opts.retry;
   return t;
 };
 
@@ -9061,22 +9185,16 @@ var FetcherResponse =
 /*#__PURE__*/
 function () {
   function FetcherResponse(method, url, fullUrl, fetcher) {
-    this._disposed = false;
     this._options = {
       method: method,
       url: url,
       fullUrl: fullUrl,
-      requestId: '' + Date.now(),
-      retry: this._getRetry()
+      requestId: '' + Date.now()
     };
     this._fetcher = fetcher;
   }
 
   var _proto = FetcherResponse.prototype;
-
-  _proto._getRetry = function _getRetry() {
-    throw new Error('implement');
-  };
 
   _proto._getState = function _getState() {
     var state = this._fetcher.state,
@@ -9095,8 +9213,6 @@ function () {
   };
 
   _proto.text = function text(next) {
-    var _this = this;
-
     if (next instanceof Error) throw new Error('Need a string');
     var fetcher = this._fetcher;
     var opts = fetcher.mergeOptions(_extends({}, this._options, {
@@ -9110,19 +9226,11 @@ function () {
       return state;
     }
 
-    this._disposed = false;
-    fetcher.request(opts).then(function (data) {
-      if (!_this._disposed) _this._setData(data);
-    });
-    throw new this.constructor.WaitError((opts.method || 'GET') + " " + opts.fullUrl);
+    throw this._createException((opts.method || 'GET') + " " + opts.fullUrl, fetcher.request(opts));
   };
 
-  _proto._setData = function _setData(data) {
-    throw new Error('implement');
-  };
-
-  _proto.destructor = function destructor() {
-    this._disposed = true;
+  _proto._createException = function _createException(debugStr, promise) {
+    return new Error(debugStr);
   };
 
   _proto.json = function json(next) {
@@ -9139,8 +9247,6 @@ function () {
 
   return FetcherResponse;
 }();
-
-FetcherResponse.WaitError = Error;
 FetcherResponse._r = [0, [String, String, String, "IFetcher"]];
 FetcherResponse.displayName = "FetcherResponse";
 
@@ -9273,8 +9379,8 @@ function () {
 Fetcher.HttpError = HttpError;
 Fetcher.displayName = "Fetcher";
 
-var _class$1, _class2, _temp;
-var FetcherResponseLom = (_class$1 = (_temp = _class2 =
+var _class$1;
+var FetcherResponseLom = (_class$1 =
 /*#__PURE__*/
 function (_FetcherResponse) {
   _inheritsLoose(FetcherResponseLom, _FetcherResponse);
@@ -9289,16 +9395,12 @@ function (_FetcherResponse) {
     return _FetcherResponse.prototype.text.call(this, next);
   };
 
-  _proto._getRetry = function _getRetry() {
-    return mem.getRetry(this.text());
-  };
-
-  _proto._setData = function _setData(data) {
-    mem.cache(this.text(data));
+  _proto._createException = function _createException(debugStr, promise) {
+    return new AtomWaitInt(debugStr, promise);
   };
 
   return FetcherResponseLom;
-}(FetcherResponse), _class2.WaitError = AtomWaitInt, _temp), _applyDecoratedDescriptor(_class$1.prototype, "text", [mem], Object.getOwnPropertyDescriptor(_class$1.prototype, "text"), _class$1.prototype), _class$1);
+}(FetcherResponse), _applyDecoratedDescriptor(_class$1.prototype, "text", [mem], Object.getOwnPropertyDescriptor(_class$1.prototype, "text"), _class$1.prototype), _class$1);
 FetcherResponseLom.displayName = "FetcherResponseLom";
 
 var _dec$1, _class$2;
@@ -9362,6 +9464,7 @@ function () {
       };
     }
   }]);
+
   return SpinnerTheme;
 }(), _applyDecoratedDescriptor(_class$3.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class$3.prototype, "css"), _class$3.prototype), _class$3);
 SpinnerTheme.displayName = "SpinnerTheme";
@@ -9385,6 +9488,7 @@ function ErrorableView(_ref) {
   var errorWasShowed = error[stackId];
   error[stackId] = true;
   var isWait = error instanceof AtomWaitInt;
+  var retry = mem.retry(error);
   return lom_h(SpinnerView, {
     rdi_theme: true,
     isError: !isWait
@@ -9400,14 +9504,14 @@ function ErrorableView(_ref) {
     }
   }, lom_h("h3", {
     id: "error-title"
-  }, error.message), error instanceof HttpError ? lom_h("div", {
+  }, error.message), retry ? lom_h("div", {
     id: "recover",
     style: {
       paddingBottom: '1em'
     }
   }, lom_h("button", {
     id: "recover-button",
-    onClick: error.retry
+    onClick: retry
   }, "Retry")) : null));
 }
 ErrorableView._r = [1];
@@ -9450,6 +9554,7 @@ function () {
       }
     }
   }]);
+
   return FirstCounterService;
 }(), _applyDecoratedDescriptor(_class$4.prototype, "value", [mem], Object.getOwnPropertyDescriptor(_class$4.prototype, "value"), _class$4.prototype), _applyDecoratedDescriptor(_class$4.prototype, "value", [mem], Object.getOwnPropertyDescriptor(_class$4.prototype, "value"), _class$4.prototype), _class$4);
 FirstCounterService.displayName = "FirstCounterService";
@@ -9585,6 +9690,7 @@ function () {
       return 'Hello, ' + this.name;
     }
   }]);
+
   return HelloContext;
 }(), _descriptor = _applyDecoratedDescriptor(_class$5.prototype, "name", [mem], {
   enumerable: true,
@@ -9632,6 +9738,7 @@ function () {
       throw new AtomWaitInt();
     }
   }]);
+
   return HelloAsyncContext;
 }(), _descriptor$1 = _applyDecoratedDescriptor(_class$6.prototype, "name", [mem], {
   enumerable: true,
@@ -9718,6 +9825,7 @@ function () {
       mem.cache(this.removing);
     }
   }]);
+
   return Todo;
 }(), _applyDecoratedDescriptor(_class$7.prototype, "update", [action], Object.getOwnPropertyDescriptor(_class$7.prototype, "update"), _class$7.prototype), _applyDecoratedDescriptor(_class$7.prototype, "saving", [mem], Object.getOwnPropertyDescriptor(_class$7.prototype, "saving"), _class$7.prototype), _applyDecoratedDescriptor(_class$7.prototype, "saving", [mem], Object.getOwnPropertyDescriptor(_class$7.prototype, "saving"), _class$7.prototype), _applyDecoratedDescriptor(_class$7.prototype, "removing", [mem], Object.getOwnPropertyDescriptor(_class$7.prototype, "removing"), _class$7.prototype), _applyDecoratedDescriptor(_class$7.prototype, "removing", [mem], Object.getOwnPropertyDescriptor(_class$7.prototype, "removing"), _class$7.prototype), _applyDecoratedDescriptor(_class$7.prototype, "remove", [action], Object.getOwnPropertyDescriptor(_class$7.prototype, "remove"), _class$7.prototype), _applyDecoratedDescriptor(_class$7.prototype, "toggle", [action], Object.getOwnPropertyDescriptor(_class$7.prototype, "toggle"), _class$7.prototype), _class$7);
 Todo._r = [0, ["ITodoData", "ITodoRepository"]];
@@ -9875,6 +9983,7 @@ function () {
       }
     }
   }]);
+
   return TodoRepository;
 }(), _applyDecoratedDescriptor(_class$8.prototype, "todos", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "todos"), _class$8.prototype), _applyDecoratedDescriptor(_class$8.prototype, "activeTodoCount", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "activeTodoCount"), _class$8.prototype), _applyDecoratedDescriptor(_class$8.prototype, "adding", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "adding"), _class$8.prototype), _applyDecoratedDescriptor(_class$8.prototype, "adding", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "adding"), _class$8.prototype), _applyDecoratedDescriptor(_class$8.prototype, "addTodo", [action], Object.getOwnPropertyDescriptor(_class$8.prototype, "addTodo"), _class$8.prototype), _applyDecoratedDescriptor(_class$8.prototype, "patching", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "patching"), _class$8.prototype), _applyDecoratedDescriptor(_class$8.prototype, "patching", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "patching"), _class$8.prototype), _applyDecoratedDescriptor(_class$8.prototype, "toggleAll", [action], Object.getOwnPropertyDescriptor(_class$8.prototype, "toggleAll"), _class$8.prototype), _applyDecoratedDescriptor(_class$8.prototype, "clearing", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "clearing"), _class$8.prototype), _applyDecoratedDescriptor(_class$8.prototype, "clearing", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "clearing"), _class$8.prototype), _applyDecoratedDescriptor(_class$8.prototype, "clearCompleted", [action], Object.getOwnPropertyDescriptor(_class$8.prototype, "clearCompleted"), _class$8.prototype), _applyDecoratedDescriptor(_class$8.prototype, "filteredTodos", [mem], Object.getOwnPropertyDescriptor(_class$8.prototype, "filteredTodos"), _class$8.prototype), _class$8);
 TodoRepository._r = [0, [Fetcher, AbstractLocationStore]];
@@ -9886,6 +9995,7 @@ var TodoToAdd = (_dec$2 = action.defer, _class$9 =
 function () {
   function TodoToAdd(todoRepository) {
     _initializerDefineProperty(this, "title", _descriptor$2, this);
+
     this._todoRepository = todoRepository;
   }
 
@@ -9915,6 +10025,7 @@ function () {
       return !!this._todoRepository.adding;
     }
   }]);
+
   return TodoToAdd;
 }(), _descriptor$2 = _applyDecoratedDescriptor(_class$9.prototype, "title", [mem], {
   enumerable: true,
@@ -9950,6 +10061,7 @@ function () {
       };
     }
   }]);
+
   return TodoHeaderTheme;
 }(), _applyDecoratedDescriptor(_class3.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class3.prototype, "css"), _class3.prototype), _class3);
 TodoHeaderTheme.displayName = "TodoHeaderTheme";
@@ -9983,7 +10095,9 @@ var TodoItemEdit = (_dec$3 = action.defer, _class$10 =
 function () {
   function TodoItemEdit() {
     _initializerDefineProperty(this, "todoBeingEditedId", _descriptor$3, this);
+
     _initializerDefineProperty(this, "editText", _descriptor2, this);
+
     _initializerDefineProperty(this, "props", _descriptor3, this);
   }
 
@@ -10188,6 +10302,7 @@ function () {
       };
     }
   }]);
+
   return TodoItemTheme;
 }(), _applyDecoratedDescriptor(_class3$1.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class3$1.prototype, "css"), _class3$1.prototype), _class3$1);
 TodoItemTheme.displayName = "TodoItemTheme";
@@ -10296,6 +10411,7 @@ function () {
       };
     }
   }]);
+
   return TodoMainTheme;
 }(), _applyDecoratedDescriptor(_class$11.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class$11.prototype, "css"), _class$11.prototype), _class$11);
 TodoMainTheme.displayName = "TodoMainTheme";
@@ -10435,6 +10551,7 @@ function () {
       };
     }
   }]);
+
   return TodoFooterService;
 }(), _applyDecoratedDescriptor(_class$12.prototype, "clickLink", [action], Object.getOwnPropertyDescriptor(_class$12.prototype, "clickLink"), _class$12.prototype), _applyDecoratedDescriptor(_class$12.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class$12.prototype, "css"), _class$12.prototype), _class$12);
 TodoFooterService._r = [0, [TodoRepository]];
@@ -10517,6 +10634,7 @@ function () {
       };
     }
   }]);
+
   return TodoAppTheme;
 }(), _applyDecoratedDescriptor(_class$13.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class$13.prototype, "css"), _class$13.prototype), _class$13);
 TodoAppTheme.displayName = "TodoAppTheme";
@@ -10582,6 +10700,7 @@ function () {
 
   function AutocompleteService(fetcher) {
     _initializerDefineProperty(this, "nameToSearch", _descriptor$4, this);
+
     this._debounced = new DebouncedValue(500);
     this._fetcher = fetcher;
   }
@@ -10601,6 +10720,7 @@ function () {
       return this._fetcher.get(url).json();
     }
   }]);
+
   return AutocompleteService;
 }(), _descriptor$4 = _applyDecoratedDescriptor(_class3$2.prototype, "nameToSearch", [mem], {
   enumerable: true,
@@ -10658,6 +10778,7 @@ var CssChangeInputTheme = (_class3$3 =
 function () {
   function CssChangeInputTheme(store) {
     _initializerDefineProperty(this, "props", _descriptor2$1, this);
+
     this._store = store;
   }
 
@@ -10694,6 +10815,7 @@ function () {
       };
     }
   }]);
+
   return CssChangeInputTheme;
 }(), _descriptor2$1 = _applyDecoratedDescriptor(_class3$3.prototype, "props", [props], {
   enumerable: true,
@@ -10766,6 +10888,7 @@ function () {
       };
     }
   }]);
+
   return KeyValueTheme;
 }(), _applyDecoratedDescriptor(_class$16.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class$16.prototype, "css"), _class$16.prototype), _class$16);
 KeyValueTheme.displayName = "KeyValueTheme";
@@ -10839,6 +10962,7 @@ function () {
         slug: _slug,
         component: pages[_id]
       }, extra[_id]);
+
       result.push(page);
     }
   }
@@ -10875,7 +10999,9 @@ function () {
       TodoAppView: TodoAppView,
       CssChangeView: CssChangeView
     });
+
     _initializerDefineProperty(this, "name", _descriptor$6, this);
+
     this._locationStore = locationStore;
   }
 
@@ -10946,6 +11072,7 @@ function () {
       this._locationStore.location('page', page.slug);
     }
   }]);
+
   return Store;
 }(), _applyDecoratedDescriptor(_class$17.prototype, "css", [theme], Object.getOwnPropertyDescriptor(_class$17.prototype, "css"), _class$17.prototype), _applyDecoratedDescriptor(_class$17.prototype, "setPageSlug", [action], Object.getOwnPropertyDescriptor(_class$17.prototype, "setPageSlug"), _class$17.prototype), _applyDecoratedDescriptor(_class$17.prototype, "page", [mem], Object.getOwnPropertyDescriptor(_class$17.prototype, "page"), _class$17.prototype), _applyDecoratedDescriptor(_class$17.prototype, "page", [mem], Object.getOwnPropertyDescriptor(_class$17.prototype, "page"), _class$17.prototype), _descriptor$6 = _applyDecoratedDescriptor(_class$17.prototype, "name", [mem], {
   enumerable: true,

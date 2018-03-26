@@ -1,5 +1,5 @@
 // @flow
-import {AtomWait} from 'lom_atom'
+import {mem, AtomWait} from 'lom_atom'
 import {HttpError} from '../fetcher'
 import SpinnerView from '../rdi/SpinnerView'
 
@@ -14,14 +14,15 @@ export default function ErrorableView({
     const errorWasShowed = (error: Object)[stackId]
     ;(error: Object)[stackId] = true
     const isWait = error instanceof AtomWait
+    const retry = mem.retry(error)
     return <SpinnerView rdi_theme isError={!isWait}>
         {isWait || errorWasShowed
             ? <div id="content" style={{pointerEvents: 'none'}}>{children}</div>
             : <div id="error" style={{padding: '0.1em 1em'}}>
                 <h3 id="error-title">{error.message}</h3>
-                {error instanceof HttpError
+                {retry
                     ? <div id="recover" style={{paddingBottom: '1em'}}>
-                        <button id="recover-button" onClick={error.retry}>Retry</button>
+                        <button id="recover-button" onClick={retry}>Retry</button>
                     </div>
                     : null
                 }

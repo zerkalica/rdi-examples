@@ -20,7 +20,6 @@ class HttpError {
     status: ?number
     message: string
     stack: string
-    retry: () => void
     uid: string
     data: ?Object
     _opts: IRequestOptions
@@ -54,7 +53,6 @@ class HttpError {
         // $FlowFixMe new.target
         ;(t: Object)['__proto__'] = new.target.prototype
         t._opts = opts
-        t.retry = opts.retry
 
         return t
     }

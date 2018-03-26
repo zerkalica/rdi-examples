@@ -5,7 +5,6 @@ export type IRequestOptions = RequestOptions & {
     requestId: string;
     fullUrl: string;
     url: string;
-    retry: () => void;
 }
 
 export interface IStateCollector {

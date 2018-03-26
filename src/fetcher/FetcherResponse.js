@@ -4,20 +4,14 @@ import type {IRequestOptions, IFetcher, FetcherApi} from './interfaces'
 export default class FetcherResponse implements FetcherApi {
     _fetcher: IFetcher
     _options: IRequestOptions
-    static WaitError: Class<Error> = Error
     constructor(method: string, url: string, fullUrl: string, fetcher: IFetcher) {
         this._options = {
             method,
             url,
             fullUrl,
-            requestId: '' + Date.now(),
-            retry: this._getRetry()
+            requestId: '' + Date.now()
         }
         this._fetcher = fetcher
-    }
-
-    _getRetry(): () => void {
-        throw new Error('implement')
     }
 
     _getState<V>(): V | void {
@@ -33,8 +27,6 @@ export default class FetcherResponse implements FetcherApi {
         Object.assign((this._options: Object), opts)
         return this
     }
-
-    _disposed = false
 
     text<V: string | Error | FormData>(next?: V): V {
         if (next instanceof Error) throw new Error('Need a string')
@@ -52,21 +44,11 @@ export default class FetcherResponse implements FetcherApi {
             return state
         }
 
-        this._disposed = false
-        fetcher.request(opts)
-            .then((data: any) => {
-                if (!this._disposed) this._setData(data)
-            })
-
-        throw new this.constructor.WaitError(`${opts.method || 'GET'} ${opts.fullUrl}`)
+        throw this._createException(`${opts.method || 'GET'} ${opts.fullUrl}`, fetcher.request(opts))
     }
 
-    _setData(data: string) {
-        throw new Error('implement')
-    }
-
-    destructor() {
-        this._disposed = true
+    _createException(debugStr: string, promise: Promise<*>): Error {
+        return new Error(debugStr)
     }
 
     json<V>(next?: V): V {
