@@ -1,4 +1,3 @@
-(function(l, i, v, e) { v = l.createElement(i); v.async = 1; v.src = '//' + (location.host || 'localhost').split(':')[0] + ':35729/livereload.js?snipver=1'; e = l.getElementsByTagName(i)[0]; e.parentNode.insertBefore(v, e)})(document, 'script');
 (function () {
 'use strict';
 
@@ -1931,9 +1930,18 @@ function () {
 var defaultContext = new Context();
 var catchedId = Symbol('lom_cached');
 var atomId = Symbol('lom_atom');
+var debugId = Symbol('lom_debug');
 
-function isPromise(target) {
-  return target !== null && typeof target === 'object' && typeof target.then === 'function';
+function addInfo(info, obj) {
+  obj[debugId] = info;
+  return obj;
+}
+
+addInfo._r = [2];
+addInfo.displayName = "addInfo";
+
+function getInfo(obj) {
+  return (obj && typeof obj === 'object' ? obj[debugId] : null) || (obj instanceof Error ? obj.message : null);
 }
 /**
  * Can't extend Error
@@ -1941,16 +1949,15 @@ function isPromise(target) {
  */
 
 
-isPromise._r = [2];
-isPromise.displayName = "isPromise";
+getInfo._r = [2];
+getInfo.displayName = "getInfo";
 
-var AtomWait = function AtomWait(message, promise) {
+var AtomWait = function AtomWait(message) {
   var t = Error.call(this, message || '[Pending]') // super(message)
   // $FlowFixMe new.target
   ;
   t['__proto__'] = new.target.prototype;
-  t[catchedId] = undefined;
-  t.promise = promise;
+  t[catchedId] = true;
   return t;
 };
 
@@ -1958,7 +1965,13 @@ AtomWait._r = [2];
 AtomWait.displayName = "AtomWait";
 AtomWait.prototype = Object.create(Error.prototype);
 AtomWait.prototype.constructor = AtomWait;
-var AtomWaitInt = AtomWait;
+
+function isPromise(target) {
+  return target !== null && typeof target === 'object' && typeof target.then === 'function';
+}
+
+isPromise._r = [2];
+isPromise.displayName = "isPromise";
 
 function getId(t, hk) {
   return (t.constructor.displayName || t.constructor.name) + "." + hk;
@@ -2165,7 +2178,7 @@ function () {
 
       var normalized;
 
-      if (next !== undefined && (normalized = this._conform(next, this._suggested)) !== this._suggested && (current instanceof Error || (normalized = this._conform(next, current)) !== current)) {
+      if (next !== undefined && (normalized = this._conform(next, this._suggested)) !== this._suggested && (current instanceof Error || isPromise(current) || (normalized = this._conform(next, current)) !== current)) {
         this._suggested = this._next = normalized;
         this.status = ATOM_STATUS_OBSOLETE;
       }
@@ -2175,7 +2188,7 @@ function () {
 
     current = this.current;
 
-    if (current instanceof Error) {
+    if (current instanceof Error || isPromise(current)) {
       if (forceCache !== ATOM_FORCE_NONE) {
         if (current[proxyId] === undefined) current[proxyId] = proxify(current);
         return current[proxyId];
@@ -2225,7 +2238,7 @@ function () {
     var prev = this.current;
     var next;
 
-    if (nextRaw instanceof Error) {
+    if (nextRaw instanceof Error || isPromise(nextRaw)) {
       next = nextRaw[origId] === undefined ? nextRaw : nextRaw[origId];
       if (next[atomId] === undefined) next[atomId] = this;
     } else {
@@ -2265,22 +2278,19 @@ function () {
       newValue = this._handler(this._next);
     } catch (error) {
       if (error[catchedId] === undefined) {
-        newValue = isPromise(error) ? new AtomWaitInt(undefined, error) : error;
-        newValue[catchedId] = true;
+        error[catchedId] = true;
 
-        if (newValue instanceof AtomWaitInt) {
-          var promise = newValue.promise;
-
-          if (promise) {
-            if (this._setForced === undefined) this._setForced = function (value) {
-              return _this.value(value, ATOM_FORCE_CACHE);
-            };
-            promise.then(this._setForced).catch(this._setForced);
-          }
+        if (isPromise(error)) {
+          if (this._setForced === undefined) this._setForced = function (value) {
+            return _this.value(value, ATOM_FORCE_CACHE);
+          };
+          error.then(this._setForced).catch(this._setForced);
         } else {
-          console.error(newValue.stack || newValue);
+          console.error(error.stack || newValue);
         }
-      } else newValue = error;
+      }
+
+      newValue = error;
     }
 
     context.current = slave;
@@ -2451,7 +2461,7 @@ function createActionMethod(host, methodName, sync) {
           break;
       }
     } catch (e) {
-      if (!(e instanceof AtomWaitInt)) {
+      if (!isPromise(e)) {
         var slave = defaultContext.current;
 
         if (slave) {
@@ -2779,7 +2789,7 @@ function () {
       console.debug(name, 'rendered');
     } else {
       var _useColors = this._useColors;
-      console[from instanceof Error && !(from instanceof AtomWaitInt) ? 'warn' : to instanceof Error && !(to instanceof AtomWaitInt) ? 'error' : 'log'](_useColors ? '%c' + name : name, _useColors ? stringToColor(name) : '', from instanceof Error ? from.message : from, '➔', to instanceof Error ? to.message : to);
+      console[from instanceof Error && !isPromise(from) ? 'warn' : to instanceof Error && !isPromise(to) ? 'error' : 'log'](_useColors ? '%c' + name : name, _useColors ? stringToColor(name) : '', getInfo(from) || from, '➔', getInfo(to) || to);
     }
   };
 
@@ -9230,7 +9240,7 @@ function () {
   };
 
   _proto._createException = function _createException(debugStr, promise) {
-    return new Error(debugStr);
+    return promise;
   };
 
   _proto.json = function json(next) {
@@ -9396,7 +9406,7 @@ function (_FetcherResponse) {
   };
 
   _proto._createException = function _createException(debugStr, promise) {
-    return new AtomWaitInt(debugStr, promise);
+    return addInfo(debugStr, promise);
   };
 
   return FetcherResponseLom;
@@ -9481,23 +9491,15 @@ SpinnerView._r = [1, [{
 }]];
 SpinnerView.displayName = "SpinnerView";
 
-var stackId = Symbol('stack_id');
 function ErrorableView(_ref) {
   var error = _ref.error,
       children = _ref.children;
-  var errorWasShowed = error[stackId];
-  error[stackId] = true;
-  var isWait = error instanceof AtomWaitInt;
-  var retry = mem.retry(error);
+  var isError = error instanceof Error;
+  var retry = isError ? mem.retry(error) : null;
   return lom_h(SpinnerView, {
     rdi_theme: true,
-    isError: !isWait
-  }, isWait || errorWasShowed ? lom_h("div", {
-    id: "content",
-    style: {
-      pointerEvents: 'none'
-    }
-  }, children) : lom_h("div", {
+    isError: isError
+  }, isError ? lom_h("div", {
     id: "error",
     style: {
       padding: '0.1em 1em'
@@ -9512,7 +9514,12 @@ function ErrorableView(_ref) {
   }, lom_h("button", {
     id: "recover-button",
     onClick: retry
-  }, "Retry")) : null));
+  }, "Retry")) : null) : lom_h("div", {
+    id: "content",
+    style: {
+      pointerEvents: 'none'
+    }
+  }, children));
 }
 ErrorableView._r = [1];
 ErrorableView.displayName = "ErrorableView";
@@ -9541,12 +9548,11 @@ function () {
   _createClass(FirstCounterService, [{
     key: "value",
     get: function get() {
-      var _this = this;
-
-      setTimeout(function () {
-        mem.cache(_this.value = 1); // this.value = new Error('loading error')
-      }, 500);
-      throw new AtomWaitInt();
+      throw new Promise(function (resolve) {
+        setTimeout(function () {
+          return resolve(1);
+        }, 500);
+      });
     },
     set: function set(v) {
       if (typeof v === 'string') {
@@ -9597,16 +9603,16 @@ function (_FirstCounterService) {
   _inheritsLoose(SecondCounterService, _FirstCounterService);
 
   function SecondCounterService() {
-    var _temp, _this2;
+    var _temp, _this;
 
     for (var _len = arguments.length, args = new Array(_len), _key = 0; _key < _len; _key++) {
       args[_key] = arguments[_key];
     }
 
-    return (_temp = _this2 = _FirstCounterService.call.apply(_FirstCounterService, [this].concat(args)) || this, _this2.lang = {
+    return (_temp = _this = _FirstCounterService.call.apply(_FirstCounterService, [this].concat(args)) || this, _this.lang = {
       add: 'cloned Add',
       error: 'cloned Gen error'
-    }, _temp) || _assertThisInitialized(_this2);
+    }, _temp) || _assertThisInitialized(_this);
   }
 
   return SecondCounterService;
@@ -9731,11 +9737,11 @@ function () {
     get: function get() {
       var _this = this;
 
-      setTimeout(function () {
-        var v = 'HelloAsync, ' + _this.name;
-        mem.cache(_this.greet = v);
-      }, 200);
-      throw new AtomWaitInt();
+      throw new Promise(function (resolve) {
+        setTimeout(function () {
+          resolve('HelloAsync, ' + _this.name);
+        }, 200);
+      });
     }
   }]);
 
@@ -10673,10 +10679,11 @@ function () {
     var _this = this;
 
     this.destructor();
-    this._handler = setTimeout(function () {
-      return mem.cache(_this.value(next));
-    }, this._timeout);
-    throw new AtomWaitInt();
+    throw new Promise(function (resolve) {
+      _this._handler = setTimeout(function () {
+        return resolve(next);
+      }, _this._timeout);
+    });
   };
 
   _proto.destructor = function destructor() {

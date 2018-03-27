@@ -1,6 +1,6 @@
 // @flow
 
-import {mem, defer, AtomWait, ReactAtom, ConsoleLogger, defaultContext} from 'lom_atom'
+import {mem, defer, ReactAtom, ConsoleLogger, defaultContext} from 'lom_atom'
 import {JssSheetManager, createReactWrapper, createCreateElement, Injector} from 'reactive-di'
 
 import {h, Component} from 'preact'

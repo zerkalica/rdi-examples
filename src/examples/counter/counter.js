@@ -1,6 +1,6 @@
 // @flow
 
-import {mem, AtomWait} from 'lom_atom'
+import {mem} from 'lom_atom'
 import {cloneComponent} from 'reactive-di'
 
 class FirstCounterService {
@@ -9,12 +9,9 @@ class FirstCounterService {
         error: 'Gen error'
     }
     @mem get value(): number {
-        setTimeout(() => {
-            mem.cache(this.value = 1)
-            // this.value = new Error('loading error')
-        }, 500)
-
-        throw new AtomWait()
+        throw new Promise((resolve) => {
+            setTimeout(() => resolve(1), 500)
+        })
     }
 
     @mem set value(v: number | Error) {

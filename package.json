@@ -83,7 +83,7 @@
     "jss-camel-case": "^6.1.0",
     "jss-global": "^3.0.0",
     "jss-nested": "^6.0.1",
-    "lom_atom": "^4.0.3",
+    "lom_atom": "^4.0.4",
     "preact": "^8.2.7",
     "reactive-di": "^7.0.0",
     "urc": "^1.0.8"

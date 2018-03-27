@@ -1,6 +1,6 @@
 // @flow
 
-import {mem, AtomWait, action} from 'lom_atom'
+import {mem, action} from 'lom_atom'
 import {props} from 'reactive-di'
 import {Fetcher} from '../../fetcher'
 
@@ -19,11 +19,12 @@ class DebouncedValue {
 
     @mem value<V>(next?: V): V {
         this.destructor()
-        this._handler = setTimeout(
-            () => mem.cache(this.value(next)),
-            this._timeout
-        )
-        throw new AtomWait()
+        throw new Promise((resolve) => {
+            this._handler = setTimeout(
+                () => resolve(next),
+                this._timeout
+            )
+        })
     }
 
     destructor() {

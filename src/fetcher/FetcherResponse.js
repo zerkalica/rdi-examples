@@ -47,8 +47,8 @@ export default class FetcherResponse implements FetcherApi {
         throw this._createException(`${opts.method || 'GET'} ${opts.fullUrl}`, fetcher.request(opts))
     }
 
-    _createException(debugStr: string, promise: Promise<*>): Error {
-        return new Error(debugStr)
+    _createException<V>(debugStr: string, promise: Promise<V>): Promise<V> {
+        return promise
     }
 
     json<V>(next?: V): V {

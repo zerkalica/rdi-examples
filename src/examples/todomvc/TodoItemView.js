@@ -1,7 +1,7 @@
 // @flow
 
 import {props, theme} from 'reactive-di'
-import {action, mem, AtomWait} from 'lom_atom'
+import {action, mem} from 'lom_atom'
 import Todo from './models/Todo'
 
 const ESCAPE_KEY = 27

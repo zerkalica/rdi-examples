@@ -1,6 +1,6 @@
 // @flow
 
-import {mem, AtomWait} from 'lom_atom'
+import {mem, addInfo} from 'lom_atom'
 
 import FetcherResponse from '../FetcherResponse'
 
@@ -9,7 +9,7 @@ export default class FetcherResponseLom extends FetcherResponse {
         return super.text(next)
     }
 
-    _createException(debugStr: string, promise: Promise<*>): Error {
-        return new AtomWait(debugStr, promise)
+    _createException<V>(debugStr: string, promise: Promise<V>): Promise<V> {
+        return addInfo(debugStr, promise)
     }
 }

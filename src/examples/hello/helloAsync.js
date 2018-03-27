@@ -1,6 +1,6 @@
 // @flow
 
-import {mem, AtomWait} from 'lom_atom'
+import {mem} from 'lom_atom'
 import {props} from 'reactive-di'
 
 class HelloAsyncContext {
@@ -8,11 +8,11 @@ class HelloAsyncContext {
 
     @mem set greet(v: string) {}
     @mem get greet() {
-        setTimeout(() => {
-            const v = 'HelloAsync, ' + this.name
-            mem.cache(this.greet = v)
-        }, 200)
-        throw new AtomWait()
+        throw new Promise((resolve) => {
+            setTimeout(() => {
+                resolve('HelloAsync, ' + this.name)
+            }, 200)
+        })
     }
 }
 
